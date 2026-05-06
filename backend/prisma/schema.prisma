@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  email    String   @unique
+  senha    String
+  perfil   String // RBAC: 'ADMIN', 'GESTOR', 'OPERADOR'
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  movimentacoes Movimentacao[]
+  ajustesSolicitados AjusteEstoque[] @relation("AjusteSolicitante")
+  ajustesAprovados   AjusteEstoque[] @relation("AjusteAprovador")
+  contagens          ContagemInventario[]
+}
+
+model Produto {
+  id         Int     @id @default(autoincrement())
+  sku        String  @unique
+  descricao  String
+  categoria  String
+  perecivel  Boolean @default(false)
+  custoMedio Float   @default(0.0) // Atualizado no Recebimento (RN-CST-001)
+  ativo      Boolean @default(true) // Soft delete (RN-TRV-003)
+
+  lotes Lote[]
+  logsCusto LogCusto[]
+}
+
+model Lote {
+  id         Int       @id @default(autoincrement())
+  numeroLote String
+  produtoId  Int
+  quantidade Int       @default(0) // Central de saldo
+  validade   DateTime?
+  ativo      Boolean   @default(true) // Soft delete
+  emInventario Boolean @default(false) // RN-INV-006: Bloqueio logico
+
+  produto       Produto        @relation(fields: [produtoId], references: [id])
+  movimentacoes Movimentacao[]
+  ajustes       AjusteEstoque[]
+  contagens     ContagemInventario[]
+}
+
+model Endereco {
+  id         Int     @id @default(autoincrement())
+  codigo     String  @unique // ex: A-01-01
+  zona       String
+  tipoZona   String  @default("SECO") // 'SECO', 'REFRIGERADO', 'CONGELADO' (RN-ARM-003)
+  capacidade Int
+  ocupado    Int     @default(0)
+  ativo      Boolean @default(true)
+
+  movimentacoesOrigem  Movimentacao[] @relation("EnderecoOrigem")
+  movimentacoesDestino Movimentacao[] @relation("EnderecoDestino")
+}
+
+model Movimentacao {
+  id                Int      @id @default(autoincrement())
+  tipo              String // 'ENTRADA', 'SAIDA', 'AJUSTE', 'INVENTARIO'
+  loteId            Int
+  quantidade        Int
+  motivo            String?
+  enderecoOrigemId  Int?
+  enderecoDestinoId Int?
+  usuarioId         Int
+  criadoEm          DateTime @default(now()) // Carimbo de tempo NTP (RN-TRV-005)
+  hash              String
+  previousHash      String?
+
+  lote            Lote      @relation(fields: [loteId], references: [id])
+  enderecoOrigem  Endereco? @relation("EnderecoOrigem", fields: [enderecoOrigemId], references: [id])
+  enderecoDestino Endereco? @relation("EnderecoDestino", fields: [enderecoDestinoId], references: [id])
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+}
+
+model AjusteEstoque {
+  id              Int      @id @default(autoincrement())
+  loteId          Int
+  quantidadeDelta Int
+  motivo          String
+  valorDelta      Float    @default(0.0)
+  statusAprovacao String   @default("PENDENTE") // 'PENDENTE', 'APROVADO', 'REJEITADO'
+  solicitanteId   Int
+  aprovadorId     Int?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  lote        Lote     @relation(fields: [loteId], references: [id])
+  solicitante Usuario  @relation("AjusteSolicitante", fields: [solicitanteId], references: [id])
+  aprovador   Usuario? @relation("AjusteAprovador", fields: [aprovadorId], references: [id])
+}
+
+model LogCusto {
+  id                 Int      @id @default(autoincrement())
+  produtoId          Int
+  custoAnterior      Float
+  custoNovo          Float
+  quantidadeAnterior Int
+  quantidadeNova     Int
+  motivo             String?
+  criadoEm           DateTime @default(now())
+  hash               String
+  previousHash       String?
+
+  produto Produto @relation(fields: [produtoId], references: [id])
+}
+
+model ContagemInventario {
+  id                Int      @id @default(autoincrement())
+  loteId            Int
+  quantidadeFisica  Int?
+  quantidadeTeorica Int
+  status            String   @default("PENDENTE") // 'PENDENTE', 'CONCLUIDO', 'DIVERGENTE', 'AJUSTADO'
+  usuarioId         Int
+  criadoEm          DateTime @default(now())
+  atualizadoEm      DateTime @updatedAt
+
+  lote    Lote    @relation(fields: [loteId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+}

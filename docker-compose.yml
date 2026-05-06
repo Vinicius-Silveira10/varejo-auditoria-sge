@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: fortal_sge_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: fortalpassword
+      POSTGRES_DB: fortal_sge
+    ports:
+      - "5433:5432"
+    volumes:
+      - fortal_sge_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  fortal_sge_data:
