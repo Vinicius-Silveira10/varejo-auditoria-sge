@@ -63,6 +63,7 @@ describe('ReceiveBatchUseCase', () => {
       validade: null,
       ativo: true,
       emInventario: false,
+      notaFiscalId: null,
     });
     expect(result).toEqual(mockCreatedBatch);
   });

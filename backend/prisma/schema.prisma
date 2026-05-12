@@ -20,6 +20,8 @@ model Usuario {
   ajustesSolicitados AjusteEstoque[] @relation("AjusteSolicitante")
   ajustesAprovados   AjusteEstoque[] @relation("AjusteAprovador")
   contagens          ContagemInventario[]
+  pedidosConferidos1 PedidoExpedicao[] @relation("ConferenteUm")
+  pedidosConferidos2 PedidoExpedicao[] @relation("ConferenteDois")
 }
 
 model Produto {
@@ -33,18 +35,50 @@ model Produto {
 
   lotes Lote[]
   logsCusto LogCusto[]
+  itensPedido ItemPedido[]
+}
+
+model NotaFiscal {
+  id            Int      @id @default(autoincrement())
+  chaveAcesso   String   @unique // 44 dígitos - RN-REC-002 (impede duplicidade)
+  numero        String
+  serie         String
+  cnpjEmitente  String
+  dataEmissao   DateTime
+  valorTotal    Float
+  xmlOriginal   String   @db.Text // XML bruto para auditoria (RN-REL-001)
+  status        String   @default("PENDENTE") // 'PENDENTE', 'CONFERIDO', 'DIVERGENTE'
+  divergencias  String?  @db.Text // JSON com apontamentos de divergência (RN-REC-001)
+  criadoEm      DateTime @default(now())
+
+  itensNfe ItemNfe[]
+  lotes    Lote[]
+}
+
+model ItemNfe {
+  id             Int    @id @default(autoincrement())
+  notaFiscalId   Int
+  produtoSku     String // SKU/EAN do item conforme NF-e
+  descricaoNfe   String // Descrição do produto na NF-e
+  quantidade     Int
+  valorUnitario  Float
+  valorTotal     Float
+
+  notaFiscal NotaFiscal @relation(fields: [notaFiscalId], references: [id])
 }
 
 model Lote {
-  id         Int       @id @default(autoincrement())
-  numeroLote String
-  produtoId  Int
-  quantidade Int       @default(0) // Central de saldo
-  validade   DateTime?
-  ativo      Boolean   @default(true) // Soft delete
-  emInventario Boolean @default(false) // RN-INV-006: Bloqueio logico
+  id           Int       @id @default(autoincrement())
+  numeroLote   String
+  produtoId    Int
+  quantidade   Int       @default(0) // Central de saldo
+  validade     DateTime?
+  ativo        Boolean   @default(true) // Soft delete
+  emInventario Boolean   @default(false) // RN-INV-006: Bloqueio logico
+  notaFiscalId Int? // Vínculo com NF-e de origem
 
-  produto       Produto        @relation(fields: [produtoId], references: [id])
+  produto       Produto         @relation(fields: [produtoId], references: [id])
+  notaFiscal    NotaFiscal?     @relation(fields: [notaFiscalId], references: [id])
   movimentacoes Movimentacao[]
   ajustes       AjusteEstoque[]
   contagens     ContagemInventario[]
@@ -127,3 +161,30 @@ model ContagemInventario {
   lote    Lote    @relation(fields: [loteId], references: [id])
   usuario Usuario @relation(fields: [usuarioId], references: [id])
 }
+
+model PedidoExpedicao {
+  id            Int      @id @default(autoincrement())
+  codigoPedido  String   @unique // Código do ERP ou sistema externo
+  status        String   @default("PENDENTE") // 'PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'
+  valorTotal    Float    @default(0.0) // Usado para RN-EXP-003
+  conferente1Id Int?
+  conferente2Id Int?
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  itens       ItemPedido[]
+  conferente1 Usuario?     @relation("ConferenteUm", fields: [conferente1Id], references: [id])
+  conferente2 Usuario?     @relation("ConferenteDois", fields: [conferente2Id], references: [id])
+}
+
+model ItemPedido {
+  id                   Int      @id @default(autoincrement())
+  pedidoId             Int
+  produtoId            Int
+  quantidadeSolicitada Int
+  quantidadeSeparada   Int      @default(0) // Preenchido durante o picking
+
+  pedido  PedidoExpedicao @relation(fields: [pedidoId], references: [id])
+  produto Produto         @relation(fields: [produtoId], references: [id])
+}
+

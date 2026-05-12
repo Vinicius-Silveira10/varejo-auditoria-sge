@@ -32,6 +32,16 @@ export class PrismaAddressRepository implements IAddressRepository {
     });
   }
 
+  async findAvailableByZona(tipoZona: string): Promise<Endereco[]> {
+    return this.prisma.endereco.findMany({
+      where: {
+        tipoZona,
+        ativo: true,
+      },
+      orderBy: { ocupado: 'asc' }, // Menos ocupado primeiro (mais espaço disponível)
+    });
+  }
+
   async updateOcupacao(id: number, novaOcupacao: number): Promise<Endereco> {
     return this.prisma.endereco.update({
       where: { id },

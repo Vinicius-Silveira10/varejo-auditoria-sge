@@ -8,6 +8,8 @@ import { PrismaUserRepository } from './repositories/prisma-user.repository';
 import { PrismaAdjustmentRepository } from './repositories/prisma-adjustment.repository';
 import { PrismaLogCustoRepository } from './repositories/prisma-log-custo.repository';
 import { PrismaInventoryCountRepository } from './repositories/prisma-inventory-count.repository';
+import { PrismaNotaFiscalRepository } from './repositories/prisma-nota-fiscal.repository';
+import { PrismaOrderRepository } from './repositories/prisma-order.repository';
 import { HashService } from '../../security/hash.service';
 
 @Global()
@@ -47,6 +49,14 @@ import { HashService } from '../../security/hash.service';
       provide: 'IInventoryCountRepository',
       useClass: PrismaInventoryCountRepository,
     },
+    {
+      provide: 'INotaFiscalRepository',
+      useClass: PrismaNotaFiscalRepository,
+    },
+    {
+      provide: 'IOrderRepository',
+      useClass: PrismaOrderRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -59,6 +69,8 @@ import { HashService } from '../../security/hash.service';
     'IAdjustmentRepository',
     'ILogCustoRepository',
     'IInventoryCountRepository',
+    'INotaFiscalRepository',
+    'IOrderRepository',
   ],
 })
 export class PrismaModule {}

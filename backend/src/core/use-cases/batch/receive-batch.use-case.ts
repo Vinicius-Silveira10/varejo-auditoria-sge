@@ -50,6 +50,7 @@ export class ReceiveBatchUseCase {
       validade: request.validade ? new Date(request.validade) : null,
       ativo: true,
       emInventario: false,
+      notaFiscalId: null,
     });
   }
 }
