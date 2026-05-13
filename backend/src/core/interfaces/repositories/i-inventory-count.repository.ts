@@ -14,4 +14,12 @@ export interface IInventoryCountRepository {
   findById(id: number): Promise<ContagemInventario | null>;
   updateCount(id: number, quantidadeFisica: number, status: string): Promise<ContagemInventario>;
   updateStatus(id: number, status: string): Promise<ContagemInventario>;
+  findAllFinished(): Promise<ContagemInventario[]>;
+  aggregateAccuracyMetrics(): Promise<{
+    totalTeorico: number;
+    totalFisico: number;
+    totalDivergenciaAbsoluta: number;
+    perdaFinanceiraTotal: number;
+    totalContagens: number;
+  }>;
 }

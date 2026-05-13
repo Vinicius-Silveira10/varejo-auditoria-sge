@@ -7,5 +7,11 @@ export interface IAddressRepository {
   findAvailableByZona(tipoZona: string): Promise<Endereco[]>;
   disable(id: number): Promise<Endereco>;
   updateOcupacao(id: number, novaOcupacao: number): Promise<Endereco>;
+  findAll(): Promise<Endereco[]>;
+  aggregateOccupationByZone(): Promise<Array<{
+    tipoZona: string;
+    capacidadeTotal: number;
+    ocupacaoTotal: number;
+  }>>;
 }
 

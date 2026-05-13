@@ -20,4 +20,12 @@ export class ReceiveBatchDto {
   @IsDateString()
   @IsOptional()
   validade?: string;
+
+  @IsString()
+  @IsOptional()
+  evidenciaUrl?: string;
+
+  @IsInt()
+  @IsOptional()
+  notaFiscalId?: number;
 }

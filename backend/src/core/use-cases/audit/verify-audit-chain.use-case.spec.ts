@@ -26,7 +26,12 @@ describe('VerifyAuditChainUseCase', () => {
       { id: 3, ...payload3, hash: hash3, previousHash: hash2 },
     ];
 
-    const result = await useCase.verify('Movimentacao', records);
+    const mockRepo = {
+      countAll: jest.fn().mockResolvedValue(records.length),
+      findPaginatedOrdered: jest.fn().mockResolvedValue(records),
+    };
+
+    const result = await useCase.verify('Movimentacao', mockRepo as any);
 
     expect(result.integridadeOk).toBe(true);
     expect(result.falhas).toHaveLength(0);
@@ -49,7 +54,12 @@ describe('VerifyAuditChainUseCase', () => {
       { id: 3, ...payload3, hash: hash3, previousHash: hash2 },
     ];
 
-    const result = await useCase.verify('Movimentacao', records);
+    const mockRepo = {
+      countAll: jest.fn().mockResolvedValue(records.length),
+      findPaginatedOrdered: jest.fn().mockResolvedValue(records),
+    };
+
+    const result = await useCase.verify('Movimentacao', mockRepo as any);
 
     expect(result.integridadeOk).toBe(false);
     expect(result.falhas.length).toBeGreaterThanOrEqual(1);
@@ -70,7 +80,12 @@ describe('VerifyAuditChainUseCase', () => {
       { id: 2, ...payload2, hash: hash2, previousHash: 'HASH_FALSO_INJETADO' },
     ];
 
-    const result = await useCase.verify('Movimentacao', records);
+    const mockRepo = {
+      countAll: jest.fn().mockResolvedValue(records.length),
+      findPaginatedOrdered: jest.fn().mockResolvedValue(records),
+    };
+
+    const result = await useCase.verify('Movimentacao', mockRepo as any);
 
     expect(result.integridadeOk).toBe(false);
     expect(result.falhas.length).toBeGreaterThanOrEqual(1);
@@ -79,7 +94,12 @@ describe('VerifyAuditChainUseCase', () => {
   });
 
   it('deve validar cadeia vazia (zero registros)', async () => {
-    const result = await useCase.verify('LogCusto', []);
+    const mockRepo = {
+      countAll: jest.fn().mockResolvedValue(0),
+      findPaginatedOrdered: jest.fn().mockResolvedValue([]),
+    };
+
+    const result = await useCase.verify('LogCusto', mockRepo as any);
 
     expect(result.integridadeOk).toBe(true);
     expect(result.totalRegistros).toBe(0);
@@ -94,7 +114,12 @@ describe('VerifyAuditChainUseCase', () => {
       { id: 1, ...payload, hash, previousHash: null },
     ];
 
-    const result = await useCase.verify('LogCusto', records);
+    const mockRepo = {
+      countAll: jest.fn().mockResolvedValue(records.length),
+      findPaginatedOrdered: jest.fn().mockResolvedValue(records),
+    };
+
+    const result = await useCase.verify('LogCusto', mockRepo as any);
 
     expect(result.integridadeOk).toBe(true);
     expect(result.falhas).toHaveLength(0);

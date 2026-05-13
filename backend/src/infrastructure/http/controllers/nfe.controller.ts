@@ -1,12 +1,37 @@
-import { Controller, Post, Body, BadRequestException, ConflictException, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, ConflictException, HttpCode, HttpStatus, UseGuards, Get, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { Roles, Role } from '../../security/roles.decorator';
 import { ProcessNfeUseCase } from '../../../core/use-cases/nfe/process-nfe.use-case';
+import { GetNotaFiscalDetailsUseCase } from '../../../core/use-cases/nfe/get-nfe-details.use-case';
+import { GetNfeDivergencesUseCase } from '../../../core/use-cases/nfe/get-nfe-divergences.use-case';
 import { ProcessNfeDto } from '../dtos/process-nfe.dto';
 
 @UseGuards(JwtAuthGuard)
+@Roles(Role.GESTOR, Role.ADMIN)
 @Controller('nfe')
 export class NfeController {
-  constructor(private readonly processNfeUseCase: ProcessNfeUseCase) {}
+  constructor(
+    private readonly processNfeUseCase: ProcessNfeUseCase,
+    private readonly getNotaFiscalDetailsUseCase: GetNotaFiscalDetailsUseCase,
+    private readonly getNfeDivergencesUseCase: GetNfeDivergencesUseCase,
+  ) {}
+
+  @Roles(Role.GESTOR, Role.ADMIN)
+  @Get('alerts/divergences')
+  async getNfeDivergences() {
+    const result = await this.getNfeDivergencesUseCase.execute();
+    return {
+      data: result,
+    };
+  }
+
+  @Get(':id')
+  async getNfeDetails(@Param('id') id: string) {
+    const result = await this.getNotaFiscalDetailsUseCase.execute(+id);
+    return {
+      data: result,
+    };
+  }
 
   @Post('process')
   @HttpCode(HttpStatus.CREATED)

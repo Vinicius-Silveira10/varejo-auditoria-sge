@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { Roles, Role } from '../../security/roles.decorator';
 import { RequestAdjustmentUseCase } from '../../../core/use-cases/adjustment/request-adjustment.use-case';
 import { ApproveAdjustmentUseCase } from '../../../core/use-cases/adjustment/approve-adjustment.use-case';
 
@@ -11,6 +12,7 @@ export class AdjustmentController {
     private readonly approveAdjustmentUseCase: ApproveAdjustmentUseCase,
   ) {}
 
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Post('request')
   async requestAdjustment(@Body() body: any, @Req() req: any) {
     const { loteId, quantidadeDelta, motivo } = body;
@@ -26,6 +28,7 @@ export class AdjustmentController {
     return result;
   }
 
+  @Roles(Role.GESTOR, Role.ADMIN)
   @Post('approve')
   async approveAdjustment(@Body() body: any, @Req() req: any) {
     const { ajusteId, aprovado } = body;

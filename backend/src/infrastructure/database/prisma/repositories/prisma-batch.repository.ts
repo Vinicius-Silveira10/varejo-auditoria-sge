@@ -37,10 +37,47 @@ export class PrismaBatchRepository implements IBatchRepository {
     });
   }
 
+  async updateQuantidadeDelta(id: number, delta: number): Promise<Lote> {
+    const loteDb = await this.prisma.lote.update({
+      where: { id },
+      data: { quantidade: { increment: delta } },
+    });
+    if (loteDb.quantidade < 0) {
+      throw new Error('RN-TRV-002: Saldo insuficiente no lote.');
+    }
+    return loteDb;
+  }
+
   async updateInventarioStatus(id: number, status: boolean): Promise<Lote> {
     return this.prisma.lote.update({
       where: { id },
       data: { emInventario: status },
+    });
+  }
+
+  async countByNotaFiscal(notaFiscalId: number): Promise<number> {
+    return this.prisma.lote.count({
+      where: { notaFiscalId },
+    });
+  }
+
+  async findExpiring(days: number): Promise<Lote[]> {
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() + days);
+
+    return this.prisma.lote.findMany({
+      where: {
+        quantidade: { gt: 0 },
+        ativo: true,
+        validade: {
+          lte: limitDate,
+          gte: new Date(), // Apenas os que não venceram ainda ou vencem hoje
+        },
+      },
+      orderBy: { validade: 'asc' },
+      include: {
+        produto: true,
+      } as any,
     });
   }
 }

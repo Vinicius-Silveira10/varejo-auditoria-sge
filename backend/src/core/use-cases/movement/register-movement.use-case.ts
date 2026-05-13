@@ -23,6 +23,15 @@ export class RegisterMovementUseCase {
       throw new Error('RN-INV-006: Lote bloqueado para contagem de inventário. Movimentações suspensas.');
     }
 
+    // RN-MOV-001: Validação de Rastreabilidade (Origem/Destino Obrigatórios)
+    if ((data.tipo === 'SAIDA' || data.tipo === 'EXPEDICAO') && !data.enderecoOrigemId) {
+      throw new Error('RN-MOV-001: Movimentação de saída exige um endereço de origem válido.');
+    }
+
+    if (data.tipo === 'ENTRADA' && !data.enderecoDestinoId) {
+      throw new Error('RN-MOV-001: Movimentação de entrada exige um endereço de destino válido.');
+    }
+
     // RN-ARM-001 & RN-ARM-003: Validar endereço destino
     if (data.enderecoDestinoId) {
       const enderecoDestino = await this.addressRepository.findById(data.enderecoDestinoId);
@@ -38,11 +47,11 @@ export class RegisterMovementUseCase {
         );
       }
 
-      // RN-ARM-003: Zonas térmicas (perecíveis)
+      // RN-ARM-003: Zonas térmicas (compatibilidade)
       const produto = await this.productRepository.findById(lote.produtoId);
-      if (produto && produto.perecivel && (enderecoDestino as any).tipoZona === 'SECO') {
+      if (produto && (produto as any).tipoZonaRequerida !== (enderecoDestino as any).tipoZona) {
         throw new Error(
-          'RN-ARM-003: Produto perecível não pode ser armazenado em zona SECO. Utilize zona REFRIGERADO ou CONGELADO.',
+          `RN-ARM-003: Incompatibilidade térmica. Produto requer zona ${(produto as any).tipoZonaRequerida}, mas o endereço é ${(enderecoDestino as any).tipoZona}.`,
         );
       }
     }
@@ -66,26 +75,40 @@ export class RegisterMovementUseCase {
         }
       }
       
-      await this.batchRepository.updateQuantidade(lote.id, lote.quantidade - data.quantidade);
-
+      let novaOcupacaoOrigem: number | undefined;
       // Liberar ocupação no endereço de origem
       if (data.enderecoOrigemId) {
         const enderecoOrigem = await this.addressRepository.findById(data.enderecoOrigemId);
         if (enderecoOrigem) {
-          const novaOcupacao = Math.max(0, enderecoOrigem.ocupado - data.quantidade);
-          await this.addressRepository.updateOcupacao(enderecoOrigem.id, novaOcupacao);
+          novaOcupacaoOrigem = Math.max(0, enderecoOrigem.ocupado - data.quantidade);
         }
       }
-    } else if (data.tipo === 'ENTRADA') {
-      await this.batchRepository.updateQuantidade(lote.id, lote.quantidade + data.quantidade);
 
+      return await this.movementRepository.executeMovementTransaction({
+        movementData: data,
+        loteId: lote.id,
+        quantidadeDeltaLote: -data.quantidade,
+        origemId: data.enderecoOrigemId ?? undefined,
+        novaOcupacaoOrigem,
+      });
+
+    } else if (data.tipo === 'ENTRADA') {
+      let novaOcupacaoDestino: number | undefined;
       // Incrementar ocupação no endereço destino
       if (data.enderecoDestinoId) {
         const enderecoDestino = await this.addressRepository.findById(data.enderecoDestinoId);
         if (enderecoDestino) {
-          await this.addressRepository.updateOcupacao(enderecoDestino.id, enderecoDestino.ocupado + data.quantidade);
+          novaOcupacaoDestino = enderecoDestino.ocupado + data.quantidade;
         }
       }
+
+      return await this.movementRepository.executeMovementTransaction({
+        movementData: data,
+        loteId: lote.id,
+        quantidadeDeltaLote: data.quantidade,
+        destinoId: data.enderecoDestinoId ?? undefined,
+        novaOcupacaoDestino,
+      });
     }
 
     return await this.movementRepository.create(data);

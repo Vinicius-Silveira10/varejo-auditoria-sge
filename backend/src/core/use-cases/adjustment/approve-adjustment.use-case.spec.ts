@@ -98,4 +98,12 @@ describe('ApproveAdjustmentUseCase', () => {
     expect(mockAdjRepo.updateStatus).not.toHaveBeenCalled();
     expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
   });
+
+  it('deve falhar se o lote estiver em inventário (RN-INV-006)', async () => {
+    mockAdjRepo.findById.mockResolvedValue({ id: 1, statusAprovacao: 'PENDENTE', solicitanteId: 1, loteId: 10 } as any);
+    mockBatchRepo.findById.mockResolvedValue({ id: 10, emInventario: true } as any);
+
+    await expect(useCase.execute({ ajusteId: 1, aprovadorId: 3, aprovadorRole: 'GESTOR', aprovado: true }))
+      .rejects.toThrow('RN-INV-006');
+  });
 });

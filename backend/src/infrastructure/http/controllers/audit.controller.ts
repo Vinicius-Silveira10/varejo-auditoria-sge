@@ -17,14 +17,9 @@ export class AuditController {
 
   @Get('verify')
   async verifyAll() {
-    const [movements, logs] = await Promise.all([
-      this.movementRepository.findAllOrdered(),
-      this.logCustoRepository.findAllOrdered(),
-    ]);
-
     const [movResult, logResult] = await Promise.all([
-      this.verifyAuditChainUseCase.verify('Movimentacao', movements as any),
-      this.verifyAuditChainUseCase.verify('LogCusto', logs as any),
+      this.verifyAuditChainUseCase.verify('Movimentacao', this.movementRepository as any),
+      this.verifyAuditChainUseCase.verify('LogCusto', this.logCustoRepository as any),
     ]);
 
     return {

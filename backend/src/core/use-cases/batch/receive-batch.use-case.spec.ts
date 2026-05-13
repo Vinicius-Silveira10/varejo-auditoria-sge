@@ -8,6 +8,7 @@ describe('ReceiveBatchUseCase', () => {
   let mockBatchRepo: jest.Mocked<IBatchRepository>;
   let mockProductRepo: jest.Mocked<IProductRepository>;
   let mockUpdateCostUseCase: jest.Mocked<UpdateAverageCostUseCase>;
+  let mockNfeRepo: any;
 
   beforeEach(() => {
     mockBatchRepo = {
@@ -15,6 +16,8 @@ describe('ReceiveBatchUseCase', () => {
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
+      updateInventarioStatus: jest.fn(),
+      countByNotaFiscal: jest.fn(),
     };
     mockProductRepo = {
       create: jest.fn(),
@@ -26,8 +29,12 @@ describe('ReceiveBatchUseCase', () => {
     mockUpdateCostUseCase = {
       execute: jest.fn(),
     } as any;
+    mockNfeRepo = {
+      findById: jest.fn(),
+      updateStatus: jest.fn(),
+    };
 
-    useCase = new ReceiveBatchUseCase(mockBatchRepo, mockProductRepo, mockUpdateCostUseCase);
+    useCase = new ReceiveBatchUseCase(mockBatchRepo, mockProductRepo, mockUpdateCostUseCase, mockNfeRepo);
   });
 
   it('deve receber um lote e atualizar o custo medio (RN-CST-001)', async () => {
@@ -64,6 +71,7 @@ describe('ReceiveBatchUseCase', () => {
       ativo: true,
       emInventario: false,
       notaFiscalId: null,
+      evidenciaUrl: null,
     });
     expect(result).toEqual(mockCreatedBatch);
   });
@@ -86,21 +94,82 @@ describe('ReceiveBatchUseCase', () => {
   });
 
   it('deve falhar se perecível sem validade (RN-REC-003)', async () => {
-    const request = { numeroLote: 'L-200', produtoId: 1, quantidade: 30, custoAquisicao: 8 };
+    const request = { numeroLote: 'L-200', produtoId: 1, quantidade: 30, custoAquisicao: 8, evidenciaUrl: 'http://foto.jpg' };
     const mockProduct = { id: 1, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true };
     mockProductRepo.findById.mockResolvedValue(mockProduct);
 
-    await expect(useCase.execute(request)).rejects.toThrow('RN-REC-003');
+    await expect(useCase.execute(request)).rejects.toThrow('RN-REC-003: Produto perecível exige data de validade obrigatória');
     expect(mockBatchRepo.create).not.toHaveBeenCalled();
   });
 
-  it('deve aceitar perecível com validade (RN-REC-003)', async () => {
-    const request = { numeroLote: 'L-200', produtoId: 1, quantidade: 30, custoAquisicao: 8, validade: new Date('2027-06-01') };
+  it('deve falhar se perecível sem evidência fotográfica (RN-REC-003)', async () => {
+    const request = { numeroLote: 'L-200', produtoId: 1, quantidade: 30, custoAquisicao: 8, validade: new Date('2027-01-01') };
     const mockProduct = { id: 1, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true };
     mockProductRepo.findById.mockResolvedValue(mockProduct);
-    mockBatchRepo.create.mockResolvedValue({ id: 5 } as any);
+
+    await expect(useCase.execute(request)).rejects.toThrow('RN-REC-003: Produto perecível exige foto de evidência obrigatória');
+    expect(mockBatchRepo.create).not.toHaveBeenCalled();
+  });
+
+  it('deve aceitar perecível com validade e evidência (RN-REC-003)', async () => {
+    const request = { 
+      numeroLote: 'L-200', 
+      produtoId: 1, 
+      quantidade: 30, 
+      custoAquisicao: 8, 
+      validade: new Date('2027-06-01'),
+      evidenciaUrl: 'http://bucket.com/foto.jpg'
+    };
+    const mockProduct = { id: 1, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true };
+    mockProductRepo.findById.mockResolvedValue(mockProduct);
+    const mockCreatedBatch = { id: 5, ...request, ativo: true, criadoEm: new Date(), emInventario: false, notaFiscalId: null } as any;
+    mockBatchRepo.create.mockResolvedValue(mockCreatedBatch);
 
     const result = await useCase.execute(request);
+    
     expect(result.id).toBe(5);
+    expect(mockBatchRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+      evidenciaUrl: 'http://bucket.com/foto.jpg'
+    }));
+  });
+
+  it('deve falhar se produto não estiver na NF-e vinculada (RN-REC-001)', async () => {
+    const request = { numeroLote: 'L-100', produtoId: 1, quantidade: 10, custoAquisicao: 10, notaFiscalId: 123 };
+    const mockProduct = { id: 1, sku: 'PROD1', descricao: 'P1', categoria: 'C1', perecivel: false, custoMedio: 5, ativo: true };
+    const mockNfe = { id: 123, status: 'PENDENTE', itensNfe: [{ produtoSku: 'PROD_OUTRO', quantidade: 10 }] };
+
+    mockProductRepo.findById.mockResolvedValue(mockProduct);
+    mockNfeRepo.findById.mockResolvedValue(mockNfe);
+
+    await expect(useCase.execute(request)).rejects.toThrow('RN-REC-001: Produto PROD1 não encontrado na NF-e 123');
+  });
+
+  it('deve marcar NF-e como DIVERGENTE se quantidade física divergir do XML (RN-REC-001)', async () => {
+    const request = { numeroLote: 'L-100', produtoId: 1, quantidade: 15, custoAquisicao: 10, notaFiscalId: 123 };
+    const mockProduct = { id: 1, sku: 'PROD1', descricao: 'P1', categoria: 'C1', perecivel: false, custoMedio: 5, ativo: true };
+    const mockNfe = { id: 123, status: 'PENDENTE', itensNfe: [{ produtoSku: 'PROD1', quantidade: 10 }] };
+
+    mockProductRepo.findById.mockResolvedValue(mockProduct);
+    mockNfeRepo.findById.mockResolvedValue(mockNfe);
+    mockBatchRepo.create.mockResolvedValue({ id: 1 } as any);
+
+    await useCase.execute(request);
+
+    expect(mockNfeRepo.updateStatus).toHaveBeenCalledWith(123, 'DIVERGENTE', expect.stringContaining('QUANTIDADE_DIVERGENTE'));
+  });
+
+  it('deve marcar NF-e como CONFERIDO se todos os itens forem recebidos sem divergência (RN-REC-001)', async () => {
+    const request = { numeroLote: 'L-100', produtoId: 1, quantidade: 10, custoAquisicao: 10, notaFiscalId: 123 };
+    const mockProduct = { id: 1, sku: 'PROD1', descricao: 'P1', categoria: 'C1', perecivel: false, custoMedio: 5, ativo: true };
+    const mockNfe = { id: 123, status: 'PENDENTE', itensNfe: [{ produtoSku: 'PROD1', quantidade: 10 }] };
+
+    mockProductRepo.findById.mockResolvedValue(mockProduct);
+    mockNfeRepo.findById.mockResolvedValue(mockNfe);
+    mockBatchRepo.create.mockResolvedValue({ id: 1 } as any);
+    mockBatchRepo.countByNotaFiscal.mockResolvedValue(1); // 1 lote recebido para 1 item na NFe
+
+    await useCase.execute(request);
+
+    expect(mockNfeRepo.updateStatus).toHaveBeenCalledWith(123, 'CONFERIDO');
   });
 });

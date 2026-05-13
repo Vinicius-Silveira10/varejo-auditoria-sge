@@ -20,4 +20,5 @@ export interface IOrderRepository {
   updateStatus(id: number, status: string): Promise<PedidoExpedicao>;
 
   updateConferentes(id: number, conferente1Id: number, conferente2Id?: number): Promise<PedidoExpedicao>;
+  findAll(): Promise<PedidoExpedicaoWithItems[]>;
 }

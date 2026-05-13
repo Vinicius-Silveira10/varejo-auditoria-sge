@@ -61,4 +61,21 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
       motivo: log.motivo ?? undefined,
     }));
   }
+
+  async findPaginatedOrdered(skip: number, take: number): Promise<LogCusto[]> {
+    const logs = await this.prisma.logCusto.findMany({
+      skip,
+      take,
+      orderBy: { id: 'asc' },
+    });
+
+    return logs.map((log) => ({
+      ...log,
+      motivo: log.motivo ?? undefined,
+    }));
+  }
+
+  async countAll(): Promise<number> {
+    return this.prisma.logCusto.count();
+  }
 }

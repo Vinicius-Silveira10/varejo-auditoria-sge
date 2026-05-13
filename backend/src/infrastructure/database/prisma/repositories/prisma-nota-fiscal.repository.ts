@@ -41,4 +41,20 @@ export class PrismaNotaFiscalRepository implements INotaFiscalRepository {
       data: { status, divergencias },
     });
   }
+
+  async findById(id: number): Promise<(NotaFiscal & { itensNfe: ItemNfe[] }) | null> {
+    return this.prisma.notaFiscal.findUnique({
+      where: { id },
+      include: {
+        itensNfe: true,
+      },
+    });
+  }
+
+  async findDivergent(): Promise<NotaFiscal[]> {
+    return this.prisma.notaFiscal.findMany({
+      where: { status: 'DIVERGENTE' },
+      orderBy: { dataEmissao: 'desc' },
+    });
+  }
 }

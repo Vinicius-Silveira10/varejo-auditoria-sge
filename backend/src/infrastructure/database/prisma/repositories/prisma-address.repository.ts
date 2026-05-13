@@ -48,4 +48,31 @@ export class PrismaAddressRepository implements IAddressRepository {
       data: { ocupado: novaOcupacao },
     });
   }
+
+  async findAll(): Promise<Endereco[]> {
+    return this.prisma.endereco.findMany({
+      where: { ativo: true },
+    });
+  }
+
+  async aggregateOccupationByZone(): Promise<Array<{
+    tipoZona: string;
+    capacidadeTotal: number;
+    ocupacaoTotal: number;
+  }>> {
+    const aggregations = await this.prisma.endereco.groupBy({
+      by: ['tipoZona'],
+      where: { ativo: true },
+      _sum: {
+        capacidade: true,
+        ocupado: true,
+      },
+    });
+
+    return aggregations.map(agg => ({
+      tipoZona: agg.tipoZona,
+      capacidadeTotal: agg._sum.capacidade || 0,
+      ocupacaoTotal: agg._sum.ocupado || 0,
+    }));
+  }
 }

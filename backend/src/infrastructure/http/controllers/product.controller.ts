@@ -1,10 +1,12 @@
 import { Controller, Post, Body, Patch, Param, BadRequestException, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { Roles, Role } from '../../security/roles.decorator';
 import { RegisterProductUseCase } from '../../../core/use-cases/product/register-product.use-case';
 import { DisableProductUseCase } from '../../../core/use-cases/product/disable-product.use-case';
 import { RegisterProductDto } from '../dtos/register-product.dto';
 
 @UseGuards(JwtAuthGuard)
+@Roles(Role.GESTOR, Role.ADMIN)
 @Controller('products')
 export class ProductController {
   constructor(

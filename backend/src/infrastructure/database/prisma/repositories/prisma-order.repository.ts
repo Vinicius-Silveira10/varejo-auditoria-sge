@@ -60,4 +60,12 @@ export class PrismaOrderRepository implements IOrderRepository {
       },
     });
   }
+
+  async findAll(): Promise<PedidoExpedicaoWithItems[]> {
+    return this.prisma.pedidoExpedicao.findMany({
+      include: {
+        itens: true,
+      },
+    });
+  }
 }

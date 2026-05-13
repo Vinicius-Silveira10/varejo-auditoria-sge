@@ -42,7 +42,7 @@ export class SuggestPutawayUseCase {
     }
 
     // RN-ARM-003: Determinar zona térmica compatível
-    const tipoZonaRequerida = produto.perecivel ? 'REFRIGERADO' : 'SECO';
+    const tipoZonaRequerida = (produto as any).tipoZonaRequerida;
 
     // 2. Buscar endereços disponíveis na zona compatível
     const enderecos = await this.addressRepository.findAvailableByZona(tipoZonaRequerida);

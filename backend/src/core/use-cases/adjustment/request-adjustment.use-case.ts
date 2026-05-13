@@ -26,6 +26,10 @@ export class RequestAdjustmentUseCase {
       throw new Error('Lote não encontrado.');
     }
 
+    if (lote.emInventario) {
+      throw new Error('RN-INV-006: Lote bloqueado para contagem de inventário. Solicitações de ajuste suspensas.');
+    }
+
     const produto = await this.productRepository.findById(lote.produtoId);
     if (!produto) {
       throw new Error('Produto não encontrado.');

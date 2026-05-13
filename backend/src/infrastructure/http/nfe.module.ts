@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { NfeController } from './controllers/nfe.controller';
 import { ProcessNfeUseCase } from '../../core/use-cases/nfe/process-nfe.use-case';
+import { GetNotaFiscalDetailsUseCase } from '../../core/use-cases/nfe/get-nfe-details.use-case';
+import { GetNfeDivergencesUseCase } from '../../core/use-cases/nfe/get-nfe-divergences.use-case';
 import { ParseNfeXmlService } from '../../core/use-cases/nfe/parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../../core/use-cases/batch/receive-batch.use-case';
 import { UpdateAverageCostUseCase } from '../../core/use-cases/cost/update-average-cost.use-case';
@@ -40,6 +42,20 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         return new ProcessNfeUseCase(nfRepo, productRepo, parseService, receiveBatchUseCase);
       },
       inject: ['INotaFiscalRepository', 'IProductRepository', ParseNfeXmlService, ReceiveBatchUseCase],
+    },
+    {
+      provide: GetNotaFiscalDetailsUseCase,
+      useFactory: (nfRepo: INotaFiscalRepository) => {
+        return new GetNotaFiscalDetailsUseCase(nfRepo);
+      },
+      inject: ['INotaFiscalRepository'],
+    },
+    {
+      provide: GetNfeDivergencesUseCase,
+      useFactory: (nfRepo: INotaFiscalRepository) => {
+        return new GetNfeDivergencesUseCase(nfRepo);
+      },
+      inject: ['INotaFiscalRepository'],
     },
   ],
 })

@@ -22,45 +22,60 @@ export interface AuditFailure {
   previousHashEsperado: string | null;
 }
 
+export interface IPaginatedRepository {
+  findPaginatedOrdered(skip: number, take: number): Promise<AuditRecord[]>;
+  countAll(): Promise<number>;
+}
+
 export class VerifyAuditChainUseCase {
   constructor(private readonly hashService: HashService) {}
 
   async verify(
     tabela: string,
-    records: AuditRecord[],
+    repository: IPaginatedRepository,
   ): Promise<AuditVerificationResult> {
     const falhas: AuditFailure[] = [];
+    const chunkSize = 1000;
+    const totalRegistros = await repository.countAll();
+    
+    let lastHash: string | null = null;
 
-    for (let i = 0; i < records.length; i++) {
-      const record = records[i];
-      const previousRecord = i > 0 ? records[i - 1] : null;
+    for (let skip = 0; skip < totalRegistros; skip += chunkSize) {
+      const records = await repository.findPaginatedOrdered(skip, chunkSize);
 
-      // Extrai os campos de dados (sem id, hash, previousHash, criadoEm, atualizadoEm)
-      const { id, hash, previousHash, criadoEm, atualizadoEm, ...payload } = record;
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        
+        const expectedPreviousHash = i === 0 ? lastHash : records[i - 1].hash ?? null;
 
-      // O previousHash esperado é o hash do registro anterior (ou null se for o primeiro)
-      const expectedPreviousHash = previousRecord ? previousRecord.hash ?? null : null;
+        // Extrai os campos de dados (sem id, hash, previousHash, criadoEm, atualizadoEm)
+        const { id, hash, previousHash, criadoEm, atualizadoEm, ...payload } = record;
 
-      // Recalcula o hash com o payload e o previousHash armazenado
-      const recalculatedHash = this.hashService.generateHash(payload, expectedPreviousHash);
+        // Recalcula o hash com o payload e o previousHash armazenado
+        const recalculatedHash = this.hashService.generateHash(payload, expectedPreviousHash);
 
-      const hashMatch = recalculatedHash === hash;
-      const previousHashMatch = (previousHash ?? null) === expectedPreviousHash;
+        const hashMatch = recalculatedHash === hash;
+        const previousHashMatch = (previousHash ?? null) === expectedPreviousHash;
 
-      if (!hashMatch || !previousHashMatch) {
-        falhas.push({
-          registroId: id ?? -1,
-          hashArmazenado: hash ?? 'AUSENTE',
-          hashRecalculado: recalculatedHash,
-          previousHashArmazenado: previousHash ?? null,
-          previousHashEsperado: expectedPreviousHash,
-        });
+        if (!hashMatch || !previousHashMatch) {
+          falhas.push({
+            registroId: id ?? -1,
+            hashArmazenado: hash ?? 'AUSENTE',
+            hashRecalculado: recalculatedHash,
+            previousHashArmazenado: previousHash ?? null,
+            previousHashEsperado: expectedPreviousHash,
+          });
+        }
+      } // Fim do loop de registros do chunk
+      
+      if (records.length > 0) {
+        lastHash = records[records.length - 1].hash ?? null;
       }
-    }
+    } // Fim do loop de paginação
 
     return {
       tabela,
-      totalRegistros: records.length,
+      totalRegistros,
       integridadeOk: falhas.length === 0,
       falhas,
     };

@@ -89,4 +89,11 @@ describe('RequestAdjustmentUseCase', () => {
     await expect(useCase.execute({ loteId: 1, quantidadeDelta: 1, motivo: '', solicitanteId: 2 }))
       .rejects.toThrow('RN-AJU-001: Todo ajuste deve ter motivo classificado.');
   });
+
+  it('deve falhar se o lote estiver em inventário (RN-INV-006)', async () => {
+    mockBatchRepo.findById.mockResolvedValue({ id: 1, emInventario: true } as any);
+    
+    await expect(useCase.execute({ loteId: 1, quantidadeDelta: 1, motivo: 'Ajuste', solicitanteId: 2 }))
+      .rejects.toThrow('RN-INV-006');
+  });
 });

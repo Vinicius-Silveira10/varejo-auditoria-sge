@@ -30,6 +30,7 @@ model Produto {
   descricao  String
   categoria  String
   perecivel  Boolean @default(false)
+  tipoZonaRequerida String @default("SECO") // 'SECO', 'REFRIGERADO', 'CONGELADO' (RN-ARM-003)
   custoMedio Float   @default(0.0) // Atualizado no Recebimento (RN-CST-001)
   ativo      Boolean @default(true) // Soft delete (RN-TRV-003)
 
@@ -76,6 +77,7 @@ model Lote {
   ativo        Boolean   @default(true) // Soft delete
   emInventario Boolean   @default(false) // RN-INV-006: Bloqueio logico
   notaFiscalId Int? // Vínculo com NF-e de origem
+  evidenciaUrl String? // RN-REC-003: Foto evidência (obrigatório se perecível)
 
   produto       Produto         @relation(fields: [produtoId], references: [id])
   notaFiscal    NotaFiscal?     @relation(fields: [notaFiscalId], references: [id])

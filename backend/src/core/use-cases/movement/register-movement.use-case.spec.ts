@@ -23,6 +23,7 @@ describe('RegisterMovementUseCase', () => {
 
     movementRepository = {
       create: jest.fn(),
+      executeMovementTransaction: jest.fn(),
       findByLote: jest.fn(),
       findAllOrdered: jest.fn(),
     } as any;
@@ -52,15 +53,19 @@ describe('RegisterMovementUseCase', () => {
     batchRepository.findById.mockResolvedValue(batchMock);
     
     const movRequest: any = {
-      tipo: 'ENTRADA', loteId, quantidade: 20, motivo: 'Compra', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'ENTRADA', loteId, quantidade: 20, motivo: 'Compra', enderecoOrigemId: null, enderecoDestinoId: 5, usuarioId: 1
     };
+    addressRepository.findById.mockResolvedValue({ id: 5, capacidade: 100, ocupado: 0, codigo: 'A1', tipoZona: 'SECO' } as any);
+    productRepository.findById.mockResolvedValue({ id: 10, tipoZonaRequerida: 'SECO' } as any);
 
-    movementRepository.create.mockResolvedValue({ id: 100, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
+    movementRepository.executeMovementTransaction.mockResolvedValue({ id: 100, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
 
     const result = await useCase.execute(movRequest);
 
     expect(batchRepository.findById).toHaveBeenCalledWith(loteId);
-    expect(batchRepository.updateQuantidade).toHaveBeenCalledWith(loteId, 70); // 50 + 20
+    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      quantidadeDeltaLote: 20,
+    }));
     expect(result.id).toBeDefined();
   });
 
@@ -70,14 +75,17 @@ describe('RegisterMovementUseCase', () => {
     batchRepository.findById.mockResolvedValue(batchMock);
     
     const movRequest: any = {
-      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: 10, enderecoDestinoId: null, usuarioId: 1
     };
+    addressRepository.findById.mockResolvedValue({ id: 10, capacidade: 100, ocupado: 50, codigo: 'B1' } as any);
 
-    movementRepository.create.mockResolvedValue({ id: 101, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
+    movementRepository.executeMovementTransaction.mockResolvedValue({ id: 101, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
 
     const result = await useCase.execute(movRequest);
 
-    expect(batchRepository.updateQuantidade).toHaveBeenCalledWith(loteId, 40); // 50 - 10
+    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      quantidadeDeltaLote: -10,
+    }));
   });
 
   it('deve lançar erro [RN-TRV-002] ao tentar fazer SAIDA com saldo negativo', async () => {
@@ -86,7 +94,7 @@ describe('RegisterMovementUseCase', () => {
     batchRepository.findById.mockResolvedValue(batchMock);
     
     const movRequest: any = {
-      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: 10, enderecoDestinoId: null, usuarioId: 1
     };
 
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-TRV-002');
@@ -106,8 +114,9 @@ describe('RegisterMovementUseCase', () => {
     batchRepository.findAvailableByProduct.mockResolvedValue([loteSolicitado, loteAntigo]);
     
     const movRequest: any = {
-      tipo: 'EXPEDICAO', loteId: 1, quantidade: 10, motivo: 'Despacho', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'EXPEDICAO', loteId: 1, quantidade: 10, motivo: 'Despacho', enderecoOrigemId: 10, enderecoDestinoId: null, usuarioId: 1
     };
+    addressRepository.findById.mockResolvedValue({ id: 10, capacidade: 100, ocupado: 50, codigo: 'B1' } as any);
 
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-EXP-001');
   });
@@ -118,7 +127,7 @@ describe('RegisterMovementUseCase', () => {
     batchRepository.findById.mockResolvedValue(batchMock);
     
     const movRequest: any = {
-      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'SAIDA', loteId, quantidade: 10, motivo: 'Venda', enderecoOrigemId: 10, enderecoDestinoId: null, usuarioId: 1
     };
 
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-INV-006');
@@ -144,7 +153,7 @@ describe('RegisterMovementUseCase', () => {
   it('deve permitir movimentação se cabem no endereço destino (RN-ARM-001)', async () => {
     const batchMock: any = { id: 1, produtoId: 10, numeroLote: 'L01', quantidade: 50, validade: null, ativo: true, emInventario: false };
     batchRepository.findById.mockResolvedValue(batchMock);
-    productRepository.findById.mockResolvedValue({ id: 10, sku: 'SKU1', descricao: 'Prod', categoria: 'Cat', perecivel: false, custoMedio: 10, ativo: true } as any);
+    productRepository.findById.mockResolvedValue({ id: 10, sku: 'SKU1', descricao: 'Prod', categoria: 'Cat', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 10, ativo: true } as any);
 
     const enderecoDestino: any = { id: 5, codigo: 'A-01-01', zona: 'A', tipoZona: 'SECO', capacidade: 100, ocupado: 80, ativo: true };
     addressRepository.findById.mockResolvedValue(enderecoDestino);
@@ -153,11 +162,13 @@ describe('RegisterMovementUseCase', () => {
       tipo: 'ENTRADA', loteId: 1, quantidade: 10, motivo: 'Compra', enderecoOrigemId: null, enderecoDestinoId: 5, usuarioId: 1
     };
 
-    movementRepository.create.mockResolvedValue({ id: 200, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
+    movementRepository.executeMovementTransaction.mockResolvedValue({ id: 200, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
 
     const result = await useCase.execute(movRequest);
     expect(result.id).toBe(200);
-    expect(addressRepository.updateOcupacao).toHaveBeenCalledWith(5, 90); // 80 + 10
+    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      novaOcupacaoDestino: 90,
+    }));
   });
 
   it('deve lançar erro [RN-ARM-003] ao armazenar perecível em zona SECO', async () => {
@@ -167,7 +178,7 @@ describe('RegisterMovementUseCase', () => {
     const enderecoDestino: any = { id: 5, codigo: 'A-01-01', zona: 'A', tipoZona: 'SECO', capacidade: 100, ocupado: 10, ativo: true };
     addressRepository.findById.mockResolvedValue(enderecoDestino);
 
-    const produtoPerecivel: any = { id: 10, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true };
+    const produtoPerecivel: any = { id: 10, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, tipoZonaRequerida: 'REFRIGERADO', custoMedio: 5, ativo: true };
     productRepository.findById.mockResolvedValue(produtoPerecivel);
 
     const movRequest: any = {
@@ -185,14 +196,14 @@ describe('RegisterMovementUseCase', () => {
     const enderecoRefrigerado: any = { id: 6, codigo: 'R-01-01', zona: 'R', tipoZona: 'REFRIGERADO', capacidade: 100, ocupado: 10, ativo: true };
     addressRepository.findById.mockResolvedValue(enderecoRefrigerado);
 
-    const produtoPerecivel: any = { id: 10, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true };
+    const produtoPerecivel: any = { id: 10, sku: 'LEITE01', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, tipoZonaRequerida: 'REFRIGERADO', custoMedio: 5, ativo: true };
     productRepository.findById.mockResolvedValue(produtoPerecivel);
 
     const movRequest: any = {
       tipo: 'ENTRADA', loteId: 1, quantidade: 5, motivo: 'Compra', enderecoOrigemId: null, enderecoDestinoId: 6, usuarioId: 1
     };
 
-    movementRepository.create.mockResolvedValue({ id: 300, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
+    movementRepository.executeMovementTransaction.mockResolvedValue({ id: 300, criadoEm: new Date(), hash: 'h', previousHash: null, ...movRequest });
 
     const result = await useCase.execute(movRequest);
     expect(result.id).toBe(300);

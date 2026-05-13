@@ -4,8 +4,9 @@ import { RegisterAddressUseCase } from '../../../core/use-cases/address/register
 import { DisableAddressUseCase } from '../../../core/use-cases/address/disable-address.use-case';
 import { RegisterAddressDto } from '../dtos/register-address.dto';
 import { SuggestPutawayUseCase } from '../../../core/use-cases/address/suggest-putaway.use-case';
-import { SuggestPutawayDto } from '../dtos/suggest-putaway.dto';
+import { GetAddressCapacityAlertsUseCase } from '../../../core/use-cases/address/get-address-capacity-alerts.use-case';
 import { Get, Query } from '@nestjs/common';
+import { Roles, Role } from '../../security/roles.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('addresses')
@@ -14,7 +15,17 @@ export class AddressController {
     private readonly registerAddressUseCase: RegisterAddressUseCase,
     private readonly disableAddressUseCase: DisableAddressUseCase,
     private readonly suggestPutawayUseCase: SuggestPutawayUseCase,
+    private readonly getAddressCapacityAlertsUseCase: GetAddressCapacityAlertsUseCase,
   ) {}
+
+  @Roles(Role.GESTOR, Role.ADMIN)
+  @Get('alerts/capacity')
+  async getCapacityAlerts(@Query('threshold') threshold?: string) {
+    const result = await this.getAddressCapacityAlertsUseCase.execute(threshold ? +threshold : 0.9);
+    return {
+      data: result,
+    };
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BatchController } from './controllers/batch.controller';
 import { ReceiveBatchUseCase } from '../../core/use-cases/batch/receive-batch.use-case';
+import { GetExpiryAlertsUseCase } from '../../core/use-cases/batch/get-expiry-alerts.use-case';
 import { UpdateAverageCostUseCase } from '../../core/use-cases/cost/update-average-cost.use-case';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
@@ -24,6 +25,13 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         return new ReceiveBatchUseCase(batchRepo, productRepo, updateCostUseCase);
       },
       inject: ['IBatchRepository', 'IProductRepository', UpdateAverageCostUseCase],
+    },
+    {
+      provide: GetExpiryAlertsUseCase,
+      useFactory: (batchRepo: IBatchRepository) => {
+        return new GetExpiryAlertsUseCase(batchRepo);
+      },
+      inject: ['IBatchRepository'],
     },
   ],
 })

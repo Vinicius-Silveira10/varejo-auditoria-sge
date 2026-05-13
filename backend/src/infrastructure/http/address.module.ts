@@ -3,6 +3,7 @@ import { AddressController } from './controllers/address.controller';
 import { RegisterAddressUseCase } from '../../core/use-cases/address/register-address.use-case';
 import { DisableAddressUseCase } from '../../core/use-cases/address/disable-address.use-case';
 import { SuggestPutawayUseCase } from '../../core/use-cases/address/suggest-putaway.use-case';
+import { GetAddressCapacityAlertsUseCase } from '../../core/use-cases/address/get-address-capacity-alerts.use-case';
 import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
@@ -31,6 +32,13 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         return new SuggestPutawayUseCase(addressRepo, productRepo);
       },
       inject: ['IAddressRepository', 'IProductRepository'],
+    },
+    {
+      provide: GetAddressCapacityAlertsUseCase,
+      useFactory: (addressRepo: IAddressRepository) => {
+        return new GetAddressCapacityAlertsUseCase(addressRepo);
+      },
+      inject: ['IAddressRepository'],
     },
   ],
 })

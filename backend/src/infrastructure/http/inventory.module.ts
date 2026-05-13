@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { InventoryController } from './controllers/inventory.controller';
 import { StartCountUseCase } from '../../core/use-cases/inventory/start-count.use-case';
 import { RegisterCountUseCase } from '../../core/use-cases/inventory/register-count.use-case';
+import { GetInventoryValueReportUseCase } from '../../core/use-cases/inventory/get-inventory-value-report.use-case';
+import { GetInventoryAccuracyUseCase } from '../../core/use-cases/inventory/get-inventory-accuracy.use-case';
 import { IInventoryCountRepository } from '../../core/interfaces/repositories/i-inventory-count.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { RequestAdjustmentUseCase } from '../../core/use-cases/adjustment/request-adjustment.use-case';
@@ -33,6 +35,20 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         return new RegisterCountUseCase(countRepo, batchRepo, reqAdjUseCase);
       },
       inject: ['IInventoryCountRepository', 'IBatchRepository', RequestAdjustmentUseCase],
+    },
+    {
+      provide: GetInventoryValueReportUseCase,
+      useFactory: (prodRepo: IProductRepository, batchRepo: IBatchRepository) => {
+        return new GetInventoryValueReportUseCase(prodRepo, batchRepo);
+      },
+      inject: ['IProductRepository', 'IBatchRepository'],
+    },
+    {
+      provide: GetInventoryAccuracyUseCase,
+      useFactory: (countRepo: IInventoryCountRepository) => {
+        return new GetInventoryAccuracyUseCase(countRepo);
+      },
+      inject: ['IInventoryCountRepository'],
     },
   ],
 })

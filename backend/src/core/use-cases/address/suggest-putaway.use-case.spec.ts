@@ -30,7 +30,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve sugerir endereços SECO para produto não perecível (RN-ARM-002/003)', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 1, sku: 'ARROZ-5KG', descricao: 'Arroz', categoria: 'Grãos', perecivel: false, custoMedio: 12, ativo: true,
+      id: 1, sku: 'ARROZ-5KG', descricao: 'Arroz', categoria: 'Grãos', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 12, ativo: true,
     } as any);
 
     mockAddressRepo.findAvailableByZona.mockResolvedValue([
@@ -51,7 +51,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve sugerir endereços REFRIGERADO para produto perecível (RN-ARM-003)', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 2, sku: 'LEITE-1L', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, custoMedio: 5, ativo: true,
+      id: 2, sku: 'LEITE-1L', descricao: 'Leite', categoria: 'Laticínios', perecivel: true, tipoZonaRequerida: 'REFRIGERADO', custoMedio: 5, ativo: true,
     } as any);
 
     mockAddressRepo.findAvailableByZona.mockResolvedValue([
@@ -68,7 +68,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve filtrar endereços sem capacidade suficiente (RN-ARM-001/004)', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 1, sku: 'ARROZ', descricao: 'Arroz', categoria: 'C', perecivel: false, custoMedio: 10, ativo: true,
+      id: 1, sku: 'ARROZ', descricao: 'Arroz', categoria: 'C', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 10, ativo: true,
     } as any);
 
     mockAddressRepo.findAvailableByZona.mockResolvedValue([
@@ -100,7 +100,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve retornar lista vazia se nenhum endereço tiver capacidade', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 1, sku: 'X', descricao: 'X', categoria: 'C', perecivel: false, custoMedio: 0, ativo: true,
+      id: 1, sku: 'X', descricao: 'X', categoria: 'C', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 0, ativo: true,
     } as any);
 
     mockAddressRepo.findAvailableByZona.mockResolvedValue([
@@ -114,7 +114,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve tentar CONGELADO como fallback para perecível sem espaço REFRIGERADO (RN-ARM-003)', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 2, sku: 'LEITE', descricao: 'Leite', categoria: 'L', perecivel: true, custoMedio: 5, ativo: true,
+      id: 2, sku: 'LEITE', descricao: 'Leite', categoria: 'L', perecivel: true, tipoZonaRequerida: 'REFRIGERADO', custoMedio: 5, ativo: true,
     } as any);
 
     mockAddressRepo.findAvailableByZona
@@ -132,7 +132,7 @@ describe('SuggestPutawayUseCase', () => {
 
   it('deve limitar sugestões a no máximo 5 endereços', async () => {
     mockProductRepo.findById.mockResolvedValue({
-      id: 1, sku: 'X', descricao: 'X', categoria: 'C', perecivel: false, custoMedio: 0, ativo: true,
+      id: 1, sku: 'X', descricao: 'X', categoria: 'C', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 0, ativo: true,
     } as any);
 
     const manyAddresses = Array.from({ length: 10 }, (_, i) => ({
