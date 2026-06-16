@@ -190,3 +190,10 @@ model ItemPedido {
   produto Produto         @relation(fields: [produtoId], references: [id])
 }
 
+// BUG-007 FIX: Tabela para gerenciar o hash da ponta da cadeia de auditoria de forma atômica.
+// Um único registro por tabela auditada. O UPDATE atômico neste registro elimina a race condition.
+model ChainPointer {
+  tabela     String   @id // ex: 'Movimentacao', 'LogCusto'
+  lastHash   String?  // Hash do último registro inserido na cadeia
+  updatedAt  DateTime @updatedAt
+}

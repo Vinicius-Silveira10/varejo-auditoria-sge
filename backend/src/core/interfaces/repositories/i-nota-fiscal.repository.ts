@@ -26,4 +26,3 @@ export interface INotaFiscalRepository {
   findById(id: number): Promise<(NotaFiscal & { itensNfe: ItemNfe[] }) | null>;
   findDivergent(): Promise<NotaFiscal[]>;
 }
-}

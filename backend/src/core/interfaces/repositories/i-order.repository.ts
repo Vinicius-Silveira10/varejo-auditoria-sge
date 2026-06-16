@@ -20,5 +20,9 @@ export interface IOrderRepository {
   updateStatus(id: number, status: string): Promise<PedidoExpedicao>;
 
   updateConferentes(id: number, conferente1Id: number, conferente2Id?: number): Promise<PedidoExpedicao>;
+
   findAll(): Promise<PedidoExpedicaoWithItems[]>;
+
+  /** Atualiza a quantidade separada de um item específico do pedido (GAP-002) */
+  updateItemSeparado(itemPedidoId: number, quantidadeSeparada: number): Promise<void>;
 }

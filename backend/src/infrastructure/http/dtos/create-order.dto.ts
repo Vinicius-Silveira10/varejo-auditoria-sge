@@ -15,7 +15,7 @@ export class CreateOrderDto {
   codigoPedido: string;
 
   @IsArray()
-  @ValidateNested({每一: true })
+  @ValidateNested({ each: true })
   @Type(() => CreateOrderItemDto)
   itens: CreateOrderItemDto[];
 }

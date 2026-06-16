@@ -2,6 +2,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { UpdateAverageCostUseCase } from '../cost/update-average-cost.use-case';
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
+import { ProcessNfeUseCase } from '../nfe/process-nfe.use-case';
 import { Lote } from '@prisma/client';
 
 export interface ReceiveBatchRequest {
@@ -45,13 +46,21 @@ export class ReceiveBatchUseCase {
         throw new Error(`RN-REC-001: Produto ${produto.sku} não encontrado na NF-e ${request.notaFiscalId}`);
       }
 
-      if (itemNfe.quantidade !== request.quantidade) {
+      // GAP-004 FIX — RN-REC-001: Tolerância sistêmica de 2% para divergências de quantidade
+      const dentroTolerancia = ProcessNfeUseCase.isQuantidadeDentroTolerancia(
+        itemNfe.quantidade,
+        request.quantidade,
+      );
+
+      if (!dentroTolerancia) {
+        const deltaPercent = Math.abs((request.quantidade - itemNfe.quantidade) / itemNfe.quantidade) * 100;
         const divergencias = JSON.stringify([{
           sku: produto.sku,
           tipo: 'QUANTIDADE_DIVERGENTE',
-          detalhe: `Quantidade física (${request.quantidade}) difere da NF-e (${itemNfe.quantidade})`,
+          detalhe: `Quantidade física (${request.quantidade}) difere da NF-e (${itemNfe.quantidade}) em ${deltaPercent.toFixed(2)}% — acima da tolerância de 2% (RN-REC-001)`,
           quantidadeNfe: itemNfe.quantidade,
-          quantidadeFisica: request.quantidade
+          quantidadeFisica: request.quantidade,
+          deltaPercent,
         }]);
         await this.notaFiscalRepository.updateStatus(request.notaFiscalId, 'DIVERGENTE', divergencias);
       }

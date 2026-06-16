@@ -68,4 +68,11 @@ export class PrismaOrderRepository implements IOrderRepository {
       },
     });
   }
+
+  async updateItemSeparado(itemPedidoId: number, quantidadeSeparada: number): Promise<void> {
+    await this.prisma.itemPedido.update({
+      where: { id: itemPedidoId },
+      data: { quantidadeSeparada },
+    });
+  }
 }

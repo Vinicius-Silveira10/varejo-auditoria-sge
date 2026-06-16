@@ -5,28 +5,56 @@ import { Movimentacao } from '@prisma/client';
 
 import { HashService } from '../../../security/hash.service';
 
+/** Nome da tabela auditada para identificar o ChainPointer */
+const CHAIN_KEY = 'Movimentacao';
+
 @Injectable()
 export class PrismaMovementRepository implements IMovementRepository {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly hashService: HashService
+    private readonly hashService: HashService,
   ) {}
 
-  async create(data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<Movimentacao> {
-    const lastMovement = await this.prisma.movimentacao.findFirst({
-      orderBy: { id: 'desc' },
-      select: { hash: true },
+  /**
+   * BUG-007 FIX: Obtém o previousHash de forma atômica usando upsert no ChainPointer.
+   * O upsert garante que apenas uma transação por vez obtém e atualiza o ponteiro,
+   * eliminando a race condition de leitura paralela do último registro.
+   */
+  private async atomicGetAndSetHash(
+    tx: Omit<PrismaService, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+    newHash: string,
+  ): Promise<string | null> {
+    // Lê o ponteiro atual e retorna o lastHash antes de atualizar
+    const pointer = await (tx as any).chainPointer.findUnique({
+      where: { tabela: CHAIN_KEY },
+    });
+    const previousHash = pointer?.lastHash ?? null;
+
+    await (tx as any).chainPointer.upsert({
+      where: { tabela: CHAIN_KEY },
+      update: { lastHash: newHash },
+      create: { tabela: CHAIN_KEY, lastHash: newHash },
     });
 
-    const previousHash = lastMovement ? lastMovement.hash : null;
-    const hash = this.hashService.generateHash(data, previousHash);
+    return previousHash;
+  }
 
-    return this.prisma.movimentacao.create({
-      data: {
-        ...data,
-        hash,
-        previousHash,
-      },
+  async create(data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<Movimentacao> {
+    return await this.prisma.$transaction(async (tx) => {
+      // Gera hash temporário para reservar o slot; será sobrescrito logo abaixo
+      const tempHash = this.hashService.generateHash(data, 'TEMP');
+      const previousHash = await this.atomicGetAndSetHash(tx as any, tempHash);
+      const hash = this.hashService.generateHash(data, previousHash);
+
+      // Atualiza o ChainPointer com o hash real
+      await (tx as any).chainPointer.update({
+        where: { tabela: CHAIN_KEY },
+        data: { lastHash: hash },
+      });
+
+      return (tx as any).movimentacao.create({
+        data: { ...data, hash, previousHash },
+      });
     });
   }
 
@@ -66,7 +94,7 @@ export class PrismaMovementRepository implements IMovementRepository {
   }): Promise<Movimentacao> {
     return await this.prisma.$transaction(async (tx) => {
       // 1. Atualizar Saldo do Lote de forma ATÔMICA
-      const loteDb = await tx.lote.update({
+      const loteDb = await (tx as any).lote.update({
         where: { id: params.loteId },
         data: { quantidade: { increment: params.quantidadeDeltaLote } },
       });
@@ -77,7 +105,7 @@ export class PrismaMovementRepository implements IMovementRepository {
 
       // 2. Atualizar Endereço Origem (se houver)
       if (params.origemId && params.novaOcupacaoOrigem !== undefined) {
-        await tx.endereco.update({
+        await (tx as any).endereco.update({
           where: { id: params.origemId },
           data: { ocupado: params.novaOcupacaoOrigem },
         });
@@ -85,27 +113,24 @@ export class PrismaMovementRepository implements IMovementRepository {
 
       // 3. Atualizar Endereço Destino (se houver)
       if (params.destinoId && params.novaOcupacaoDestino !== undefined) {
-        await tx.endereco.update({
+        await (tx as any).endereco.update({
           where: { id: params.destinoId },
           data: { ocupado: params.novaOcupacaoDestino },
         });
       }
 
-      // 4. Calcular Hash e Criar Movimentação
-      const lastMovement = await tx.movimentacao.findFirst({
-        orderBy: { id: 'desc' },
-        select: { hash: true },
-      });
-
-      const previousHash = lastMovement ? lastMovement.hash : null;
+      // 4. BUG-007 FIX: Hash atômico via ChainPointer — sem race condition
+      const tempHash = this.hashService.generateHash(params.movementData, 'TEMP');
+      const previousHash = await this.atomicGetAndSetHash(tx as any, tempHash);
       const hash = this.hashService.generateHash(params.movementData, previousHash);
 
-      return tx.movimentacao.create({
-        data: {
-          ...params.movementData,
-          hash,
-          previousHash,
-        },
+      await (tx as any).chainPointer.update({
+        where: { tabela: CHAIN_KEY },
+        data: { lastHash: hash },
+      });
+
+      return (tx as any).movimentacao.create({
+        data: { ...params.movementData, hash, previousHash },
       });
     });
   }

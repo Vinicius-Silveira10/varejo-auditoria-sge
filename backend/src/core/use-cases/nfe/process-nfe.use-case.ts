@@ -4,6 +4,9 @@ import { ParseNfeXmlService, ParsedNfe, ParsedNfeItem } from './parse-nfe-xml.se
 import { ReceiveBatchUseCase } from '../batch/receive-batch.use-case';
 import { NotaFiscal, ItemNfe } from '@prisma/client';
 
+/** Tolerância sistêmica de 2% para divergências de quantidade (RN-REC-001 / PRC-REC-001) */
+const NFE_QUANTITY_TOLERANCE = 0.02;
+
 export interface NfeDivergencia {
   sku: string;
   descricaoNfe: string;
@@ -44,6 +47,7 @@ export class ProcessNfeUseCase {
     for (const item of parsedNfe.itens) {
       const produto = await this.productRepository.findBySku(item.sku);
 
+      // 3a. SKU não encontrado no sistema
       if (!produto) {
         divergencias.push({
           sku: item.sku,
@@ -55,6 +59,7 @@ export class ProcessNfeUseCase {
         continue;
       }
 
+      // 3b. Produto desativado — trata igual a não encontrado
       if (!produto.ativo) {
         divergencias.push({
           sku: item.sku,
@@ -64,6 +69,18 @@ export class ProcessNfeUseCase {
           quantidadeNfe: item.quantidade,
         });
         continue;
+      }
+
+      // 3c. BUG-002 FIX — RN-REC-003: Perecível sem data de validade no XML gera divergência
+      if (produto.perecivel && !item.validade) {
+        divergencias.push({
+          sku: item.sku,
+          descricaoNfe: item.descricao,
+          tipo: 'PERECIVEL_SEM_VALIDADE',
+          detalhe: `Produto perecível "${item.sku}" recebido sem data de validade na NF-e. Obrigatório conforme RN-REC-003.`,
+          quantidadeNfe: item.quantidade,
+        });
+        // Não bloqueia os demais itens — continua conferência
       }
     }
 
@@ -91,18 +108,22 @@ export class ProcessNfeUseCase {
     });
 
     // 6. Se CONFERIDO, criar lotes automaticamente via ReceiveBatchUseCase
+    // BUG-001 FIX: passa notaFiscalId, validade e evidenciaUrl corretamente
     let lotesGerados = 0;
 
     if (status === 'CONFERIDO') {
       for (const item of parsedNfe.itens) {
         const produto = await this.productRepository.findBySku(item.sku);
 
-        if (produto) {
+        if (produto && produto.ativo) {
           await this.receiveBatchUseCase.execute({
             numeroLote: `NF-${parsedNfe.numero}-${item.sku}`,
             produtoId: produto.id,
             quantidade: item.quantidade,
             custoAquisicao: item.valorUnitario,
+            notaFiscalId: notaFiscal.id,      // BUG-001: vínculo fiscal obrigatório
+            validade: item.validade,           // BUG-001: data de validade do XML
+            // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
           });
           lotesGerados++;
         }
@@ -115,5 +136,15 @@ export class ProcessNfeUseCase {
       divergencias,
       lotesGerados,
     };
+  }
+
+  /**
+   * GAP-004 FIX — RN-REC-001: Verifica se a diferença de quantidade está dentro da tolerância de 2%.
+   * Usado pelo ReceiveBatchUseCase ao conciliar a contagem física com a NF-e.
+   */
+  static isQuantidadeDentroTolerancia(quantidadeNfe: number, quantidadeFisica: number): boolean {
+    if (quantidadeNfe === 0) return quantidadeFisica === 0;
+    const deltaPercent = Math.abs((quantidadeFisica - quantidadeNfe) / quantidadeNfe);
+    return deltaPercent <= NFE_QUANTITY_TOLERANCE;
   }
 }

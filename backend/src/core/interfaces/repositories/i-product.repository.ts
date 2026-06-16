@@ -6,4 +6,5 @@ export interface IProductRepository {
   findBySku(sku: string): Promise<Produto | null>;
   updateCustoMedio(id: number, novoCusto: number): Promise<Produto>;
   disable(id: number): Promise<Produto>;
+  findAll(): Promise<Produto[]>;
 }

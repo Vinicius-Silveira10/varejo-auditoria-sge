@@ -2,6 +2,7 @@ import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustmen
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { UpdateAverageCostUseCase } from '../cost/update-average-cost.use-case';
 
 export interface ApproveAdjustmentDto {
   ajusteId: number;
@@ -16,6 +17,7 @@ export class ApproveAdjustmentUseCase {
     private readonly batchRepository: IBatchRepository,
     private readonly productRepository: IProductRepository,
     private readonly movementRepository: IMovementRepository,
+    private readonly updateAverageCostUseCase: UpdateAverageCostUseCase,
   ) {}
 
   async execute(dto: ApproveAdjustmentDto) {
@@ -54,7 +56,7 @@ export class ApproveAdjustmentUseCase {
     // Validação de Alçada (RN-AJU-004)
     const saldoTeorico = lote.quantidade;
     const deltaPercent = saldoTeorico > 0 ? ajuste.quantidadeDelta / saldoTeorico : 1;
-    
+
     if (Math.abs(deltaPercent) > 0.02 || Math.abs(ajuste.valorDelta) > 1000) {
       if (dto.aprovadorRole !== 'ADMIN') {
         throw new Error('RN-AJU-004: Ajustes acima de 2% ou R$ 1000 exigem aprovação de Controladoria/ADMIN.');
@@ -65,11 +67,24 @@ export class ApproveAdjustmentUseCase {
       }
     }
 
-    // Efetivar Ajuste
+    // Efetivar Ajuste — atualizar status e saldo do lote
     const ajusteAtualizado = await this.adjustmentRepository.updateStatus(dto.ajusteId, 'APROVADO', dto.aprovadorId);
 
     const novaQuantidade = lote.quantidade + ajuste.quantidadeDelta;
     await this.batchRepository.updateQuantidade(lote.id, novaQuantidade);
+
+    // BUG-005 FIX — RN-AJU-004 / PRC-CST-007:
+    // Ajustes POSITIVOS (entrada de unidades) devem recalcular o Custo Médio Ponderado.
+    // Ajustes NEGATIVOS (saída de unidades) NÃO alteram o custo médio (conforme PRC-CST-007).
+    if (ajuste.quantidadeDelta > 0) {
+      await this.updateAverageCostUseCase.execute({
+        produtoId: produto.id,
+        quantidadeEntrada: ajuste.quantidadeDelta,
+        // Proxy: usa o custo médio atual como custo de reposição do ajuste positivo
+        custoEntrada: produto.custoMedio,
+        motivo: `Ajuste de estoque aprovado #${dto.ajusteId} — recálculo de CMV`,
+      });
+    }
 
     // Gerar Movimentação de Auditoria
     await this.movementRepository.create({

@@ -3,6 +3,7 @@ import { RegisterUserUseCase } from '../../../core/use-cases/user/register-user.
 import { AuthenticateUserUseCase } from '../../../core/use-cases/auth/authenticate-user.use-case';
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
+import { Public } from '../../security/public.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -11,6 +12,7 @@ export class AuthController {
     private readonly authenticateUserUseCase: AuthenticateUserUseCase
   ) {}
 
+  @Public()
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() dto: RegisterUserDto) {
@@ -28,6 +30,7 @@ export class AuthController {
     }
   }
 
+  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {

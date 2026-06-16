@@ -16,4 +16,8 @@ export class RegisterProductDto {
   @IsBoolean()
   @IsOptional()
   perecivel?: boolean;
+
+  @IsString()
+  @IsOptional()
+  tipoZonaRequerida?: string; // 'SECO' | 'REFRIGERADO' | 'CONGELADO' — padrão: 'SECO'
 }

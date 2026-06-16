@@ -4,6 +4,8 @@ import { ILogCustoRepository, LogCusto } from '../../../../core/interfaces/repos
 
 import { HashService } from '../../../security/hash.service';
 
+const CHAIN_KEY = 'LogCusto';
+
 @Injectable()
 export class PrismaLogCustoRepository implements ILogCustoRepository {
   constructor(
@@ -12,31 +14,33 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
   ) {}
 
   async create(log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<LogCusto> {
-    const lastLog = await this.prisma.logCusto.findFirst({
-      orderBy: { id: 'desc' },
-      select: { hash: true },
+    return await this.prisma.$transaction(async (tx) => {
+      // BUG-007 FIX: ChainPointer atômico para eliminar race condition
+      const pointer = await (tx as any).chainPointer.findUnique({ where: { tabela: CHAIN_KEY } });
+      const previousHash = pointer?.lastHash ?? null;
+      const hash = this.hashService.generateHash(log, previousHash);
+
+      await (tx as any).chainPointer.upsert({
+        where: { tabela: CHAIN_KEY },
+        update: { lastHash: hash },
+        create: { tabela: CHAIN_KEY, lastHash: hash },
+      });
+
+      const created = await (tx as any).logCusto.create({
+        data: {
+          produtoId: log.produtoId,
+          custoAnterior: log.custoAnterior,
+          custoNovo: log.custoNovo,
+          quantidadeAnterior: log.quantidadeAnterior,
+          quantidadeNova: log.quantidadeNova,
+          motivo: log.motivo,
+          hash,
+          previousHash,
+        },
+      });
+
+      return { ...created, motivo: created.motivo ?? undefined };
     });
-
-    const previousHash = lastLog ? lastLog.hash : null;
-    const hash = this.hashService.generateHash(log, previousHash);
-
-    const created = await this.prisma.logCusto.create({
-      data: {
-        produtoId: log.produtoId,
-        custoAnterior: log.custoAnterior,
-        custoNovo: log.custoNovo,
-        quantidadeAnterior: log.quantidadeAnterior,
-        quantidadeNova: log.quantidadeNova,
-        motivo: log.motivo,
-        hash,
-        previousHash,
-      },
-    });
-
-    return {
-      ...created,
-      motivo: created.motivo ?? undefined,
-    };
   }
 
   async findByProdutoId(produtoId: number): Promise<LogCusto[]> {

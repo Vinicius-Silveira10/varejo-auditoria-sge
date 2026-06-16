@@ -38,4 +38,11 @@ export class PrismaProductRepository implements IProductRepository {
       data: { ativo: false },
     });
   }
+
+  async findAll(): Promise<Produto[]> {
+    return this.prisma.produto.findMany({
+      where: { ativo: true },
+      orderBy: { sku: 'asc' },
+    });
+  }
 }

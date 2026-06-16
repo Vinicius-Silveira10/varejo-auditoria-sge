@@ -8,6 +8,7 @@ import { GetOtifDashboardUseCase } from '../../core/use-cases/order/get-otif-das
 import { IOrderRepository } from '../../core/interfaces/repositories/i-order.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
+import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
@@ -37,10 +38,10 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: PickOrderUseCase,
-      useFactory: (orderRepo: IOrderRepository, batchRepo: IBatchRepository) => {
-        return new PickOrderUseCase(orderRepo, batchRepo);
+      useFactory: (orderRepo: IOrderRepository, batchRepo: IBatchRepository, movRepo: IMovementRepository) => {
+        return new PickOrderUseCase(orderRepo, batchRepo, movRepo);
       },
-      inject: ['IOrderRepository', 'IBatchRepository'],
+      inject: ['IOrderRepository', 'IBatchRepository', 'IMovementRepository'],
     },
     {
       provide: GetOtifDashboardUseCase,

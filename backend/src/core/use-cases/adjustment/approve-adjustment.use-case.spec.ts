@@ -3,6 +3,7 @@ import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustmen
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
+import { UpdateAverageCostUseCase } from '../cost/update-average-cost.use-case';
 
 describe('ApproveAdjustmentUseCase', () => {
   let useCase: ApproveAdjustmentUseCase;
@@ -10,6 +11,7 @@ describe('ApproveAdjustmentUseCase', () => {
   let mockBatchRepo: jest.Mocked<IBatchRepository>;
   let mockProductRepo: jest.Mocked<IProductRepository>;
   let mockMovementRepo: jest.Mocked<IMovementRepository>;
+  let mockUpdateCostUseCase: jest.Mocked<UpdateAverageCostUseCase>;
 
   beforeEach(() => {
     mockAdjRepo = {
@@ -36,7 +38,10 @@ describe('ApproveAdjustmentUseCase', () => {
       findMovementsByAddress: jest.fn(),
       findMovementsByType: jest.fn(),
     };
-    useCase = new ApproveAdjustmentUseCase(mockAdjRepo, mockBatchRepo, mockProductRepo, mockMovementRepo);
+    mockUpdateCostUseCase = {
+      execute: jest.fn(),
+    } as any;
+    useCase = new ApproveAdjustmentUseCase(mockAdjRepo, mockBatchRepo, mockProductRepo, mockMovementRepo, mockUpdateCostUseCase);
   });
 
   it('deve reprovar ajuste e retornar', async () => {

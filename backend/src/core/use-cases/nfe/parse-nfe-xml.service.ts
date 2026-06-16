@@ -1,11 +1,12 @@
 import { XMLParser } from 'fast-xml-parser';
 
 export interface ParsedNfeItem {
-  sku: string;       // cProd (código do produto)
-  descricao: string; // xProd (descrição)
-  quantidade: number; // qCom (quantidade comercial)
+  sku: string;          // cProd (código do produto)
+  descricao: string;    // xProd (descrição)
+  quantidade: number;   // qCom (quantidade comercial)
   valorUnitario: number; // vUnCom (valor unitário)
-  valorTotal: number; // vProd (valor total do item)
+  valorTotal: number;   // vProd (valor total do item)
+  validade?: Date;      // dVenc / rastro[0].dFab+shelf — campo opcional SEFAZ
 }
 
 export interface ParsedNfe {
@@ -77,12 +78,29 @@ export class ParseNfeXmlService {
 
     const itens: ParsedNfeItem[] = detArray.map((det: any) => {
       const prod = det.prod || {};
+
+      // Tentar extrair data de validade: pode vir em rastro[0].dFab ou campo dVenc (SEFAZ)
+      let validade: Date | undefined;
+      const rastro = prod.rastro;
+      if (rastro) {
+        const primeiroRastro = Array.isArray(rastro) ? rastro[0] : rastro;
+        const dFab = primeiroRastro?.dFab;
+        const dVal = primeiroRastro?.dVal || primeiroRastro?.dVenc;
+        if (dVal) {
+          const parsed = new Date(dVal);
+          if (!isNaN(parsed.getTime())) validade = parsed;
+        } else if (dFab) {
+          // fallback: sem validade explícita — mantém undefined
+        }
+      }
+
       return {
         sku: String(prod.cProd || ''),
         descricao: String(prod.xProd || ''),
         quantidade: parseInt(String(prod.qCom || '0'), 10),
         valorUnitario: parseFloat(String(prod.vUnCom || '0')),
         valorTotal: parseFloat(String(prod.vProd || '0')),
+        validade,
       };
     });
 

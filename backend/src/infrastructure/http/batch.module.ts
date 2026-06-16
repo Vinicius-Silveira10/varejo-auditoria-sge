@@ -6,6 +6,7 @@ import { UpdateAverageCostUseCase } from '../../core/use-cases/cost/update-avera
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { ILogCustoRepository } from '../../core/interfaces/repositories/i-log-custo.repository';
+import { INotaFiscalRepository } from '../../core/interfaces/repositories/i-nota-fiscal.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
@@ -21,10 +22,15 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: ReceiveBatchUseCase,
-      useFactory: (batchRepo: IBatchRepository, productRepo: IProductRepository, updateCostUseCase: UpdateAverageCostUseCase) => {
-        return new ReceiveBatchUseCase(batchRepo, productRepo, updateCostUseCase);
+      useFactory: (
+        batchRepo: IBatchRepository,
+        productRepo: IProductRepository,
+        updateCostUseCase: UpdateAverageCostUseCase,
+        nfRepo: INotaFiscalRepository,
+      ) => {
+        return new ReceiveBatchUseCase(batchRepo, productRepo, updateCostUseCase, nfRepo);
       },
-      inject: ['IBatchRepository', 'IProductRepository', UpdateAverageCostUseCase],
+      inject: ['IBatchRepository', 'IProductRepository', UpdateAverageCostUseCase, 'INotaFiscalRepository'],
     },
     {
       provide: GetExpiryAlertsUseCase,

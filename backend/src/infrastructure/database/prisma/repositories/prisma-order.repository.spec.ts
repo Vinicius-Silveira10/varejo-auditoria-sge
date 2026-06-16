@@ -14,10 +14,13 @@ describe('PrismaOrderRepository', () => {
     repository = module.get<PrismaOrderRepository>(PrismaOrderRepository);
     prisma = module.get<PrismaService>(PrismaService);
 
-    // Limpar tabelas necessárias
+    // Limpar tabelas respeitando FK constraints (filho antes do pai)
+    await prisma.chainPointer.deleteMany();  // sem dependências
     await prisma.itemPedido.deleteMany();
     await prisma.pedidoExpedicao.deleteMany();
+    await prisma.movimentacao.deleteMany();  // FK: Movimentacao.loteId → Lote
     await prisma.logCusto.deleteMany();
+    await prisma.lote.deleteMany();          // FK: Lote.produtoId → Produto
     await prisma.produto.deleteMany();
     await prisma.usuario.deleteMany();
   });
