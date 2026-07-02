@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { ReceiveBatchUseCase } from '../../../core/use-cases/batch/receive-batch.use-case';
 import { GetExpiryAlertsUseCase } from '../../../core/use-cases/batch/get-expiry-alerts.use-case';
+import { DashboardGateway } from '../../websocket/dashboard.gateway';
 import { ReceiveBatchDto } from '../dtos/receive-batch.dto';
 
 @ApiTags('Lotes')
@@ -15,6 +16,7 @@ export class BatchController {
   constructor(
     private readonly receiveBatchUseCase: ReceiveBatchUseCase,
     private readonly getExpiryAlertsUseCase: GetExpiryAlertsUseCase,
+    private readonly dashboardGateway: DashboardGateway,
   ) {}
 
   @Roles(Role.GESTOR, Role.ADMIN, Role.OPERADOR) // Operadores também precisam saber o que vai vencer
@@ -41,6 +43,10 @@ export class BatchController {
         ...dto,
         validade: validadeDate,
       });
+
+      // Notificar o dashboard em tempo real (F-06 / GAP-008)
+      this.dashboardGateway.emitDashboardUpdate('batch:received', result);
+
       return {
         message: 'Lote recebido com sucesso',
         data: result,

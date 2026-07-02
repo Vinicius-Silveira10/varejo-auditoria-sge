@@ -63,6 +63,13 @@ export class RegisterMovementUseCase {
       }
     }
 
+    if (data.enderecoOrigemId) {
+      const enderecoOrigem = await this.addressRepository.findById(data.enderecoOrigemId);
+      if (enderecoOrigem && (enderecoOrigem as any).bloqueado) {
+        throw new Error('RN-INV-006: Endereço de origem bloqueado para contagem de inventário. Movimentações de saída suspensas neste endereço.');
+      }
+    }
+
     // --- Fluxos por tipo de movimentação ---
 
     if (data.tipo === 'SAIDA' || data.tipo === 'EXPEDICAO') {

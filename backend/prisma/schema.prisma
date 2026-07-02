@@ -12,9 +12,10 @@ model Usuario {
   nome     String
   email    String   @unique
   senha    String
-  perfil   String // RBAC: 'ADMIN', 'GESTOR', 'OPERADOR'
+  perfil   Perfil // RBAC: 'ADMIN', 'GESTOR', 'OPERADOR'
   ativo    Boolean  @default(true)
   criadoEm DateTime @default(now())
+  ultimoAcesso DateTime? // Controle LGPD / Segurança: data do último login bem-sucedido (RN-REL-003)
 
   movimentacoes Movimentacao[]
   ajustesSolicitados AjusteEstoque[] @relation("AjusteSolicitante")
@@ -33,6 +34,7 @@ model Produto {
   tipoZonaRequerida String @default("SECO") // 'SECO', 'REFRIGERADO', 'CONGELADO' (RN-ARM-003)
   custoMedio Float   @default(0.0) // Atualizado no Recebimento (RN-CST-001)
   ativo      Boolean @default(true) // Soft delete (RN-TRV-003)
+  curvaAbc   String  @default("C") // Classificação ABC de giro (valores A, B, C) (GAP-008)
 
   lotes Lote[]
   logsCusto LogCusto[]
@@ -48,7 +50,7 @@ model NotaFiscal {
   dataEmissao   DateTime
   valorTotal    Float
   xmlOriginal   String   @db.Text // XML bruto para auditoria (RN-REL-001)
-  status        String   @default("PENDENTE") // 'PENDENTE', 'CONFERIDO', 'DIVERGENTE'
+  status        StatusNfe @default(PENDENTE) // 'PENDENTE', 'CONFERIDO', 'DIVERGENTE'
   divergencias  String?  @db.Text // JSON com apontamentos de divergência (RN-REC-001)
   criadoEm      DateTime @default(now())
 
@@ -94,6 +96,7 @@ model Endereco {
   capacidade Int
   ocupado    Int     @default(0)
   ativo      Boolean @default(true)
+  bloqueado  Boolean @default(false)
 
   movimentacoesOrigem  Movimentacao[] @relation("EnderecoOrigem")
   movimentacoesDestino Movimentacao[] @relation("EnderecoDestino")
@@ -124,7 +127,7 @@ model AjusteEstoque {
   quantidadeDelta Int
   motivo          String
   valorDelta      Float    @default(0.0)
-  statusAprovacao String   @default("PENDENTE") // 'PENDENTE', 'APROVADO', 'REJEITADO'
+  statusAprovacao StatusAprovacao @default(PENDENTE) // 'PENDENTE', 'APROVADO', 'REJEITADO'
   solicitanteId   Int
   aprovadorId     Int?
   criadoEm        DateTime @default(now())
@@ -155,7 +158,7 @@ model ContagemInventario {
   loteId            Int
   quantidadeFisica  Int?
   quantidadeTeorica Int
-  status            String   @default("PENDENTE") // 'PENDENTE', 'CONCLUIDO', 'DIVERGENTE', 'AJUSTADO'
+  status            StatusContagem @default(PENDENTE) // 'PENDENTE', 'CONCLUIDO', 'DIVERGENTE', 'AJUSTADO'
   usuarioId         Int
   criadoEm          DateTime @default(now())
   atualizadoEm      DateTime @updatedAt
@@ -167,7 +170,7 @@ model ContagemInventario {
 model PedidoExpedicao {
   id            Int      @id @default(autoincrement())
   codigoPedido  String   @unique // Código do ERP ou sistema externo
-  status        String   @default("PENDENTE") // 'PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'
+  status        StatusPedido @default(PENDENTE) // 'PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'
   valorTotal    Float    @default(0.0) // Usado para RN-EXP-003
   conferente1Id Int?
   conferente2Id Int?
@@ -196,4 +199,37 @@ model ChainPointer {
   tabela     String   @id // ex: 'Movimentacao', 'LogCusto'
   lastHash   String?  // Hash do último registro inserido na cadeia
   updatedAt  DateTime @updatedAt
+}
+
+enum Perfil {
+  ADMIN
+  GESTOR
+  OPERADOR
+}
+
+enum StatusNfe {
+  PENDENTE
+  CONFERIDO
+  DIVERGENTE
+}
+
+enum StatusAprovacao {
+  PENDENTE
+  APROVADO
+  REJEITADO
+}
+
+enum StatusPedido {
+  PENDENTE
+  SEPARACAO
+  CONFERIDO
+  EXPEDIDO
+}
+
+enum StatusContagem {
+  PENDENTE
+  CONCLUIDO
+  DIVERGENTE
+  RECONTAGEM
+  AJUSTADO
 }

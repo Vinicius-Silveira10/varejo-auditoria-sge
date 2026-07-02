@@ -1,5 +1,5 @@
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
-import { Usuario } from '@prisma/client';
+import { Usuario, Perfil } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 export interface RegisterUserRequest {
@@ -26,7 +26,7 @@ export class RegisterUserUseCase {
       nome: request.nome,
       email: request.email,
       senha: hashedPassword,
-      perfil: request.perfil,
+      perfil: request.perfil as Perfil,
     });
 
     // Remove a senha antes de retornar para evitar vazamento

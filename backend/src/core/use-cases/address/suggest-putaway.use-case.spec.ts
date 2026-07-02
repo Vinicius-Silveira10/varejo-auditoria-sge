@@ -144,4 +144,20 @@ describe('SuggestPutawayUseCase', () => {
 
     expect(result.sugestoes.length).toBeLessThanOrEqual(5);
   });
+
+  it('deve priorizar endereços da zona A para produtos da curva A (GAP-008)', async () => {
+    mockProductRepo.findById.mockResolvedValue({
+      id: 1, sku: 'ARROZ-5KG', descricao: 'Arroz', categoria: 'Grãos', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 12, ativo: true, curvaAbc: 'A'
+    } as any);
+
+    mockAddressRepo.findAvailableByZona.mockResolvedValue([
+      { id: 1, codigo: 'B-01-01', zona: 'B', tipoZona: 'SECO', capacidade: 100, ocupado: 90, ativo: true }, // Mais ocupado (score de consolidação alto: 90)
+      { id: 2, codigo: 'A-01-01', zona: 'A', tipoZona: 'SECO', capacidade: 100, ocupado: 10, ativo: true }, // Menos ocupado (score de consolidação baixo: 10, mas é zona A!)
+    ] as any);
+
+    const result = await useCase.execute({ produtoId: 1, quantidade: 5 });
+
+    // O endereço da zona A deve ser classificado primeiro, mesmo tendo menor taxa de ocupação, por ser de classe A!
+    expect(result.sugestoes[0].codigo).toBe('A-01-01');
+  });
 });

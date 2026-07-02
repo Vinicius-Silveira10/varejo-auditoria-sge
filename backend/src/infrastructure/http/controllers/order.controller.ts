@@ -56,6 +56,9 @@ export class OrderController {
 
   @Roles(Role.GESTOR, Role.ADMIN)
   @Post()
+  @ApiOperation({ summary: 'Criar um novo pedido de expedição' })
+  @ApiResponse({ status: 201, description: 'Pedido criado com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos.' })
   async createOrder(@Body() dto: CreateOrderDto) {
     const result = await this.createOrderUseCase.execute(dto);
     return {
@@ -66,6 +69,10 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Patch(':id/verify')
+  @ApiOperation({ summary: 'Conferir um pedido com dois conferentes (RN-EXP-003)' })
+  @ApiParam({ name: 'id', description: 'ID do pedido' })
+  @ApiResponse({ status: 200, description: 'Pedido conferido com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Pedido não encontrado ou regra de dupla conferência violada.' })
   async verifyOrder(@Param('id') id: string, @Body() dto: VerifyOrderDto) {
     try {
       const result = await this.verifyOrderUseCase.execute({
@@ -87,6 +94,10 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Patch(':id/close')
+  @ApiOperation({ summary: 'Expedir um pedido (encerrar e marcar como EXPEDIDO)' })
+  @ApiParam({ name: 'id', description: 'ID do pedido' })
+  @ApiResponse({ status: 200, description: 'Pedido expedido com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Pedido em status inválido para expedição (RN-EXP-002).' })
   async closeOrder(@Param('id') id: string) {
     try {
       const result = await this.closeOrderUseCase.execute(+id);

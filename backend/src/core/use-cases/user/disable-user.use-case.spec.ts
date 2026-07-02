@@ -11,6 +11,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       findByEmail: jest.fn(),
       findById: jest.fn(),
       disable: jest.fn(),
+      updateUltimoAcesso: jest.fn(),
     };
     useCase = new DisableUserUseCase(mockUserRepo);
   });

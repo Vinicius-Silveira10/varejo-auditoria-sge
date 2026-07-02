@@ -15,4 +15,6 @@ export interface IMovementRepository {
     destinoId?: number;
     novaOcupacaoDestino?: number;
   }): Promise<Movimentacao>;
+  getMovementQuantitiesByProduct(dias: number): Promise<Array<{ produtoId: number; quantidadeTotal: number }>>;
+  purgeBefore(date: Date): Promise<number>;
 }

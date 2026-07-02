@@ -1,9 +1,9 @@
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { UpdateAverageCostUseCase } from '../cost/update-average-cost.use-case';
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { ProcessNfeUseCase } from '../nfe/process-nfe.use-case';
 import { Lote } from '@prisma/client';
+import { Queue } from 'bull';
 
 export interface ReceiveBatchRequest {
   numeroLote: string;
@@ -15,12 +15,17 @@ export interface ReceiveBatchRequest {
   notaFiscalId?: number;
 }
 
+/**
+ * GAP-009 FIX: Recálculo do custo médio desacoplado da requisição HTTP.
+ * A chamada síncrona ao UpdateAverageCostUseCase foi substituída por
+ * um job assíncrono na fila 'cost-update', evitando bloqueio do thread principal.
+ */
 export class ReceiveBatchUseCase {
   constructor(
     private readonly batchRepository: IBatchRepository,
     private readonly productRepository: IProductRepository,
-    private readonly updateAverageCostUseCase: UpdateAverageCostUseCase,
-    private readonly notaFiscalRepository: INotaFiscalRepository
+    private readonly costUpdateQueue: Queue,
+    private readonly notaFiscalRepository: INotaFiscalRepository,
   ) {}
 
   async execute(request: ReceiveBatchRequest): Promise<Lote> {
@@ -76,15 +81,7 @@ export class ReceiveBatchUseCase {
       }
     }
 
-    // RN-CST-001: Atualização do Custo Médio usando o caso de uso oficial (gera logs e garante precisão)
-    await this.updateAverageCostUseCase.execute({
-      produtoId: produto.id,
-      quantidadeEntrada: request.quantidade,
-      custoEntrada: request.custoAquisicao,
-      motivo: `Recebimento de Lote ${request.numeroLote}`,
-    });
-
-    // Salva o novo lote
+    // Salva o novo lote antes de enfileirar o cálculo de custo
     const lote = await this.batchRepository.create({
       numeroLote: request.numeroLote,
       produtoId: request.produtoId,
@@ -94,6 +91,14 @@ export class ReceiveBatchUseCase {
       emInventario: false,
       notaFiscalId: request.notaFiscalId || null,
       evidenciaUrl: request.evidenciaUrl || null,
+    });
+
+    // GAP-009: Enfileira o recálculo do custo médio de forma assíncrona (RN-CST-001)
+    await this.costUpdateQueue.add('calculate-cost', {
+      produtoId: produto.id,
+      quantidadeEntrada: request.quantidade,
+      custoEntrada: request.custoAquisicao,
+      motivo: `Recebimento de Lote ${request.numeroLote}`,
     });
 
     // RN-REC-001: Fechamento de status da NF-e (Se todos os itens foram recebidos)

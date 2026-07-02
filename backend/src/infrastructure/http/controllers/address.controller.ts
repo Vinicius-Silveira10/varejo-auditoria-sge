@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, BadRequestException, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Param, BadRequestException, HttpCode, HttpStatus, UseGuards, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { RegisterAddressUseCase } from '../../../core/use-cases/address/register-address.use-case';
@@ -6,7 +6,6 @@ import { DisableAddressUseCase } from '../../../core/use-cases/address/disable-a
 import { RegisterAddressDto } from '../dtos/register-address.dto';
 import { SuggestPutawayUseCase } from '../../../core/use-cases/address/suggest-putaway.use-case';
 import { GetAddressCapacityAlertsUseCase } from '../../../core/use-cases/address/get-address-capacity-alerts.use-case';
-import { Get, Query } from '@nestjs/common';
 import { Roles, Role } from '../../security/roles.decorator';
 
 @ApiTags('Endereços')

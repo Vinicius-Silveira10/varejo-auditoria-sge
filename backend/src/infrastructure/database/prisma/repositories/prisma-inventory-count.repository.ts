@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { IInventoryCountRepository, ContagemInventario } from '../../../../core/interfaces/repositories/i-inventory-count.repository';
+import { StatusContagem } from '@prisma/client';
 
 @Injectable()
 export class PrismaInventoryCountRepository implements IInventoryCountRepository {
@@ -12,7 +13,7 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
         loteId: data.loteId,
         quantidadeFisica: data.quantidadeFisica,
         quantidadeTeorica: data.quantidadeTeorica,
-        status: data.status,
+        status: data.status as StatusContagem,
         usuarioId: data.usuarioId,
       },
     });
@@ -34,7 +35,7 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
       where: { id },
       data: {
         quantidadeFisica,
-        status,
+        status: status as StatusContagem,
       },
     });
 
@@ -45,7 +46,7 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
     const contagem = await this.prisma.contagemInventario.update({
       where: { id },
       data: {
-        status,
+        status: status as StatusContagem,
       },
     });
 
@@ -67,6 +68,23 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
     });
 
     return contagens.map((c) => this.mapToDomain(c));
+  }
+
+  async findLatestFinishedByProduct(produtoId: number): Promise<ContagemInventario | null> {
+    const latest = await this.prisma.contagemInventario.findFirst({
+      where: {
+        status: { not: 'PENDENTE' },
+        lote: {
+          produtoId,
+        },
+      },
+      orderBy: {
+        criadoEm: 'desc',
+      },
+    });
+
+    if (!latest) return null;
+    return this.mapToDomain(latest);
   }
 
   async aggregateAccuracyMetrics(): Promise<{
@@ -96,6 +114,14 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
       totalDivergenciaAbsoluta: Number(result[0].totalDivergenciaAbsoluta),
       perdaFinanceiraTotal: Number(result[0].perdaFinanceiraTotal),
     };
+  }
+
+  async countRecounts(): Promise<number> {
+    return this.prisma.contagemInventario.count({
+      where: {
+        status: 'RECONTAGEM',
+      },
+    });
   }
 
   private mapToDomain(prismaContagem: any): ContagemInventario {

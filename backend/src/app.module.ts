@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { HealthController } from './infrastructure/http/controllers/health.controller';
 import { AppService } from './app.service';
@@ -16,6 +17,8 @@ import { NfeModule } from './infrastructure/http/nfe.module';
 import { OrderModule } from './infrastructure/http/order.module';
 import { CostModule } from './infrastructure/http/cost.module';
 import { DashboardModule } from './infrastructure/http/dashboard.module';
+import { WebsocketModule } from './infrastructure/websocket/websocket.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
 import { JwtAuthGuard } from './infrastructure/security/jwt-auth.guard';
 import { RolesGuard } from './infrastructure/security/roles.guard';
 
@@ -34,6 +37,14 @@ import { RolesGuard } from './infrastructure/security/roles.guard';
     OrderModule,
     CostModule,
     DashboardModule, // GAP-001 / ARQT-001 FIX: DashboardModule registrado
+    WebsocketModule,
+    QueueModule,
+    BullModule.forRoot({
+      redis: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
+    }),
   ],
   controllers: [AppController, HealthController],
   providers: [

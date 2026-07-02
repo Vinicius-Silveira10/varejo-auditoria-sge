@@ -17,4 +17,5 @@ export interface ILogCustoRepository {
   findAllOrdered(): Promise<LogCusto[]>;
   findPaginatedOrdered(skip: number, take: number): Promise<LogCusto[]>;
   countAll(): Promise<number>;
+  purgeBefore(date: Date): Promise<number>;
 }

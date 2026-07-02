@@ -13,6 +13,8 @@ describe('RegisterUserUseCase', () => {
       create: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
+      updateUltimoAcesso: jest.fn(),
+      disable: jest.fn(),
     };
     useCase = new RegisterUserUseCase(mockRepository);
     jest.clearAllMocks();

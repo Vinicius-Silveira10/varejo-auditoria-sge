@@ -134,4 +134,32 @@ export class PrismaMovementRepository implements IMovementRepository {
       });
     });
   }
+
+  async getMovementQuantitiesByProduct(dias: number): Promise<Array<{ produtoId: number; quantidadeTotal: number }>> {
+    const cutOffDate = new Date();
+    cutOffDate.setDate(cutOffDate.getDate() - dias);
+
+    const result: any[] = await this.prisma.$queryRaw`
+      SELECT l."produtoId", SUM(m."quantidade") as "quantidadeTotal"
+      FROM "Movimentacao" m
+      JOIN "Lote" l ON m."loteId" = l.id
+      WHERE m.tipo IN ('SAIDA', 'EXPEDICAO')
+        AND m."criadoEm" >= ${cutOffDate}
+      GROUP BY l."produtoId"
+    `;
+
+    return result.map((r) => ({
+      produtoId: Number(r.produtoId),
+      quantidadeTotal: Number(r.quantidadeTotal),
+    }));
+  }
+
+  async purgeBefore(date: Date): Promise<number> {
+    const result = await this.prisma.movimentacao.deleteMany({
+      where: {
+        criadoEm: { lt: date },
+      },
+    });
+    return result.count;
+  }
 }

@@ -7,7 +7,7 @@ import { Endereco } from '@prisma/client';
 export class PrismaAddressRepository implements IAddressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Endereco, 'id' | 'ocupado' | 'ativo'>): Promise<Endereco> {
+  async create(data: Omit<Endereco, 'id' | 'ocupado' | 'ativo' | 'bloqueado'>): Promise<Endereco> {
     return this.prisma.endereco.create({
       data,
     });
@@ -37,8 +37,9 @@ export class PrismaAddressRepository implements IAddressRepository {
       where: {
         tipoZona,
         ativo: true,
+        bloqueado: false,
       },
-      orderBy: { ocupado: 'asc' }, // Menos ocupado primeiro (mais espaço disponível)
+      orderBy: { ocupado: 'asc' }, // Less occupied first (more space available)
     });
   }
 
@@ -46,6 +47,20 @@ export class PrismaAddressRepository implements IAddressRepository {
     return this.prisma.endereco.update({
       where: { id },
       data: { ocupado: novaOcupacao },
+    });
+  }
+
+  async bloquear(id: number): Promise<Endereco> {
+    return this.prisma.endereco.update({
+      where: { id },
+      data: { bloqueado: true },
+    });
+  }
+
+  async desbloquear(id: number): Promise<Endereco> {
+    return this.prisma.endereco.update({
+      where: { id },
+      data: { bloqueado: false },
     });
   }
 

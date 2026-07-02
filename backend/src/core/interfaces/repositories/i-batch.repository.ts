@@ -9,4 +9,5 @@ export interface IBatchRepository {
   updateInventarioStatus(id: number, status: boolean): Promise<Lote>;
   countByNotaFiscal(notaFiscalId: number): Promise<number>;
   findExpiring(days: number): Promise<Lote[]>;
+  getDeadStockKpi(): Promise<{ totalAtivos: number; parados90Dias: number; porcentagem: number }>;
 }

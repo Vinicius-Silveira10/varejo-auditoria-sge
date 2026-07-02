@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { IAdjustmentRepository, AjusteEstoque } from '../../../../core/interfaces/repositories/i-adjustment.repository';
+import { StatusAprovacao } from '@prisma/client';
 
 @Injectable()
 export class PrismaAdjustmentRepository implements IAdjustmentRepository {
@@ -13,7 +14,7 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
         quantidadeDelta: data.quantidadeDelta,
         motivo: data.motivo,
         valorDelta: data.valorDelta,
-        statusAprovacao: data.statusAprovacao,
+        statusAprovacao: data.statusAprovacao as StatusAprovacao,
         solicitanteId: data.solicitanteId,
         aprovadorId: data.aprovadorId,
       },
@@ -35,12 +36,25 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
     const ajuste = await this.prisma.ajusteEstoque.update({
       where: { id },
       data: {
-        statusAprovacao: status,
+        statusAprovacao: status as StatusAprovacao,
         aprovadorId,
       },
     });
 
     return this.mapToDomain(ajuste);
+  }
+
+  async sumFinancialLosses(): Promise<number> {
+    const result = await this.prisma.ajusteEstoque.aggregate({
+      where: {
+        statusAprovacao: 'APROVADO',
+        quantidadeDelta: { lt: 0 },
+      },
+      _sum: {
+        valorDelta: true,
+      },
+    });
+    return Math.abs(result._sum.valorDelta || 0);
   }
 
   private mapToDomain(prismaAjuste: any): AjusteEstoque {

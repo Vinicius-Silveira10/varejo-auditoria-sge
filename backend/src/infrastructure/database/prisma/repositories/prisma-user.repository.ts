@@ -7,7 +7,7 @@ import { Usuario } from '@prisma/client';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm'>): Promise<Usuario> {
+  async create(data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm' | 'ultimoAcesso'>): Promise<Usuario> {
     return this.prisma.usuario.create({
       data,
     });
@@ -22,6 +22,13 @@ export class PrismaUserRepository implements IUserRepository {
   async findById(id: number): Promise<Usuario | null> {
     return this.prisma.usuario.findUnique({
       where: { id },
+    });
+  }
+
+  async updateUltimoAcesso(id: number, date: Date): Promise<Usuario> {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { ultimoAcesso: date },
     });
   }
 

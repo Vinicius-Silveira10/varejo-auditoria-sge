@@ -15,6 +15,8 @@ describe('AuthenticateUserUseCase', () => {
       create: jest.fn(),
       findByEmail: jest.fn(),
       findById: jest.fn(),
+      updateUltimoAcesso: jest.fn().mockResolvedValue({} as any),
+      disable: jest.fn(),
     };
     mockJwtService = {
       sign: jest.fn().mockReturnValue('mocked-jwt-token'),

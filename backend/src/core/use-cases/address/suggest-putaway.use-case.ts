@@ -59,7 +59,12 @@ export class SuggestPutawayUseCase {
         // Score: priorizar endereços com MENOS espaço disponível (consolidação de estoque)
         // Mas que ainda comportem a quantidade solicitada
         const taxaOcupacao = endereco.ocupado / endereco.capacidade;
-        const score = Math.round(taxaOcupacao * 100);
+        let score = Math.round(taxaOcupacao * 100);
+
+        // Se o produto for da Curva A, priorizar a zona "A" (endereço rápido) (GAP-008)
+        if ((produto as any).curvaAbc === 'A' && (endereco.zona.toUpperCase() === 'A' || endereco.zona.toUpperCase().startsWith('A'))) {
+          score += 1000;
+        }
 
         return {
           enderecoId: endereco.id,

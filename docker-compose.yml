@@ -14,5 +14,15 @@ services:
       - fortal_sge_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  redis:
+    image: redis:alpine
+    container_name: fortal_sge_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - fortal_sge_redis:/data
+    restart: unless-stopped
+
 volumes:
   fortal_sge_data:
+  fortal_sge_redis:

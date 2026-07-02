@@ -15,6 +15,7 @@ export interface IInventoryCountRepository {
   updateCount(id: number, quantidadeFisica: number, status: string): Promise<ContagemInventario>;
   updateStatus(id: number, status: string): Promise<ContagemInventario>;
   findAllFinished(): Promise<ContagemInventario[]>;
+  findLatestFinishedByProduct(produtoId: number): Promise<ContagemInventario | null>;
   aggregateAccuracyMetrics(): Promise<{
     totalTeorico: number;
     totalFisico: number;
@@ -22,4 +23,5 @@ export interface IInventoryCountRepository {
     perdaFinanceiraTotal: number;
     totalContagens: number;
   }>;
+  countRecounts(): Promise<number>;
 }

@@ -19,7 +19,6 @@ export class NfeController {
     private readonly getNfeDivergencesUseCase: GetNfeDivergencesUseCase,
   ) {}
 
-  @Roles(Role.GESTOR, Role.ADMIN)
   @Get('alerts/divergences')
   @ApiOperation({ summary: 'Obter alertas de divergências em NF-es' })
   @ApiResponse({ status: 200, description: 'Divergências recuperadas com sucesso.' })

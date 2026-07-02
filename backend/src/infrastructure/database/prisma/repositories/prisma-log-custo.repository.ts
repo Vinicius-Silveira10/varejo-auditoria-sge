@@ -82,4 +82,13 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
   async countAll(): Promise<number> {
     return this.prisma.logCusto.count();
   }
+
+  async purgeBefore(date: Date): Promise<number> {
+    const result = await this.prisma.logCusto.deleteMany({
+      where: {
+        criadoEm: { lt: date },
+      },
+    });
+    return result.count;
+  }
 }

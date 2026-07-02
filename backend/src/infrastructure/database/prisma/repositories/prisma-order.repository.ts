@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { IOrderRepository, PedidoExpedicaoWithItems } from '../../../../core/interfaces/repositories/i-order.repository';
-import { PedidoExpedicao } from '@prisma/client';
+import { PedidoExpedicao, StatusPedido } from '@prisma/client';
 
 @Injectable()
 export class PrismaOrderRepository implements IOrderRepository {
@@ -46,7 +46,7 @@ export class PrismaOrderRepository implements IOrderRepository {
   async updateStatus(id: number, status: string): Promise<PedidoExpedicao> {
     return this.prisma.pedidoExpedicao.update({
       where: { id },
-      data: { status },
+      data: { status: status as StatusPedido },
     });
   }
 
@@ -73,6 +73,14 @@ export class PrismaOrderRepository implements IOrderRepository {
     await this.prisma.itemPedido.update({
       where: { id: itemPedidoId },
       data: { quantidadeSeparada },
+    });
+  }
+
+  async countPendingPicking(): Promise<number> {
+    return this.prisma.pedidoExpedicao.count({
+      where: {
+        status: { in: ['PENDENTE', 'SEPARACAO'] },
+      },
     });
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { INotaFiscalRepository, CreateNotaFiscalData } from '../../../../core/interfaces/repositories/i-nota-fiscal.repository';
-import { NotaFiscal, ItemNfe } from '@prisma/client';
+import { NotaFiscal, ItemNfe, StatusNfe } from '@prisma/client';
 
 @Injectable()
 export class PrismaNotaFiscalRepository implements INotaFiscalRepository {
@@ -17,7 +17,7 @@ export class PrismaNotaFiscalRepository implements INotaFiscalRepository {
         dataEmissao: data.dataEmissao,
         valorTotal: data.valorTotal,
         xmlOriginal: data.xmlOriginal,
-        status: data.status,
+        status: data.status as StatusNfe,
         divergencias: data.divergencias,
         itensNfe: {
           create: data.itensNfe,
@@ -38,7 +38,7 @@ export class PrismaNotaFiscalRepository implements INotaFiscalRepository {
   async updateStatus(id: number, status: string, divergencias?: string): Promise<NotaFiscal> {
     return this.prisma.notaFiscal.update({
       where: { id },
-      data: { status, divergencias },
+      data: { status: status as StatusNfe, divergencias },
     });
   }
 

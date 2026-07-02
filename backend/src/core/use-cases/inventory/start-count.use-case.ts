@@ -1,5 +1,8 @@
 import { IInventoryCountRepository } from '../../interfaces/repositories/i-inventory-count.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
+import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
+import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
+import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 
 export interface StartCountDto {
   loteId: number;
@@ -10,6 +13,9 @@ export class StartCountUseCase {
   constructor(
     private readonly inventoryCountRepository: IInventoryCountRepository,
     private readonly batchRepository: IBatchRepository,
+    private readonly addressRepository: IAddressRepository,
+    private readonly movementRepository: IMovementRepository,
+    private readonly productRepository: IProductRepository,
   ) {}
 
   async execute(dto: StartCountDto) {
@@ -25,6 +31,34 @@ export class StartCountUseCase {
 
     if ((lote as any).emInventario) {
       throw new Error('Este lote já está sob contagem de inventário.');
+    }
+
+    // Verificar frequência de contagem para classes B/C (GAP-008 / RN-INV-004)
+    const produto = await this.productRepository.findById(lote.produtoId);
+    if (!produto) {
+      throw new Error('Produto não encontrado.');
+    }
+
+    const curva = (produto as any).curvaAbc || 'C';
+    if (curva === 'B' || curva === 'C') {
+      const latestCount = await this.inventoryCountRepository.findLatestFinishedByProduct(produto.id);
+      if (latestCount && latestCount.criadoEm) {
+        const diffMs = Date.now() - latestCount.criadoEm.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        
+        const minDays = curva === 'B' ? 15 : 30;
+        if (diffDays < minDays) {
+          throw new Error(`RN-INV-004: Frequência de inventário para produtos de classe ${curva} não respeitada (mínimo ${minDays} dias).`);
+        }
+      }
+    }
+
+    // Identificar o endereço associado ao lote (via movimentos) e bloqueá-lo
+    const movements = await this.movementRepository.findByLote(dto.loteId);
+    const lastMov = movements.find((m) => m.enderecoDestinoId || m.enderecoOrigemId);
+    const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
+    if (enderecoId) {
+      await this.addressRepository.bloquear(enderecoId);
     }
 
     // Bloqueia o lote logicamente (RN-INV-006)

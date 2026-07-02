@@ -9,6 +9,8 @@ import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.rep
 import { RequestAdjustmentUseCase } from '../../core/use-cases/adjustment/request-adjustment.use-case';
 import { IAdjustmentRepository } from '../../core/interfaces/repositories/i-adjustment.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
+import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
+import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
@@ -24,17 +26,29 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: StartCountUseCase,
-      useFactory: (countRepo: IInventoryCountRepository, batchRepo: IBatchRepository) => {
-        return new StartCountUseCase(countRepo, batchRepo);
+      useFactory: (
+        countRepo: IInventoryCountRepository,
+        batchRepo: IBatchRepository,
+        addressRepo: IAddressRepository,
+        movRepo: IMovementRepository,
+        productRepo: IProductRepository,
+      ) => {
+        return new StartCountUseCase(countRepo, batchRepo, addressRepo, movRepo, productRepo);
       },
-      inject: ['IInventoryCountRepository', 'IBatchRepository'],
+      inject: ['IInventoryCountRepository', 'IBatchRepository', 'IAddressRepository', 'IMovementRepository', 'IProductRepository'],
     },
     {
       provide: RegisterCountUseCase,
-      useFactory: (countRepo: IInventoryCountRepository, batchRepo: IBatchRepository, reqAdjUseCase: RequestAdjustmentUseCase) => {
-        return new RegisterCountUseCase(countRepo, batchRepo, reqAdjUseCase);
+      useFactory: (
+        countRepo: IInventoryCountRepository,
+        batchRepo: IBatchRepository,
+        reqAdjUseCase: RequestAdjustmentUseCase,
+        addressRepo: IAddressRepository,
+        movRepo: IMovementRepository,
+      ) => {
+        return new RegisterCountUseCase(countRepo, batchRepo, reqAdjUseCase, addressRepo, movRepo);
       },
-      inject: ['IInventoryCountRepository', 'IBatchRepository', RequestAdjustmentUseCase],
+      inject: ['IInventoryCountRepository', 'IBatchRepository', RequestAdjustmentUseCase, 'IAddressRepository', 'IMovementRepository'],
     },
     {
       provide: GetInventoryValueReportUseCase,

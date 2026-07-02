@@ -1,7 +1,7 @@
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { Produto } from '@prisma/client';
 
-export type RegisterProductRequest = Omit<Produto, 'id' | 'custoMedio' | 'ativo'>;
+export type RegisterProductRequest = Omit<Produto, 'id' | 'custoMedio' | 'ativo' | 'curvaAbc'>;
 
 export class RegisterProductUseCase {
   constructor(private readonly productRepository: IProductRepository) {}

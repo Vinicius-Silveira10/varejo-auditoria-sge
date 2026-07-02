@@ -59,7 +59,7 @@ describe('PrismaBatchRepository', () => {
     const result = await repository.findAvailableByProduct(produtoId);
 
     expect(prismaService.lote.findMany).toHaveBeenCalledWith({
-      where: { produtoId, quantidade: { gt: 0 }, ativo: true },
+      where: { produtoId, quantidade: { gt: 0 }, ativo: true, emInventario: false },
       orderBy: { validade: 'asc' },
     });
     expect(result).toEqual(mockLotes);

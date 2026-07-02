@@ -1,6 +1,8 @@
 import { IInventoryCountRepository } from '../../interfaces/repositories/i-inventory-count.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { RequestAdjustmentUseCase } from '../adjustment/request-adjustment.use-case';
+import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
+import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 
 export interface RegisterCountDto {
   contagemId: number;
@@ -14,6 +16,8 @@ export class RegisterCountUseCase {
     private readonly inventoryCountRepository: IInventoryCountRepository,
     private readonly batchRepository: IBatchRepository,
     private readonly requestAdjustmentUseCase: RequestAdjustmentUseCase,
+    private readonly addressRepository: IAddressRepository,
+    private readonly movementRepository: IMovementRepository,
   ) {}
 
   async execute(dto: RegisterCountDto) {
@@ -61,6 +65,14 @@ export class RegisterCountUseCase {
 
     // RN-INV-006: Só desbloqueia se a contagem for final (não exige recontagem)
     if (!recontagemExigida) {
+      // Identificar o endereço associado ao lote (via movimentos) e desbloqueá-lo
+      const movements = await this.movementRepository.findByLote(contagem.loteId);
+      const lastMov = movements.find((m) => m.enderecoDestinoId || m.enderecoOrigemId);
+      const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
+      if (enderecoId) {
+        await this.addressRepository.desbloquear(enderecoId);
+      }
+
       await this.batchRepository.updateInventarioStatus(contagem.loteId, false);
     }
 

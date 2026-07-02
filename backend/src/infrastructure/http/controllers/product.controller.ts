@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RegisterProductUseCase } from '../../../core/use-cases/product/register-product.use-case';
 import { DisableProductUseCase } from '../../../core/use-cases/product/disable-product.use-case';
+import { ClassifyAbcUseCase } from '../../../core/use-cases/product/classify-abc.use-case';
 import { RegisterProductDto } from '../dtos/register-product.dto';
 
 @ApiTags('Produtos')
@@ -14,7 +15,8 @@ import { RegisterProductDto } from '../dtos/register-product.dto';
 export class ProductController {
   constructor(
     private readonly registerProductUseCase: RegisterProductUseCase,
-    private readonly disableProductUseCase: DisableProductUseCase
+    private readonly disableProductUseCase: DisableProductUseCase,
+    private readonly classifyAbcUseCase: ClassifyAbcUseCase,
   ) {}
 
   @Post()
@@ -59,5 +61,17 @@ export class ProductController {
       }
       throw error;
     }
+  }
+
+  @Post('classify-abc')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Calcular e atualizar a classificação da Curva ABC dos produtos' })
+  @ApiResponse({ status: 200, description: 'Classificação ABC recalculada com sucesso.' })
+  async classifyAbc(@Body() body: { dias?: number }) {
+    const result = await this.classifyAbcUseCase.execute({ dias: body?.dias });
+    return {
+      message: 'Classificação ABC recalculada com sucesso',
+      data: result,
+    };
   }
 }

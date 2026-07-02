@@ -15,4 +15,5 @@ export interface IAdjustmentRepository {
   create(data: Omit<AjusteEstoque, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<AjusteEstoque>;
   findById(id: number): Promise<AjusteEstoque | null>;
   updateStatus(id: number, status: string, aprovadorId: number): Promise<AjusteEstoque>;
+  sumFinancialLosses(): Promise<number>;
 }

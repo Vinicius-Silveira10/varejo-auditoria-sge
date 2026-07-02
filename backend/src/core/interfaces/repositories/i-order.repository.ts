@@ -25,4 +25,6 @@ export interface IOrderRepository {
 
   /** Atualiza a quantidade separada de um item específico do pedido (GAP-002) */
   updateItemSeparado(itemPedidoId: number, quantidadeSeparada: number): Promise<void>;
+
+  countPendingPicking(): Promise<number>;
 }

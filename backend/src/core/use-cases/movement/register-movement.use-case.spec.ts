@@ -150,6 +150,20 @@ describe('RegisterMovementUseCase', () => {
     expect(batchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
 
+  it('deve lançar erro [RN-INV-006] ao tentar movimentar para um endereço bloqueado por inventário', async () => {
+    const batchMock: any = { id: 1, produtoId: 10, numeroLote: 'L01', quantidade: 50, validade: null, ativo: true, emInventario: false };
+    batchRepository.findById.mockResolvedValue(batchMock);
+
+    const enderecoDestino: any = { id: 5, codigo: 'A-01-01', zona: 'A', tipoZona: 'SECO', capacidade: 100, ocupado: 10, ativo: true, bloqueado: true };
+    addressRepository.findById.mockResolvedValue(enderecoDestino);
+
+    const movRequest: any = {
+      tipo: 'ENTRADA', loteId: 1, quantidade: 10, motivo: 'Compra', enderecoOrigemId: null, enderecoDestinoId: 5, usuarioId: 1
+    };
+
+    await expect(useCase.execute(movRequest)).rejects.toThrow('RN-INV-006: Endereço bloqueado');
+  });
+
   it('deve permitir movimentação se cabem no endereço destino (RN-ARM-001)', async () => {
     const batchMock: any = { id: 1, produtoId: 10, numeroLote: 'L01', quantidade: 50, validade: null, ativo: true, emInventario: false };
     batchRepository.findById.mockResolvedValue(batchMock);

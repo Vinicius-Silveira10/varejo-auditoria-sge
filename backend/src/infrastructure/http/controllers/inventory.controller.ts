@@ -6,6 +6,8 @@ import { StartCountUseCase } from '../../../core/use-cases/inventory/start-count
 import { RegisterCountUseCase } from '../../../core/use-cases/inventory/register-count.use-case';
 import { GetInventoryValueReportUseCase } from '../../../core/use-cases/inventory/get-inventory-value-report.use-case';
 import { GetInventoryAccuracyUseCase } from '../../../core/use-cases/inventory/get-inventory-accuracy.use-case';
+import { StartCountBodyDto } from '../dtos/start-count-body.dto';
+import { RegisterCountBodyDto } from '../dtos/register-count-body.dto';
 
 @ApiTags('Inventory')
 @ApiBearerAuth()
@@ -43,7 +45,7 @@ export class InventoryController {
   @Post('start')
   @ApiOperation({ summary: 'Iniciar contagem de inventário' })
   @ApiResponse({ status: 201, description: 'Contagem iniciada.' })
-  async startCount(@Body() body: any, @Req() req: any) {
+  async startCount(@Body() body: StartCountBodyDto, @Req() req: any) {
     const { loteId } = body;
     const usuarioId = req.user.userId;
 
@@ -58,14 +60,15 @@ export class InventoryController {
   @Post('register')
   @ApiOperation({ summary: 'Registrar contagem física' })
   @ApiResponse({ status: 201, description: 'Contagem registrada e divergências processadas.' })
-  async registerCount(@Body() body: any, @Req() req: any) {
-    const { contagemId, quantidadeFisica } = body;
+  async registerCount(@Body() body: RegisterCountBodyDto, @Req() req: any) {
+    const { contagemId, quantidadeFisica, isRecontagem } = body;
     const usuarioId = req.user.userId;
 
     const result = await this.registerCountUseCase.execute({
       contagemId,
       quantidadeFisica,
       usuarioId,
+      isRecontagem,
     });
 
     return result;
