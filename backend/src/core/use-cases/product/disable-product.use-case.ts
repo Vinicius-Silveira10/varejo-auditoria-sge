@@ -9,7 +9,7 @@ export class DisableProductUseCase {
     if (!existingProduct) {
       throw new Error(`RN-PROD-002: Produto com ID ${id} não encontrado`);
     }
-    
+
     if (!existingProduct.ativo) {
       throw new Error(`RN-PROD-003: O produto com ID ${id} já está desativado`);
     }

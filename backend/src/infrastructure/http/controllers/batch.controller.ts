@@ -1,5 +1,21 @@
-import { Controller, Post, Body, BadRequestException, HttpCode, HttpStatus, UseGuards, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { ReceiveBatchUseCase } from '../../../core/use-cases/batch/receive-batch.use-case';
@@ -22,7 +38,11 @@ export class BatchController {
   @Roles(Role.GESTOR, Role.ADMIN, Role.OPERADOR) // Operadores também precisam saber o que vai vencer
   @Get('alerts/expiry')
   @ApiOperation({ summary: 'Obter alertas de lotes próximos ao vencimento' })
-  @ApiQuery({ name: 'days', required: false, description: 'Número de dias para o vencimento (default: 30)' })
+  @ApiQuery({
+    name: 'days',
+    required: false,
+    description: 'Número de dias para o vencimento (default: 30)',
+  })
   @ApiResponse({ status: 200, description: 'Alertas recuperados com sucesso.' })
   async getExpiryAlerts(@Query('days') days?: string) {
     const result = await this.getExpiryAlertsUseCase.execute(days ? +days : 30);
@@ -34,8 +54,14 @@ export class BatchController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Receber um novo lote de produto' })
-  @ApiResponse({ status: 201, description: 'Lote recebido e estoque atualizado.' })
-  @ApiResponse({ status: 400, description: 'Produto não encontrado ou dados inválidos.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Lote recebido e estoque atualizado.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Produto não encontrado ou dados inválidos.',
+  })
   async receiveBatch(@Body() dto: ReceiveBatchDto) {
     try {
       const validadeDate = dto.validade ? new Date(dto.validade) : undefined;
@@ -52,7 +78,10 @@ export class BatchController {
         data: result,
       };
     } catch (error: any) {
-      if (error.message.includes('RN-BAT-001') || error.message.includes('RN-BAT-002')) {
+      if (
+        error.message.includes('RN-BAT-001') ||
+        error.message.includes('RN-BAT-002')
+      ) {
         throw new BadRequestException(error.message);
       }
       throw error;

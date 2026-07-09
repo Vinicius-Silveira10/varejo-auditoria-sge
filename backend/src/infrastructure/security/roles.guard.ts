@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  Logger,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, Role } from './roles.decorator';
 
@@ -19,14 +24,15 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    
+
     // Se não houver usuário ou perfil (ex: falha no JwtAuthGuard), bloqueia por padrão
-    const isAuthorized = user?.perfil && requiredRoles.some((role) => user.perfil === role);
+    const isAuthorized =
+      user?.perfil && requiredRoles.some((role) => user.perfil === role);
 
     if (!isAuthorized) {
       const { method, url } = context.switchToHttp().getRequest();
       this.logger.warn(
-        `Acesso Negado: Usuário ${user?.email || 'ANÔNIMO'} (${user?.perfil || 'SEM PERFIL'}) tentou ${method} ${url}. Requer: [${requiredRoles}]`
+        `Acesso Negado: Usuário ${user?.email || 'ANÔNIMO'} (${user?.perfil || 'SEM PERFIL'}) tentou ${method} ${url}. Requer: [${requiredRoles}]`,
       );
     }
 

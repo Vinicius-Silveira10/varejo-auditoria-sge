@@ -42,9 +42,9 @@ describe('GetInventoryAccuracyUseCase', () => {
     // Total Teórico = 100 + 50 = 150
     // Acurácia = (1 - (15 / 150)) * 100 = 90%
     expect(result.acuraciaPercentual).toBe(90);
-    
-    // Perda Financeira Líquida = (100 - 90)*10 + (50 - 55)*20 = 100 - 100 = 0? 
-    // Geralmente se reporta a perda absoluta para ser conservador, ou a líquida. 
+
+    // Perda Financeira Líquida = (100 - 90)*10 + (50 - 55)*20 = 100 - 100 = 0?
+    // Geralmente se reporta a perda absoluta para ser conservador, ou a líquida.
     // Vamos usar a líquida para balanço financeiro.
     expect(result.perdaFinanceiraTotal).toBe(0);
   });

@@ -19,8 +19,8 @@ describe('GetExpiryAlertsUseCase', () => {
         numeroLote: 'L001',
         quantidade: 100,
         validade: new Date(new Date().getTime() + 10 * 24 * 60 * 60 * 1000), // 10 dias
-        produto: { sku: 'PROD1', descricao: 'Produto 1' }
-      }
+        produto: { sku: 'PROD1', descricao: 'Produto 1' },
+      },
     ];
 
     batchRepository.findExpiring.mockResolvedValue(mockBatches as any);

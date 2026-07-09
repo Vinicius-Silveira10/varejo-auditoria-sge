@@ -12,7 +12,9 @@ export interface LogCusto {
 }
 
 export interface ILogCustoRepository {
-  create(log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<LogCusto>;
+  create(
+    log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+  ): Promise<LogCusto>;
   findByProdutoId(produtoId: number): Promise<LogCusto[]>;
   findAllOrdered(): Promise<LogCusto[]>;
   findPaginatedOrdered(skip: number, take: number): Promise<LogCusto[]>;

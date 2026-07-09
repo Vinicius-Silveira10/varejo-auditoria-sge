@@ -20,7 +20,10 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: ExportAuditCsvUseCase,
-      useFactory: (movementRepo: IMovementRepository, logCustoRepo: ILogCustoRepository) => {
+      useFactory: (
+        movementRepo: IMovementRepository,
+        logCustoRepo: ILogCustoRepository,
+      ) => {
         return new ExportAuditCsvUseCase(movementRepo, logCustoRepo);
       },
       inject: ['IMovementRepository', 'ILogCustoRepository'],

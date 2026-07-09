@@ -7,7 +7,9 @@ import { Endereco } from '@prisma/client';
 export class PrismaAddressRepository implements IAddressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Endereco, 'id' | 'ocupado' | 'ativo' | 'bloqueado'>): Promise<Endereco> {
+  async create(
+    data: Omit<Endereco, 'id' | 'ocupado' | 'ativo' | 'bloqueado'>,
+  ): Promise<Endereco> {
     return this.prisma.endereco.create({
       data,
     });
@@ -70,11 +72,13 @@ export class PrismaAddressRepository implements IAddressRepository {
     });
   }
 
-  async aggregateOccupationByZone(): Promise<Array<{
-    tipoZona: string;
-    capacidadeTotal: number;
-    ocupacaoTotal: number;
-  }>> {
+  async aggregateOccupationByZone(): Promise<
+    Array<{
+      tipoZona: string;
+      capacidadeTotal: number;
+      ocupacaoTotal: number;
+    }>
+  > {
     const aggregations = await this.prisma.endereco.groupBy({
       by: ['tipoZona'],
       where: { ativo: true },
@@ -84,7 +88,7 @@ export class PrismaAddressRepository implements IAddressRepository {
       },
     });
 
-    return aggregations.map(agg => ({
+    return aggregations.map((agg) => ({
       tipoZona: agg.tipoZona,
       capacidadeTotal: agg._sum.capacidade || 0,
       ocupacaoTotal: agg._sum.ocupado || 0,

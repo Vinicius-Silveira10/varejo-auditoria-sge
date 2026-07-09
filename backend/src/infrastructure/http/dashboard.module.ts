@@ -49,14 +49,20 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: GetKpisDashboardUseCase,
-      useFactory: (countRepo: IInventoryCountRepository, adjustmentRepo: IAdjustmentRepository) => {
+      useFactory: (
+        countRepo: IInventoryCountRepository,
+        adjustmentRepo: IAdjustmentRepository,
+      ) => {
         return new GetKpisDashboardUseCase(countRepo, adjustmentRepo);
       },
       inject: ['IInventoryCountRepository', 'IAdjustmentRepository'],
     },
     {
       provide: GetRealtimeDashboardUseCase,
-      useFactory: (movRepo: IMovementRepository, orderRepo: IOrderRepository) => {
+      useFactory: (
+        movRepo: IMovementRepository,
+        orderRepo: IOrderRepository,
+      ) => {
         return new GetRealtimeDashboardUseCase(movRepo, orderRepo);
       },
       inject: ['IMovementRepository', 'IOrderRepository'],

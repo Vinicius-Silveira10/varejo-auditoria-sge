@@ -12,10 +12,14 @@ export class RegisterAddressUseCase {
   constructor(private readonly addressRepository: IAddressRepository) {}
 
   async execute(request: RegisterAddressRequest): Promise<Endereco> {
-    const existingAddress = await this.addressRepository.findByCodigo(request.codigo);
-    
+    const existingAddress = await this.addressRepository.findByCodigo(
+      request.codigo,
+    );
+
     if (existingAddress) {
-      throw new Error(`RN-ARM-001: Já existe um endereço cadastrado com o código ${request.codigo}`);
+      throw new Error(
+        `RN-ARM-001: Já existe um endereço cadastrado com o código ${request.codigo}`,
+      );
     }
 
     return this.addressRepository.create({

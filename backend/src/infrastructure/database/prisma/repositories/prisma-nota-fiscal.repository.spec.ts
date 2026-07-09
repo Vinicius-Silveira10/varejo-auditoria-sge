@@ -22,7 +22,9 @@ describe('PrismaNotaFiscalRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<PrismaNotaFiscalRepository>(PrismaNotaFiscalRepository);
+    repository = module.get<PrismaNotaFiscalRepository>(
+      PrismaNotaFiscalRepository,
+    );
     prismaService = module.get(PrismaService);
   });
 
@@ -37,12 +39,26 @@ describe('PrismaNotaFiscalRepository', () => {
       xmlOriginal: '<xml>...</xml>',
       status: 'CONFERIDO',
       itensNfe: [
-        { produtoSku: 'SKU-001', descricaoNfe: 'Arroz', quantidade: 100, valorUnitario: 12.5, valorTotal: 1250 },
+        {
+          produtoSku: 'SKU-001',
+          descricaoNfe: 'Arroz',
+          quantidade: 100,
+          valorUnitario: 12.5,
+          valorTotal: 1250,
+        },
       ],
     };
 
-    const mockResult = { id: 1, ...data, divergencias: null, criadoEm: new Date(), itensNfe: [] };
-    (prismaService.notaFiscal.create as jest.Mock).mockResolvedValue(mockResult);
+    const mockResult = {
+      id: 1,
+      ...data,
+      divergencias: null,
+      criadoEm: new Date(),
+      itensNfe: [],
+    };
+    (prismaService.notaFiscal.create as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.create(data);
 
@@ -58,7 +74,9 @@ describe('PrismaNotaFiscalRepository', () => {
   it('deve buscar NF-e por chave de acesso (RN-REC-002)', async () => {
     const chave = '35210504380000010155001000000001123456789';
     const mockResult = { id: 1, chaveAcesso: chave };
-    (prismaService.notaFiscal.findUnique as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.notaFiscal.findUnique as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.findByChaveAcesso(chave);
 
@@ -78,7 +96,9 @@ describe('PrismaNotaFiscalRepository', () => {
 
   it('deve atualizar o status de uma NF-e', async () => {
     const mockResult = { id: 1, status: 'DIVERGENTE', divergencias: '[]' };
-    (prismaService.notaFiscal.update as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.notaFiscal.update as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.updateStatus(1, 'DIVERGENTE', '[]');
 

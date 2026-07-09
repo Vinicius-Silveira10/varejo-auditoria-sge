@@ -31,14 +31,21 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: CreateOrderUseCase,
-      useFactory: (orderRepo: IOrderRepository, productRepo: IProductRepository) => {
+      useFactory: (
+        orderRepo: IOrderRepository,
+        productRepo: IProductRepository,
+      ) => {
         return new CreateOrderUseCase(orderRepo, productRepo);
       },
       inject: ['IOrderRepository', 'IProductRepository'],
     },
     {
       provide: PickOrderUseCase,
-      useFactory: (orderRepo: IOrderRepository, batchRepo: IBatchRepository, movRepo: IMovementRepository) => {
+      useFactory: (
+        orderRepo: IOrderRepository,
+        batchRepo: IBatchRepository,
+        movRepo: IMovementRepository,
+      ) => {
         return new PickOrderUseCase(orderRepo, batchRepo, movRepo);
       },
       inject: ['IOrderRepository', 'IBatchRepository', 'IMovementRepository'],

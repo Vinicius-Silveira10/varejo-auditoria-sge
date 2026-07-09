@@ -28,7 +28,11 @@ describe('UpdateAverageCostUseCase', () => {
       findByProdutoId: jest.fn(),
     };
 
-    useCase = new UpdateAverageCostUseCase(productRepo, batchRepo, logCustoRepo);
+    useCase = new UpdateAverageCostUseCase(
+      productRepo,
+      batchRepo,
+      logCustoRepo,
+    );
   });
 
   it('deve calcular o custo médio corretamente (cenário com saldo anterior)', async () => {
@@ -44,8 +48,22 @@ describe('UpdateAverageCostUseCase', () => {
 
     // 2 lotes com total de 50 unidades
     batchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 1, numeroLote: 'L1', produtoId: 1, quantidade: 20, validade: null, ativo: true },
-      { id: 2, numeroLote: 'L2', produtoId: 1, quantidade: 30, validade: null, ativo: true },
+      {
+        id: 1,
+        numeroLote: 'L1',
+        produtoId: 1,
+        quantidade: 20,
+        validade: null,
+        ativo: true,
+      },
+      {
+        id: 2,
+        numeroLote: 'L2',
+        produtoId: 1,
+        quantidade: 30,
+        validade: null,
+        ativo: true,
+      },
     ]);
 
     productRepo.updateCustoMedio.mockResolvedValue({
@@ -74,12 +92,14 @@ describe('UpdateAverageCostUseCase', () => {
     });
 
     expect(productRepo.updateCustoMedio).toHaveBeenCalledWith(1, 12.0);
-    expect(logCustoRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-      custoAnterior: 10.0,
-      custoNovo: 12.0,
-      quantidadeAnterior: 50,
-      quantidadeNova: 70,
-    }));
+    expect(logCustoRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        custoAnterior: 10.0,
+        custoNovo: 12.0,
+        quantidadeAnterior: 50,
+        quantidadeNova: 70,
+      }),
+    );
     expect(result.log.custoNovo).toBe(12.0);
   });
 
@@ -115,12 +135,14 @@ describe('UpdateAverageCostUseCase', () => {
     });
 
     expect(productRepo.updateCustoMedio).toHaveBeenCalledWith(1, 15.5);
-    expect(logCustoRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-      custoAnterior: 0.0,
-      custoNovo: 15.5,
-      quantidadeAnterior: 0,
-      quantidadeNova: 10,
-    }));
+    expect(logCustoRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        custoAnterior: 0.0,
+        custoNovo: 15.5,
+        quantidadeAnterior: 0,
+        quantidadeNova: 10,
+      }),
+    );
   });
 
   it('deve arredondar para 6 casas decimais', async () => {
@@ -135,7 +157,14 @@ describe('UpdateAverageCostUseCase', () => {
     });
 
     batchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 1, numeroLote: 'L1', produtoId: 1, quantidade: 3, validade: null, ativo: true },
+      {
+        id: 1,
+        numeroLote: 'L1',
+        produtoId: 1,
+        quantidade: 3,
+        validade: null,
+        ativo: true,
+      },
     ]);
 
     productRepo.updateCustoMedio.mockResolvedValue({} as any);

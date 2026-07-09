@@ -27,7 +27,12 @@ describe('PrismaProductRepository', () => {
   });
 
   it('deve criar um produto no banco', async () => {
-    const data = { sku: 'PROD-01', descricao: 'Teste', categoria: 'Teste', perecivel: false };
+    const data = {
+      sku: 'PROD-01',
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+    };
     const mockCreated = { id: 1, custoMedio: 0, ativo: true, ...data };
     (prismaService.produto.create as jest.Mock).mockResolvedValue(mockCreated);
 
@@ -39,19 +44,39 @@ describe('PrismaProductRepository', () => {
 
   it('deve buscar um produto por SKU', async () => {
     const sku = 'PROD-01';
-    const mockResult = { id: 1, sku, descricao: 'Teste', categoria: 'Teste', perecivel: false, custoMedio: 0, ativo: true };
-    (prismaService.produto.findUnique as jest.Mock).mockResolvedValue(mockResult);
+    const mockResult = {
+      id: 1,
+      sku,
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+      custoMedio: 0,
+      ativo: true,
+    };
+    (prismaService.produto.findUnique as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.findBySku(sku);
 
-    expect(prismaService.produto.findUnique).toHaveBeenCalledWith({ where: { sku } });
+    expect(prismaService.produto.findUnique).toHaveBeenCalledWith({
+      where: { sku },
+    });
     expect(result).toEqual(mockResult);
   });
 
   it('deve atualizar o custo medio', async () => {
     const id = 1;
     const novoCusto = 15.5;
-    const mockResult = { id, sku: 'PROD-01', descricao: 'Teste', categoria: 'Teste', perecivel: false, custoMedio: novoCusto, ativo: true };
+    const mockResult = {
+      id,
+      sku: 'PROD-01',
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+      custoMedio: novoCusto,
+      ativo: true,
+    };
     (prismaService.produto.update as jest.Mock).mockResolvedValue(mockResult);
 
     const result = await repository.updateCustoMedio(id, novoCusto);
@@ -65,7 +90,15 @@ describe('PrismaProductRepository', () => {
 
   it('deve desativar um produto (soft delete)', async () => {
     const id = 1;
-    const mockResult = { id, sku: 'PROD-01', descricao: 'Teste', categoria: 'Teste', perecivel: false, custoMedio: 0, ativo: false };
+    const mockResult = {
+      id,
+      sku: 'PROD-01',
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+      custoMedio: 0,
+      ativo: false,
+    };
     (prismaService.produto.update as jest.Mock).mockResolvedValue(mockResult);
 
     const result = await repository.disable(id);

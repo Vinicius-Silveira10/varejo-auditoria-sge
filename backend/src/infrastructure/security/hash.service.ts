@@ -10,10 +10,10 @@ export class HashService {
     // Ordena as chaves para garantir que o JSON.stringify seja determinístico
     const sortedPayload = this.sortKeys(payload);
     const dataString = JSON.stringify(sortedPayload);
-    
+
     // Concatena com o hash anterior (ou 'GENESIS' se for o primeiro)
     const contentToHash = `${previousHash || 'GENESIS'}|${dataString}`;
-    
+
     return crypto.createHash('sha256').update(contentToHash).digest('hex');
   }
 

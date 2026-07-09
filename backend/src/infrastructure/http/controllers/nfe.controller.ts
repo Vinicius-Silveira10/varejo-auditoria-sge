@@ -1,5 +1,22 @@
-import { Controller, Post, Body, BadRequestException, ConflictException, HttpCode, HttpStatus, UseGuards, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  ConflictException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Param,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { ProcessNfeUseCase } from '../../../core/use-cases/nfe/process-nfe.use-case';
@@ -21,7 +38,10 @@ export class NfeController {
 
   @Get('alerts/divergences')
   @ApiOperation({ summary: 'Obter alertas de divergências em NF-es' })
-  @ApiResponse({ status: 200, description: 'Divergências recuperadas com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Divergências recuperadas com sucesso.',
+  })
   async getNfeDivergences() {
     const result = await this.getNfeDivergencesUseCase.execute();
     return {
@@ -44,16 +64,23 @@ export class NfeController {
   @Post('process')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Processar XML de uma NF-e' })
-  @ApiResponse({ status: 201, description: 'NF-e processada com sucesso (com ou sem divergências).' })
+  @ApiResponse({
+    status: 201,
+    description: 'NF-e processada com sucesso (com ou sem divergências).',
+  })
   @ApiResponse({ status: 400, description: 'XML inválido ou malformado.' })
-  @ApiResponse({ status: 409, description: 'Chave de acesso já processada anteriormente (RN-REC-002).' })
+  @ApiResponse({
+    status: 409,
+    description: 'Chave de acesso já processada anteriormente (RN-REC-002).',
+  })
   async processNfe(@Body() dto: ProcessNfeDto) {
     try {
       const result = await this.processNfeUseCase.execute(dto.xmlContent);
       return {
-        message: result.status === 'CONFERIDO'
-          ? `NF-e processada com sucesso. ${result.lotesGerados} lote(s) gerado(s).`
-          : 'NF-e processada com divergências. Nenhum lote foi gerado.',
+        message:
+          result.status === 'CONFERIDO'
+            ? `NF-e processada com sucesso. ${result.lotesGerados} lote(s) gerado(s).`
+            : 'NF-e processada com divergências. Nenhum lote foi gerado.',
         data: {
           notaFiscalId: result.notaFiscal.id,
           chaveAcesso: result.notaFiscal.chaveAcesso,
@@ -66,7 +93,11 @@ export class NfeController {
       if (error.message.includes('RN-REC-002')) {
         throw new ConflictException(error.message);
       }
-      if (error.message.includes('XML') || error.message.includes('vazio') || error.message.includes('inválid')) {
+      if (
+        error.message.includes('XML') ||
+        error.message.includes('vazio') ||
+        error.message.includes('inválid')
+      ) {
         throw new BadRequestException(error.message);
       }
       throw error;

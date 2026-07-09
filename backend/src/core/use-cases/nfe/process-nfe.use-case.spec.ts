@@ -123,17 +123,56 @@ describe('ProcessNfeUseCase', () => {
   it('deve processar NF-e válida com status CONFERIDO e gerar lotes (RN-REC-001)', async () => {
     mockNfRepo.findByChaveAcesso.mockResolvedValue(null);
     mockProductRepo.findBySku
-      .mockResolvedValueOnce({ id: 1, sku: 'SKU-001', descricao: 'Arroz', categoria: 'Grãos', perecivel: false, custoMedio: 10, ativo: true } as any)
-      .mockResolvedValueOnce({ id: 2, sku: 'SKU-002', descricao: 'Feijão', categoria: 'Grãos', perecivel: false, custoMedio: 7, ativo: true } as any)
+      .mockResolvedValueOnce({
+        id: 1,
+        sku: 'SKU-001',
+        descricao: 'Arroz',
+        categoria: 'Grãos',
+        perecivel: false,
+        custoMedio: 10,
+        ativo: true,
+      } as any)
+      .mockResolvedValueOnce({
+        id: 2,
+        sku: 'SKU-002',
+        descricao: 'Feijão',
+        categoria: 'Grãos',
+        perecivel: false,
+        custoMedio: 7,
+        ativo: true,
+      } as any)
       // Second round for batch creation
-      .mockResolvedValueOnce({ id: 1, sku: 'SKU-001', descricao: 'Arroz', categoria: 'Grãos', perecivel: false, custoMedio: 10, ativo: true } as any)
-      .mockResolvedValueOnce({ id: 2, sku: 'SKU-002', descricao: 'Feijão', categoria: 'Grãos', perecivel: false, custoMedio: 7, ativo: true } as any);
+      .mockResolvedValueOnce({
+        id: 1,
+        sku: 'SKU-001',
+        descricao: 'Arroz',
+        categoria: 'Grãos',
+        perecivel: false,
+        custoMedio: 10,
+        ativo: true,
+      } as any)
+      .mockResolvedValueOnce({
+        id: 2,
+        sku: 'SKU-002',
+        descricao: 'Feijão',
+        categoria: 'Grãos',
+        perecivel: false,
+        custoMedio: 7,
+        ativo: true,
+      } as any);
 
     mockNfRepo.create.mockResolvedValue({
-      id: 1, chaveAcesso: '35210504380000010155001000000001112345678901',
-      numero: '1', serie: '1', cnpjEmitente: '04380000010155',
-      dataEmissao: new Date(), valorTotal: 2850, xmlOriginal: VALID_XML,
-      status: 'CONFERIDO', divergencias: null, criadoEm: new Date(),
+      id: 1,
+      chaveAcesso: '35210504380000010155001000000001112345678901',
+      numero: '1',
+      serie: '1',
+      cnpjEmitente: '04380000010155',
+      dataEmissao: new Date(),
+      valorTotal: 2850,
+      xmlOriginal: VALID_XML,
+      status: 'CONFERIDO',
+      divergencias: null,
+      criadoEm: new Date(),
       itensNfe: [],
     } as any);
 
@@ -162,8 +201,10 @@ describe('ProcessNfeUseCase', () => {
     mockProductRepo.findBySku.mockResolvedValue(null);
 
     mockNfRepo.create.mockResolvedValue({
-      id: 2, chaveAcesso: '35210504380000010155001000000002109876543210',
-      status: 'DIVERGENTE', itensNfe: [],
+      id: 2,
+      chaveAcesso: '35210504380000010155001000000002109876543210',
+      status: 'DIVERGENTE',
+      itensNfe: [],
     } as any);
 
     const result = await useCase.execute(XML_SKU_DESCONHECIDO);
@@ -178,11 +219,19 @@ describe('ProcessNfeUseCase', () => {
   it('deve marcar como DIVERGENTE se produto estiver desativado', async () => {
     mockNfRepo.findByChaveAcesso.mockResolvedValue(null);
     mockProductRepo.findBySku.mockResolvedValue({
-      id: 1, sku: 'SKU-INEXISTENTE', descricao: 'Teste', categoria: 'C', perecivel: false, custoMedio: 0, ativo: false,
+      id: 1,
+      sku: 'SKU-INEXISTENTE',
+      descricao: 'Teste',
+      categoria: 'C',
+      perecivel: false,
+      custoMedio: 0,
+      ativo: false,
     } as any);
 
     mockNfRepo.create.mockResolvedValue({
-      id: 3, status: 'DIVERGENTE', itensNfe: [],
+      id: 3,
+      status: 'DIVERGENTE',
+      itensNfe: [],
     } as any);
 
     const result = await useCase.execute(XML_SKU_DESCONHECIDO);

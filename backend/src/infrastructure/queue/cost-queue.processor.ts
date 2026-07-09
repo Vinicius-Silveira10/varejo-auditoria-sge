@@ -18,13 +18,17 @@ export interface CostUpdateJobData {
 export class CostQueueProcessor {
   private readonly logger = new Logger(CostQueueProcessor.name);
 
-  constructor(private readonly updateAverageCostUseCase: UpdateAverageCostUseCase) {}
+  constructor(
+    private readonly updateAverageCostUseCase: UpdateAverageCostUseCase,
+  ) {}
 
   @Process('calculate-cost')
   async handleCostCalculation(job: Job<CostUpdateJobData>): Promise<void> {
     const { produtoId, quantidadeEntrada, custoEntrada, motivo } = job.data;
 
-    this.logger.log(`[cost-update] Processando job #${job.id} — Produto ${produtoId}`);
+    this.logger.log(
+      `[cost-update] Processando job #${job.id} — Produto ${produtoId}`,
+    );
 
     try {
       await this.updateAverageCostUseCase.execute({
@@ -35,7 +39,10 @@ export class CostQueueProcessor {
       });
       this.logger.log(`[cost-update] Job #${job.id} concluído com sucesso.`);
     } catch (error: any) {
-      this.logger.error(`[cost-update] Falha no job #${job.id}: ${error.message}`, error.stack);
+      this.logger.error(
+        `[cost-update] Falha no job #${job.id}: ${error.message}`,
+        error.stack,
+      );
       throw error; // Re-throw para BullMQ marcar o job como failed e aplicar retry policy
     }
   }

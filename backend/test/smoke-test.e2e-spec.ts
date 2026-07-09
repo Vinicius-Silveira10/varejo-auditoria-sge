@@ -49,8 +49,8 @@ describe('Smoke Test (Final Validation)', () => {
   });
 
   it('Dashboards: deve estar protegido por Role', async () => {
-     return request(app.getHttpServer())
-       .get('/orders/dashboard/otif')
-       .expect(403); 
+    return request(app.getHttpServer())
+      .get('/orders/dashboard/otif')
+      .expect(403);
   });
 });

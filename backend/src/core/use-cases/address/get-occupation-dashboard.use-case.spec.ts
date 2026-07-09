@@ -16,16 +16,16 @@ describe('GetOccupationDashboardUseCase', () => {
     mockAddressRepo.aggregateOccupationByZone.mockResolvedValue([
       { tipoZona: 'SECO', capacidadeTotal: 200, ocupacaoTotal: 80 },
       { tipoZona: 'REFRIGERADO', capacidadeTotal: 50, ocupacaoTotal: 40 },
-    ] as any);
+    ]);
 
     const result = await useCase.execute();
 
     // SECO: (50+30) / (100+100) = 80 / 200 = 40%
-    const seco = result.porZona.find(z => z.zona === 'SECO');
+    const seco = result.porZona.find((z) => z.zona === 'SECO');
     expect(seco?.percentual).toBe(40);
 
     // REFRIGERADO: 40 / 50 = 80%
-    const ref = result.porZona.find(z => z.zona === 'REFRIGERADO');
+    const ref = result.porZona.find((z) => z.zona === 'REFRIGERADO');
     expect(ref?.percentual).toBe(80);
 
     // Global: (80 + 40) / (200 + 50) = 120 / 250 = 48%

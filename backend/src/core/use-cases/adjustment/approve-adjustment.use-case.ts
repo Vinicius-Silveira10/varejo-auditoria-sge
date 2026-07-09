@@ -2,7 +2,6 @@ import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustmen
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { UpdateAverageCostUseCase } from '../cost/update-average-cost.use-case';
 
 export interface ApproveAdjustmentDto {
   ajusteId: number;
@@ -17,7 +16,6 @@ export class ApproveAdjustmentUseCase {
     private readonly batchRepository: IBatchRepository,
     private readonly productRepository: IProductRepository,
     private readonly movementRepository: IMovementRepository,
-    private readonly updateAverageCostUseCase: UpdateAverageCostUseCase,
   ) {}
 
   async execute(dto: ApproveAdjustmentDto) {
@@ -32,11 +30,17 @@ export class ApproveAdjustmentUseCase {
 
     // RN-REL-004: Segregação de Funções — quem solicita não pode aprovar
     if (ajuste.solicitanteId === dto.aprovadorId) {
-      throw new Error('RN-REL-004: Segregação de funções violada. O solicitante não pode aprovar o próprio ajuste.');
+      throw new Error(
+        'RN-REL-004: Segregação de funções violada. O solicitante não pode aprovar o próprio ajuste.',
+      );
     }
 
     if (!dto.aprovado) {
-      return this.adjustmentRepository.updateStatus(dto.ajusteId, 'REJEITADO', dto.aprovadorId);
+      return this.adjustmentRepository.updateStatus(
+        dto.ajusteId,
+        'REJEITADO',
+        dto.aprovadorId,
+      );
     }
 
     const lote = await this.batchRepository.findById(ajuste.loteId);
@@ -45,7 +49,9 @@ export class ApproveAdjustmentUseCase {
     }
 
     if (lote.emInventario) {
-      throw new Error('RN-INV-006: Lote bloqueado para contagem de inventário. Efetivação de ajustes suspensa.');
+      throw new Error(
+        'RN-INV-006: Lote bloqueado para contagem de inventário. Efetivação de ajustes suspensa.',
+      );
     }
 
     const produto = await this.productRepository.findById(lote.produtoId);
@@ -55,11 +61,14 @@ export class ApproveAdjustmentUseCase {
 
     // Validação de Alçada (RN-AJU-004)
     const saldoTeorico = lote.quantidade;
-    const deltaPercent = saldoTeorico > 0 ? ajuste.quantidadeDelta / saldoTeorico : 1;
+    const deltaPercent =
+      saldoTeorico > 0 ? ajuste.quantidadeDelta / saldoTeorico : 1;
 
     if (Math.abs(deltaPercent) > 0.02 || Math.abs(ajuste.valorDelta) > 1000) {
       if (dto.aprovadorRole !== 'ADMIN') {
-        throw new Error('RN-AJU-004: Ajustes acima de 2% ou R$ 1000 exigem aprovação de Controladoria/ADMIN.');
+        throw new Error(
+          'RN-AJU-004: Ajustes acima de 2% ou R$ 1000 exigem aprovação de Controladoria/ADMIN.',
+        );
       }
     } else {
       if (dto.aprovadorRole !== 'GESTOR' && dto.aprovadorRole !== 'ADMIN') {
@@ -67,24 +76,17 @@ export class ApproveAdjustmentUseCase {
       }
     }
 
-    // Efetivar Ajuste — atualizar status e saldo do lote
-    const ajusteAtualizado = await this.adjustmentRepository.updateStatus(dto.ajusteId, 'APROVADO', dto.aprovadorId);
+    // RN-AJU-005 / RN-CST-002: Ajustes de estoque NÃO recalculam o Custo Médio Ponderado.
+    // O CMP só é alterado em fluxos de entrada real de mercadoria (ex.: recebimento de NF-e).
+    // Vide ADR: docs/adr/0001-ajuste-nao-altera-custo-medio.md
 
-    const novaQuantidade = lote.quantidade + ajuste.quantidadeDelta;
-    await this.batchRepository.updateQuantidade(lote.id, novaQuantidade);
-
-    // BUG-005 FIX — RN-AJU-004 / PRC-CST-007:
-    // Ajustes POSITIVOS (entrada de unidades) devem recalcular o Custo Médio Ponderado.
-    // Ajustes NEGATIVOS (saída de unidades) NÃO alteram o custo médio (conforme PRC-CST-007).
-    if (ajuste.quantidadeDelta > 0) {
-      await this.updateAverageCostUseCase.execute({
-        produtoId: produto.id,
-        quantidadeEntrada: ajuste.quantidadeDelta,
-        // Proxy: usa o custo médio atual como custo de reposição do ajuste positivo
-        custoEntrada: produto.custoMedio,
-        motivo: `Ajuste de estoque aprovado #${dto.ajusteId} — recálculo de CMV`,
-      });
-    }
+    // 4. Executa a aprovação e atualização do saldo de forma ATÔMICA
+    const ajusteAtualizado = await this.adjustmentRepository.executeApprovalTransaction({
+      ajusteId: dto.ajusteId,
+      aprovadorId: dto.aprovadorId,
+      loteId: lote.id,
+      novaQuantidade: lote.quantidade + ajuste.quantidadeDelta,
+    });
 
     // Gerar Movimentação de Auditoria
     await this.movementRepository.create({

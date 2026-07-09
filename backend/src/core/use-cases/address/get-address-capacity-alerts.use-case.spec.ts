@@ -14,8 +14,22 @@ describe('GetAddressCapacityAlertsUseCase', () => {
 
   it('deve retornar endereços que atingiram o limite de ocupação', async () => {
     const mockAddresses = [
-      { id: 1, codigo: 'A1-01', capacidade: 100, ocupado: 95, zona: 'PICKING', tipoZona: 'PALLET' },
-      { id: 2, codigo: 'A1-02', capacidade: 100, ocupado: 50, zona: 'PICKING', tipoZona: 'PALLET' }
+      {
+        id: 1,
+        codigo: 'A1-01',
+        capacidade: 100,
+        ocupado: 95,
+        zona: 'PICKING',
+        tipoZona: 'PALLET',
+      },
+      {
+        id: 2,
+        codigo: 'A1-02',
+        capacidade: 100,
+        ocupado: 50,
+        zona: 'PICKING',
+        tipoZona: 'PALLET',
+      },
     ];
 
     addressRepository.findAll.mockResolvedValue(mockAddresses as any);
@@ -29,7 +43,14 @@ describe('GetAddressCapacityAlertsUseCase', () => {
 
   it('deve retornar lista vazia se nenhum endereço atingir o limite', async () => {
     addressRepository.findAll.mockResolvedValue([
-      { id: 2, codigo: 'A1-02', capacidade: 100, ocupado: 50, zona: 'PICKING', tipoZona: 'PALLET' }
+      {
+        id: 2,
+        codigo: 'A1-02',
+        capacidade: 100,
+        ocupado: 50,
+        zona: 'PICKING',
+        tipoZona: 'PALLET',
+      },
     ] as any);
 
     const result = await sut.execute(0.9);

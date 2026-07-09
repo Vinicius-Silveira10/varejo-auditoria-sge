@@ -14,7 +14,7 @@ export class RegisterUserUseCase {
 
   async execute(request: RegisterUserRequest): Promise<Omit<Usuario, 'senha'>> {
     const existingUser = await this.userRepository.findByEmail(request.email);
-    
+
     if (existingUser) {
       throw new Error(`RN-USR-001: Email ${request.email} já está em uso`);
     }

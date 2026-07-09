@@ -23,7 +23,9 @@ export class AuthenticateUserUseCase {
     private readonly jwtService: JwtService,
   ) {}
 
-  async execute(request: AuthenticateUserRequest): Promise<AuthenticateUserResponse> {
+  async execute(
+    request: AuthenticateUserRequest,
+  ): Promise<AuthenticateUserResponse> {
     const user = await this.userRepository.findByEmail(request.email);
 
     if (!user) {
@@ -41,7 +43,7 @@ export class AuthenticateUserUseCase {
     }
 
     const payload = { sub: user.id, email: user.email, perfil: user.perfil };
-    
+
     // Atualizar data/hora do último login bem-sucedido (segurança / LGPD) (RN-REL-003)
     await this.userRepository.updateUltimoAcesso(user.id, new Date());
 

@@ -14,7 +14,10 @@ describe('GetOtifDashboardUseCase', () => {
 
   it('deve calcular OTIF 100% quando todos os pedidos estão completos', async () => {
     mockOrderRepo.findAll.mockResolvedValue([
-      { status: 'EXPEDIDO', itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 10 }] }
+      {
+        status: 'EXPEDIDO',
+        itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 10 }],
+      },
     ] as any);
 
     const result = await useCase.execute();
@@ -25,8 +28,14 @@ describe('GetOtifDashboardUseCase', () => {
 
   it('deve calcular OTIF corretamente com pedidos divergentes', async () => {
     mockOrderRepo.findAll.mockResolvedValue([
-      { status: 'EXPEDIDO', itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 10 }] }, // OK
-      { status: 'EXPEDIDO', itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 8 }] },  // Divergente
+      {
+        status: 'EXPEDIDO',
+        itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 10 }],
+      }, // OK
+      {
+        status: 'EXPEDIDO',
+        itens: [{ quantidadeSolicitada: 10, quantidadeSeparada: 8 }],
+      }, // Divergente
     ] as any);
 
     const result = await useCase.execute();

@@ -1,4 +1,12 @@
-import { Controller, Post, Body, BadRequestException, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { RegisterUserUseCase } from '../../../core/use-cases/user/register-user.use-case';
 import { AuthenticateUserUseCase } from '../../../core/use-cases/auth/authenticate-user.use-case';
 import { RegisterUserDto } from '../dtos/register-user.dto';
@@ -9,7 +17,7 @@ import { Public } from '../../security/public.decorator';
 export class AuthController {
   constructor(
     private readonly registerUserUseCase: RegisterUserUseCase,
-    private readonly authenticateUserUseCase: AuthenticateUserUseCase
+    private readonly authenticateUserUseCase: AuthenticateUserUseCase,
   ) {}
 
   @Public()
@@ -38,7 +46,10 @@ export class AuthController {
       const result = await this.authenticateUserUseCase.execute(dto);
       return result;
     } catch (error: any) {
-      if (error.message.includes('RN-USR-002') || error.message.includes('RN-USR-003')) {
+      if (
+        error.message.includes('RN-USR-002') ||
+        error.message.includes('RN-USR-003')
+      ) {
         throw new UnauthorizedException(error.message);
       }
       throw error;

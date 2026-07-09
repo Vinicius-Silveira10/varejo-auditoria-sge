@@ -30,11 +30,20 @@ describe('CreateOrderUseCase', () => {
   it('deve criar um pedido com sucesso', async () => {
     const dto = {
       codigoPedido: 'ORD-001',
-      itens: [{ produtoId: 1, quantidadeSolicitada: 10 }]
+      itens: [{ produtoId: 1, quantidadeSolicitada: 10 }],
     };
 
-    productRepository.findById.mockResolvedValue({ id: 1, sku: 'PROD1', nome: 'Produto 1' } as any);
-    orderRepository.create.mockResolvedValue({ id: 1, ...dto, status: 'CRIADO', itens: [] } as any);
+    productRepository.findById.mockResolvedValue({
+      id: 1,
+      sku: 'PROD1',
+      nome: 'Produto 1',
+    } as any);
+    orderRepository.create.mockResolvedValue({
+      id: 1,
+      ...dto,
+      status: 'CRIADO',
+      itens: [],
+    } as any);
 
     const result = await useCase.execute(dto);
 
@@ -45,11 +54,13 @@ describe('CreateOrderUseCase', () => {
   it('deve lançar erro se o produto não existir', async () => {
     const dto = {
       codigoPedido: 'ORD-002',
-      itens: [{ produtoId: 999, quantidadeSolicitada: 10 }]
+      itens: [{ produtoId: 999, quantidadeSolicitada: 10 }],
     };
 
     productRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(dto)).rejects.toThrow('Produto com ID 999 não encontrado');
+    await expect(useCase.execute(dto)).rejects.toThrow(
+      'Produto com ID 999 não encontrado',
+    );
   });
 });

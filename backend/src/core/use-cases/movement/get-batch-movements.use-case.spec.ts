@@ -11,7 +11,7 @@ describe('GetBatchMovementsUseCase', () => {
     movementRepository = {
       findByLote: jest.fn(),
     } as any;
-    
+
     batchRepository = {
       findById: jest.fn(),
     } as any;
@@ -21,7 +21,9 @@ describe('GetBatchMovementsUseCase', () => {
 
   it('deve retornar movimentações do lote', async () => {
     batchRepository.findById.mockResolvedValue({ id: 1 } as any);
-    movementRepository.findByLote.mockResolvedValue([{ id: 10, loteId: 1 }] as any);
+    movementRepository.findByLote.mockResolvedValue([
+      { id: 10, loteId: 1 },
+    ] as any);
 
     const result = await useCase.execute(1);
 
@@ -32,6 +34,8 @@ describe('GetBatchMovementsUseCase', () => {
   it('deve lançar erro se o lote não existir', async () => {
     batchRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toThrow('Lote com ID 999 não encontrado');
+    await expect(useCase.execute(999)).rejects.toThrow(
+      'Lote com ID 999 não encontrado',
+    );
   });
 });

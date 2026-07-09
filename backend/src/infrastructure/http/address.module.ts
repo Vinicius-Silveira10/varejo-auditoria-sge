@@ -28,7 +28,10 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: SuggestPutawayUseCase,
-      useFactory: (addressRepo: IAddressRepository, productRepo: IProductRepository) => {
+      useFactory: (
+        addressRepo: IAddressRepository,
+        productRepo: IProductRepository,
+      ) => {
         return new SuggestPutawayUseCase(addressRepo, productRepo);
       },
       inject: ['IAddressRepository', 'IProductRepository'],

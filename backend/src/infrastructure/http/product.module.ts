@@ -27,7 +27,10 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     },
     {
       provide: ClassifyAbcUseCase,
-      useFactory: (productRepo: IProductRepository, movementRepo: IMovementRepository) => {
+      useFactory: (
+        productRepo: IProductRepository,
+        movementRepo: IMovementRepository,
+      ) => {
         return new ClassifyAbcUseCase(productRepo, movementRepo);
       },
       inject: ['IProductRepository', 'IMovementRepository'],

@@ -1,21 +1,21 @@
 import { XMLParser } from 'fast-xml-parser';
 
 export interface ParsedNfeItem {
-  sku: string;          // cProd (código do produto)
-  descricao: string;    // xProd (descrição)
-  quantidade: number;   // qCom (quantidade comercial)
+  sku: string; // cProd (código do produto)
+  descricao: string; // xProd (descrição)
+  quantidade: number; // qCom (quantidade comercial)
   valorUnitario: number; // vUnCom (valor unitário)
-  valorTotal: number;   // vProd (valor total do item)
-  validade?: Date;      // dVenc / rastro[0].dFab+shelf — campo opcional SEFAZ
+  valorTotal: number; // vProd (valor total do item)
+  validade?: Date; // dVenc / rastro[0].dFab+shelf — campo opcional SEFAZ
 }
 
 export interface ParsedNfe {
   chaveAcesso: string; // chNFe (44 dígitos)
-  numero: string;      // nNF
-  serie: string;       // serie
+  numero: string; // nNF
+  serie: string; // serie
   cnpjEmitente: string; // CNPJ do emit
-  dataEmissao: Date;   // dhEmi
-  valorTotal: number;  // vNF (valor total da NF)
+  dataEmissao: Date; // dhEmi
+  valorTotal: number; // vNF (valor total da NF)
   itens: ParsedNfeItem[];
 }
 
@@ -39,7 +39,9 @@ export class ParseNfeXmlService {
     try {
       parsed = this.parser.parse(xmlContent);
     } catch (error) {
-      throw new Error('Falha ao interpretar o XML da NF-e. Verifique o formato.');
+      throw new Error(
+        'Falha ao interpretar o XML da NF-e. Verifique o formato.',
+      );
     }
 
     // Navegar na estrutura do XML da NF-e (padrão SEFAZ)
@@ -48,12 +50,16 @@ export class ParseNfeXmlService {
     const infNFe = nfe.infNFe || nfe;
 
     if (!infNFe) {
-      throw new Error('Estrutura XML inválida: elemento infNFe não encontrado.');
+      throw new Error(
+        'Estrutura XML inválida: elemento infNFe não encontrado.',
+      );
     }
 
     // Extrair chave de acesso
-    const chaveAcesso = infNFe['@_Id']?.replace('NFe', '') || 
-                         nfeProc.protNFe?.infProt?.chNFe || '';
+    const chaveAcesso =
+      infNFe['@_Id']?.replace('NFe', '') ||
+      nfeProc.protNFe?.infProt?.chNFe ||
+      '';
 
     if (!chaveAcesso || chaveAcesso.length !== 44) {
       throw new Error('Chave de acesso da NF-e inválida ou não encontrada.');
@@ -74,7 +80,9 @@ export class ParseNfeXmlService {
     const valorTotal = parseFloat(total.vNF || '0');
 
     // Itens (det pode ser array ou objeto único)
-    const detArray = Array.isArray(infNFe.det) ? infNFe.det : [infNFe.det].filter(Boolean);
+    const detArray = Array.isArray(infNFe.det)
+      ? infNFe.det
+      : [infNFe.det].filter(Boolean);
 
     const itens: ParsedNfeItem[] = detArray.map((det: any) => {
       const prod = det.prod || {};

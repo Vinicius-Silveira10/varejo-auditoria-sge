@@ -24,9 +24,12 @@ export class GetInventoryAccuracyUseCase {
       };
     }
 
-    const acuraciaPercentual = metrics.totalTeorico > 0 
-      ? Math.round((1 - (metrics.totalDivergenciaAbsoluta / metrics.totalTeorico)) * 100)
-      : 100;
+    const acuraciaPercentual =
+      metrics.totalTeorico > 0
+        ? Math.round(
+            (1 - metrics.totalDivergenciaAbsoluta / metrics.totalTeorico) * 100,
+          )
+        : 100;
 
     return {
       totalItensContados: metrics.totalContagens,

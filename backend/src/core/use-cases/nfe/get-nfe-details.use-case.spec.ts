@@ -29,6 +29,8 @@ describe('GetNotaFiscalDetailsUseCase', () => {
   it('deve lançar erro se não encontrar a nota', async () => {
     nfeRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toThrow('Nota Fiscal com ID 999 não encontrada');
+    await expect(useCase.execute(999)).rejects.toThrow(
+      'Nota Fiscal com ID 999 não encontrada',
+    );
   });
 });

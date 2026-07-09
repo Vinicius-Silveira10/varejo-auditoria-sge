@@ -28,9 +28,19 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         costUpdateQueue: Queue,
         nfRepo: INotaFiscalRepository,
       ) => {
-        return new ReceiveBatchUseCase(batchRepo, productRepo, costUpdateQueue, nfRepo);
+        return new ReceiveBatchUseCase(
+          batchRepo,
+          productRepo,
+          costUpdateQueue,
+          nfRepo,
+        );
       },
-      inject: ['IBatchRepository', 'IProductRepository', getQueueToken('cost-update'), 'INotaFiscalRepository'],
+      inject: [
+        'IBatchRepository',
+        'IProductRepository',
+        getQueueToken('cost-update'),
+        'INotaFiscalRepository',
+      ],
     },
     {
       provide: GetExpiryAlertsUseCase,

@@ -37,7 +37,7 @@ export class VerifyAuditChainUseCase {
     const falhas: AuditFailure[] = [];
     const chunkSize = 1000;
     const totalRegistros = await repository.countAll();
-    
+
     let lastHash: string | null = null;
 
     for (let skip = 0; skip < totalRegistros; skip += chunkSize) {
@@ -45,17 +45,23 @@ export class VerifyAuditChainUseCase {
 
       for (let i = 0; i < records.length; i++) {
         const record = records[i];
-        
-        const expectedPreviousHash = i === 0 ? lastHash : records[i - 1].hash ?? null;
+
+        const expectedPreviousHash =
+          i === 0 ? lastHash : (records[i - 1].hash ?? null);
 
         // Extrai os campos de dados (sem id, hash, previousHash, criadoEm, atualizadoEm)
-        const { id, hash, previousHash, criadoEm, atualizadoEm, ...payload } = record;
+        const { id, hash, previousHash, criadoEm, atualizadoEm, ...payload } =
+          record;
 
         // Recalcula o hash com o payload e o previousHash armazenado
-        const recalculatedHash = this.hashService.generateHash(payload, expectedPreviousHash);
+        const recalculatedHash = this.hashService.generateHash(
+          payload,
+          expectedPreviousHash,
+        );
 
         const hashMatch = recalculatedHash === hash;
-        const previousHashMatch = (previousHash ?? null) === expectedPreviousHash;
+        const previousHashMatch =
+          (previousHash ?? null) === expectedPreviousHash;
 
         if (!hashMatch || !previousHashMatch) {
           falhas.push({
@@ -67,7 +73,7 @@ export class VerifyAuditChainUseCase {
           });
         }
       } // Fim do loop de registros do chunk
-      
+
       if (records.length > 0) {
         lastHash = records[records.length - 1].hash ?? null;
       }

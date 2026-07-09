@@ -1,7 +1,9 @@
 import { Endereco } from '@prisma/client';
 
 export interface IAddressRepository {
-  create(data: Omit<Endereco, 'id' | 'ocupado' | 'ativo' | 'bloqueado'>): Promise<Endereco>;
+  create(
+    data: Omit<Endereco, 'id' | 'ocupado' | 'ativo' | 'bloqueado'>,
+  ): Promise<Endereco>;
   findById(id: number): Promise<Endereco | null>;
   findByCodigo(codigo: string): Promise<Endereco | null>;
   findAvailableByZona(tipoZona: string): Promise<Endereco[]>;
@@ -10,10 +12,11 @@ export interface IAddressRepository {
   findAll(): Promise<Endereco[]>;
   bloquear(id: number): Promise<Endereco>;
   desbloquear(id: number): Promise<Endereco>;
-  aggregateOccupationByZone(): Promise<Array<{
-    tipoZona: string;
-    capacidadeTotal: number;
-    ocupacaoTotal: number;
-  }>>;
+  aggregateOccupationByZone(): Promise<
+    Array<{
+      tipoZona: string;
+      capacidadeTotal: number;
+      ocupacaoTotal: number;
+    }>
+  >;
 }
-

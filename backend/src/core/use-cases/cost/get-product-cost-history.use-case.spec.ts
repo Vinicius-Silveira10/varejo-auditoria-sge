@@ -16,12 +16,17 @@ describe('GetProductCostHistoryUseCase', () => {
       findById: jest.fn(),
     } as any;
 
-    useCase = new GetProductCostHistoryUseCase(logCustoRepository, productRepository);
+    useCase = new GetProductCostHistoryUseCase(
+      logCustoRepository,
+      productRepository,
+    );
   });
 
   it('deve retornar histórico de custo', async () => {
     productRepository.findById.mockResolvedValue({ id: 1 } as any);
-    logCustoRepository.findByProdutoId.mockResolvedValue([{ id: 100, produtoId: 1 }] as any);
+    logCustoRepository.findByProdutoId.mockResolvedValue([
+      { id: 100, produtoId: 1 },
+    ] as any);
 
     const result = await useCase.execute(1);
 
@@ -32,6 +37,8 @@ describe('GetProductCostHistoryUseCase', () => {
   it('deve lançar erro se o produto não existir', async () => {
     productRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toThrow('Produto com ID 999 não encontrado');
+    await expect(useCase.execute(999)).rejects.toThrow(
+      'Produto com ID 999 não encontrado',
+    );
   });
 });

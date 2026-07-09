@@ -17,12 +17,18 @@ export class ExportAuditCsvUseCase {
     ]);
 
     const csvRows: string[] = [];
-    csvRows.push('TipoLog,Data,TargetId,Quantidade,CustoMedio,UsuarioAnonimizado,Hash,HashAnterior');
+    csvRows.push(
+      'TipoLog,Data,TargetId,Quantidade,CustoMedio,UsuarioAnonimizado,Hash,HashAnterior',
+    );
 
     // Mapear movimentações
     for (const m of movements) {
       const userRaw = (m as any).usuario?.email || `USER_ID_${m.usuarioId}`;
-      const userHash = crypto.createHash('sha256').update(userRaw + salt).digest('hex').substring(0, 16);
+      const userHash = crypto
+        .createHash('sha256')
+        .update(userRaw + salt)
+        .digest('hex')
+        .substring(0, 16);
 
       const row = [
         `MOVIMENTACAO_${m.tipo}`,
@@ -39,7 +45,9 @@ export class ExportAuditCsvUseCase {
 
     // Mapear logs de custos
     for (const c of costLogs) {
-      const createdTime = c.criadoEm ? c.criadoEm.toISOString() : new Date().toISOString();
+      const createdTime = c.criadoEm
+        ? c.criadoEm.toISOString()
+        : new Date().toISOString();
       const row = [
         'CUSTO_UPDATE',
         createdTime,

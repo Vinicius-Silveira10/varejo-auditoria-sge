@@ -24,8 +24,12 @@ describe('Audit & Traceability (Integration)', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    getBatchMovements = moduleFixture.get<GetBatchMovementsUseCase>(GetBatchMovementsUseCase);
-    registerMovement = moduleFixture.get<RegisterMovementUseCase>(RegisterMovementUseCase);
+    getBatchMovements = moduleFixture.get<GetBatchMovementsUseCase>(
+      GetBatchMovementsUseCase,
+    );
+    registerMovement = moduleFixture.get<RegisterMovementUseCase>(
+      RegisterMovementUseCase,
+    );
     receiveBatch = moduleFixture.get<ReceiveBatchUseCase>(ReceiveBatchUseCase);
     productRepo = moduleFixture.get<IProductRepository>('IProductRepository');
     addressRepo = moduleFixture.get<IAddressRepository>('IAddressRepository');
@@ -38,12 +42,34 @@ describe('Audit & Traceability (Integration)', () => {
 
   it('deve garantir a integridade da corrente de hashes (Blockchain) e rastreabilidade', async () => {
     const ts = Date.now();
-    const user = await userRepo.create({ nome: 'Auditor', email: `auditor-${ts}@test.com`, senha: '123', perfil: 'ADMIN' });
-    const product = await productRepo.create({ sku: `AUDIT-${ts}`, descricao: 'Audit Test', categoria: 'Secos', custoMedio: 10, tipoZonaRequerida: 'SECO' } as any);
-    const address = await addressRepo.create({ codigo: `ADDR-AUDIT-${ts}`, zona: 'A-01', tipoZona: 'SECO', capacidade: 1000 });
+    const user = await userRepo.create({
+      nome: 'Auditor',
+      email: `auditor-${ts}@test.com`,
+      senha: '123',
+      perfil: 'ADMIN',
+    });
+    const product = await productRepo.create({
+      sku: `AUDIT-${ts}`,
+      descricao: 'Audit Test',
+      categoria: 'Secos',
+      custoMedio: 10,
+      tipoZonaRequerida: 'SECO',
+    } as any);
+    const address = await addressRepo.create({
+      codigo: `ADDR-AUDIT-${ts}`,
+      zona: 'A-01',
+      tipoZona: 'SECO',
+      capacidade: 1000,
+    });
 
     // 1. Primeira Movimentação (ENTRADA)
-    const batch = await receiveBatch.execute({ produtoId: product.id, numeroLote: `L-AUDIT-${ts}`, validade: new Date('2027-01-01'), quantidade: 50, custoAquisicao: 10 });
+    const batch = await receiveBatch.execute({
+      produtoId: product.id,
+      numeroLote: `L-AUDIT-${ts}`,
+      validade: new Date('2027-01-01'),
+      quantidade: 50,
+      custoAquisicao: 10,
+    });
     const mov1 = await registerMovement.execute({
       tipo: 'ENTRADA',
       loteId: batch.id,
@@ -51,7 +77,7 @@ describe('Audit & Traceability (Integration)', () => {
       motivo: 'Recebimento',
       enderecoOrigemId: null,
       enderecoDestinoId: address.id,
-      usuarioId: user.id
+      usuarioId: user.id,
     });
 
     // 2. Segunda Movimentação (SAIDA)
@@ -62,12 +88,12 @@ describe('Audit & Traceability (Integration)', () => {
       motivo: 'Amostra',
       enderecoOrigemId: address.id,
       enderecoDestinoId: null,
-      usuarioId: user.id
+      usuarioId: user.id,
     });
 
     // 3. Validar Hashes (Encadeamento Atômico)
     expect(mov1.hash).toBeDefined();
-    
+
     expect(mov2.hash).toBeDefined();
     expect(mov2.previousHash).toBe(mov1.hash); // O elo da corrente: mov2 aponta para mov1
 

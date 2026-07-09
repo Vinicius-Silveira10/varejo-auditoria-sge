@@ -16,7 +16,14 @@ describe('DisableAddressUseCase', () => {
   });
 
   it('deve desativar um endereco existente', async () => {
-    const mockAddress = { id: 1, codigo: 'A-01', zona: 'Seca', capacidade: 100, ocupado: 0, ativo: true };
+    const mockAddress = {
+      id: 1,
+      codigo: 'A-01',
+      zona: 'Seca',
+      capacidade: 100,
+      ocupado: 0,
+      ativo: true,
+    };
     const mockDisabled = { ...mockAddress, ativo: false };
 
     mockRepository.findById.mockResolvedValue(mockAddress);
@@ -31,13 +38,24 @@ describe('DisableAddressUseCase', () => {
 
   it('deve falhar se o endereco nao for encontrado', async () => {
     mockRepository.findById.mockResolvedValue(null);
-    await expect(useCase.execute(99)).rejects.toThrow('RN-ARM-002: Endereço com ID 99 não encontrado');
+    await expect(useCase.execute(99)).rejects.toThrow(
+      'RN-ARM-002: Endereço com ID 99 não encontrado',
+    );
   });
 
   it('deve falhar se o endereco ja estiver desativado', async () => {
-    const mockAddress = { id: 1, codigo: 'A-01', zona: 'Seca', capacidade: 100, ocupado: 0, ativo: false };
+    const mockAddress = {
+      id: 1,
+      codigo: 'A-01',
+      zona: 'Seca',
+      capacidade: 100,
+      ocupado: 0,
+      ativo: false,
+    };
     mockRepository.findById.mockResolvedValue(mockAddress);
-    
-    await expect(useCase.execute(1)).rejects.toThrow('RN-ARM-003: O endereço com ID 1 já está desativado');
+
+    await expect(useCase.execute(1)).rejects.toThrow(
+      'RN-ARM-003: O endereço com ID 1 já está desativado',
+    );
   });
 });

@@ -7,7 +7,9 @@ import { Produto } from '@prisma/client';
 export class PrismaProductRepository implements IProductRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Produto, 'id' | 'custoMedio' | 'ativo' | 'curvaAbc'>): Promise<Produto> {
+  async create(
+    data: Omit<Produto, 'id' | 'custoMedio' | 'ativo' | 'curvaAbc'>,
+  ): Promise<Produto> {
     return this.prisma.produto.create({
       data,
     });
@@ -53,7 +55,11 @@ export class PrismaProductRepository implements IProductRepository {
     });
   }
 
-  async getRupturesKpi(): Promise<{ totalCurvaA: number; rupturasCurvaA: number; porcentagem: number }> {
+  async getRupturesKpi(): Promise<{
+    totalCurvaA: number;
+    rupturasCurvaA: number;
+    porcentagem: number;
+  }> {
     const productsA = await this.prisma.produto.findMany({
       where: {
         curvaAbc: 'A',

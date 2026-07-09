@@ -6,7 +6,7 @@ export class DisableAddressUseCase {
 
   async execute(id: number): Promise<Endereco> {
     const existingAddress = await this.addressRepository.findById(id);
-    
+
     if (!existingAddress) {
       throw new Error(`RN-ARM-002: Endereço com ID ${id} não encontrado`);
     }

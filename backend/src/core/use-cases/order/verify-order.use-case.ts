@@ -8,7 +8,7 @@ export interface VerifyOrderRequest {
 }
 
 export class VerifyOrderUseCase {
-  private readonly LIMIAR_ALTO_VALOR = 10000.00; // Parametrizado como 10 mil para RN-EXP-003
+  private readonly LIMIAR_ALTO_VALOR = 10000.0; // Parametrizado como 10 mil para RN-EXP-003
 
   constructor(private readonly orderRepository: IOrderRepository) {}
 
@@ -26,19 +26,23 @@ export class VerifyOrderUseCase {
     // Validação RN-EXP-003: Conferência dupla seletiva
     if (pedido.valorTotal >= this.LIMIAR_ALTO_VALOR) {
       if (!request.conferente2Id) {
-        throw new Error('RN-EXP-003: Pedidos de alto valor (>= 10000) exigem um segundo conferente obrigatório.');
+        throw new Error(
+          'RN-EXP-003: Pedidos de alto valor (>= 10000) exigem um segundo conferente obrigatório.',
+        );
       }
 
       // Segregation of Duties (SoD) - O segundo conferente não pode ser a mesma pessoa do primeiro
       if (request.conferente1Id === request.conferente2Id) {
-        throw new Error('RN-EXP-003: O primeiro e o segundo conferente não podem ser a mesma pessoa.');
+        throw new Error(
+          'RN-EXP-003: O primeiro e o segundo conferente não podem ser a mesma pessoa.',
+        );
       }
     }
 
     return this.orderRepository.updateConferentes(
-      request.pedidoId, 
-      request.conferente1Id, 
-      request.conferente2Id
+      request.pedidoId,
+      request.conferente1Id,
+      request.conferente2Id,
     );
   }
 }

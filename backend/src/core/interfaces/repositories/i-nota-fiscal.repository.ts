@@ -20,9 +20,15 @@ export interface CreateNotaFiscalData {
 }
 
 export interface INotaFiscalRepository {
-  create(data: CreateNotaFiscalData): Promise<NotaFiscal & { itensNfe: ItemNfe[] }>;
+  create(
+    data: CreateNotaFiscalData,
+  ): Promise<NotaFiscal & { itensNfe: ItemNfe[] }>;
   findByChaveAcesso(chaveAcesso: string): Promise<NotaFiscal | null>;
-  updateStatus(id: number, status: string, divergencias?: string): Promise<NotaFiscal>;
+  updateStatus(
+    id: number,
+    status: string,
+    divergencias?: string,
+  ): Promise<NotaFiscal>;
   findById(id: number): Promise<(NotaFiscal & { itensNfe: ItemNfe[] }) | null>;
   findDivergent(): Promise<NotaFiscal[]>;
 }

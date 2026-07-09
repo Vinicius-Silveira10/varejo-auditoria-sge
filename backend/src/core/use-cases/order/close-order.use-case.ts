@@ -29,8 +29,12 @@ export class CloseOrderUseCase {
     }
 
     if (pendencias.length > 0) {
-      const detalhes = pendencias.map(p => `Produto ${p.produtoId}: falta ${p.faltando}`).join(', ');
-      throw new Error(`RN-EXP-002: Não é possível expedir o pedido. Existem itens com picking pendente: ${detalhes}`);
+      const detalhes = pendencias
+        .map((p) => `Produto ${p.produtoId}: falta ${p.faltando}`)
+        .join(', ');
+      throw new Error(
+        `RN-EXP-002: Não é possível expedir o pedido. Existem itens com picking pendente: ${detalhes}`,
+      );
     }
 
     // Se todos os itens estão separados corretamente, atualiza para EXPEDIDO

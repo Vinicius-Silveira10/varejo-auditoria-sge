@@ -16,11 +16,32 @@ export interface PutawaySuggestion {
   score: number; // Pontuação de prioridade (maior = melhor)
 }
 
+/**
+ * Resultado da sugestão de endereçamento (putaway) para um produto.
+ *
+ * Retornado pelo endpoint `GET /addresses/suggest-putaway`.
+ *
+ * @remarks
+ * Quando não há endereços disponíveis na zona térmica requerida para um produto
+ * perecível, o campo `sugestoes` virá vazio e o campo `aviso` será preenchido
+ * com a justificativa do bloqueio (RN-ARM-003). Não há fallback automático para
+ * zonas alternativas — a decisão deve ser tomada pelo operador com supervisão.
+ */
 export interface SuggestPutawayResult {
   produtoId: number;
   perecivel: boolean;
   tipoZonaRequerida: string;
   sugestoes: PutawaySuggestion[];
+  /**
+   * Mensagem de alerta preenchida quando não há endereços disponíveis na zona
+   * térmica requerida para o produto (ex.: perecível sem espaço REFRIGERADO).
+   *
+   * Quando este campo vier preenchido, `sugestoes` estará vazio.
+   * O front-end deve exibir esta mensagem como alerta/toast para o operador.
+   *
+   * @example "RN-ARM-003: Nenhum endereço REFRIGERADO disponível. Produto perecível não pode ser armazenado em zona alternativa sem autorização."
+   */
+  aviso?: string;
 }
 
 export class SuggestPutawayUseCase {
@@ -34,18 +55,23 @@ export class SuggestPutawayUseCase {
     const produto = await this.productRepository.findById(request.produtoId);
 
     if (!produto) {
-      throw new Error(`RN-ARM-002: Produto com ID ${request.produtoId} não encontrado.`);
+      throw new Error(
+        `RN-ARM-002: Produto com ID ${request.produtoId} não encontrado.`,
+      );
     }
 
     if (!produto.ativo) {
-      throw new Error('RN-ARM-002: Produto desativado não pode ser endereçado.');
+      throw new Error(
+        'RN-ARM-002: Produto desativado não pode ser endereçado.',
+      );
     }
 
     // RN-ARM-003: Determinar zona térmica compatível
     const tipoZonaRequerida = (produto as any).tipoZonaRequerida;
 
     // 2. Buscar endereços disponíveis na zona compatível
-    const enderecos = await this.addressRepository.findAvailableByZona(tipoZonaRequerida);
+    const enderecos =
+      await this.addressRepository.findAvailableByZona(tipoZonaRequerida);
 
     // 3. Filtrar e pontuar endereços com capacidade suficiente (RN-ARM-001/004)
     const sugestoes: PutawaySuggestion[] = enderecos
@@ -62,7 +88,11 @@ export class SuggestPutawayUseCase {
         let score = Math.round(taxaOcupacao * 100);
 
         // Se o produto for da Curva A, priorizar a zona "A" (endereço rápido) (GAP-008)
-        if ((produto as any).curvaAbc === 'A' && (endereco.zona.toUpperCase() === 'A' || endereco.zona.toUpperCase().startsWith('A'))) {
+        if (
+          (produto as any).curvaAbc === 'A' &&
+          (endereco.zona.toUpperCase() === 'A' ||
+            endereco.zona.toUpperCase().startsWith('A'))
+        ) {
           score += 1000;
         }
 
@@ -80,27 +110,14 @@ export class SuggestPutawayUseCase {
     // Limitar a 5 sugestões
     const topSugestoes = sugestoes.slice(0, 5);
 
-    // Se perecível e não encontrou zona REFRIGERADO, tentar CONGELADO como fallback
+    // Se perecível e não encontrou zona adequada, NÃO há fallback — operador deve ser alertado
     if (produto.perecivel && topSugestoes.length === 0) {
-      const congelados = await this.addressRepository.findAvailableByZona('CONGELADO');
-      const fallback = congelados
-        .filter((e) => (e.capacidade - e.ocupado) >= request.quantidade)
-        .map((endereco) => ({
-          enderecoId: endereco.id,
-          codigo: endereco.codigo,
-          zona: endereco.zona,
-          tipoZona: endereco.tipoZona,
-          espacoDisponivel: endereco.capacidade - endereco.ocupado,
-          score: Math.round((endereco.ocupado / endereco.capacidade) * 100),
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 5);
-
       return {
         produtoId: request.produtoId,
         perecivel: produto.perecivel,
         tipoZonaRequerida,
-        sugestoes: fallback,
+        sugestoes: [],
+        aviso: `RN-ARM-003: Nenhum endereço ${tipoZonaRequerida} disponível. Produto perecível não pode ser armazenado em zona alternativa sem autorização.`,
       };
     }
 

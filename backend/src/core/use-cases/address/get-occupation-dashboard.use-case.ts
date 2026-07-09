@@ -32,15 +32,18 @@ export class GetOccupationDashboardUseCase {
     let globalCap = 0;
     let globalOcu = 0;
 
-    const porZona: OccupationZone[] = aggregations.map(agg => {
+    const porZona: OccupationZone[] = aggregations.map((agg) => {
       globalCap += agg.capacidadeTotal;
       globalOcu += agg.ocupacaoTotal;
-      
+
       return {
         zona: agg.tipoZona,
         capacidadeTotal: agg.capacidadeTotal,
         ocupacaoTotal: agg.ocupacaoTotal,
-        percentual: agg.capacidadeTotal > 0 ? Math.round((agg.ocupacaoTotal / agg.capacidadeTotal) * 100) : 0,
+        percentual:
+          agg.capacidadeTotal > 0
+            ? Math.round((agg.ocupacaoTotal / agg.capacidadeTotal) * 100)
+            : 0,
       };
     });
 
@@ -49,7 +52,8 @@ export class GetOccupationDashboardUseCase {
       totalGlobal: {
         capacidadeTotal: globalCap,
         ocupacaoTotal: globalOcu,
-        percentual: globalCap > 0 ? Math.round((globalOcu / globalCap) * 100) : 0,
+        percentual:
+          globalCap > 0 ? Math.round((globalOcu / globalCap) * 100) : 0,
       },
     };
   }

@@ -35,7 +35,9 @@ describe('CostQueueProcessor', () => {
   });
 
   it('deve propagar o erro caso UpdateAverageCostUseCase falhe (para BullMQ marcar como failed)', async () => {
-    mockUpdateCostUseCase.execute.mockRejectedValue(new Error('Falha ao atualizar custo'));
+    mockUpdateCostUseCase.execute.mockRejectedValue(
+      new Error('Falha ao atualizar custo'),
+    );
 
     const mockJob = {
       id: 'job-fail-1',
@@ -47,6 +49,8 @@ describe('CostQueueProcessor', () => {
       },
     } as any;
 
-    await expect(processor.handleCostCalculation(mockJob)).rejects.toThrow('Falha ao atualizar custo');
+    await expect(processor.handleCostCalculation(mockJob)).rejects.toThrow(
+      'Falha ao atualizar custo',
+    );
   });
 });

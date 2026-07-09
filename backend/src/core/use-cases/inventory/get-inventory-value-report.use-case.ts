@@ -27,9 +27,16 @@ export class GetInventoryValueReportUseCase {
     let valorTotalGeral = 0;
 
     for (const produto of produtos) {
-      const lotes = await this.batchRepository.findAvailableByProduct(produto.id);
-      const quantidadeTotal = lotes.reduce((acc, lote) => acc + lote.quantidade, 0);
-      const valorTotal = Number((quantidadeTotal * produto.custoMedio).toFixed(2));
+      const lotes = await this.batchRepository.findAvailableByProduct(
+        produto.id,
+      );
+      const quantidadeTotal = lotes.reduce(
+        (acc, lote) => acc + lote.quantidade,
+        0,
+      );
+      const valorTotal = Number(
+        (quantidadeTotal * produto.custoMedio).toFixed(2),
+      );
 
       if (quantidadeTotal > 0) {
         reportItems.push({

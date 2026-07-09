@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IAdjustmentRepository, AjusteEstoque } from '../../../../core/interfaces/repositories/i-adjustment.repository';
+import {
+  IAdjustmentRepository,
+  AjusteEstoque,
+} from '../../../../core/interfaces/repositories/i-adjustment.repository';
 import { StatusAprovacao } from '@prisma/client';
 
 @Injectable()
 export class PrismaAdjustmentRepository implements IAdjustmentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<AjusteEstoque, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<AjusteEstoque> {
+  async create(
+    data: Omit<AjusteEstoque, 'id' | 'criadoEm' | 'atualizadoEm'>,
+  ): Promise<AjusteEstoque> {
     const ajuste = await this.prisma.ajusteEstoque.create({
       data: {
         loteId: data.loteId,
@@ -27,12 +32,16 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
     const ajuste = await this.prisma.ajusteEstoque.findUnique({
       where: { id },
     });
-    
+
     if (!ajuste) return null;
     return this.mapToDomain(ajuste);
   }
 
-  async updateStatus(id: number, status: string, aprovadorId: number): Promise<AjusteEstoque> {
+  async updateStatus(
+    id: number,
+    status: string,
+    aprovadorId: number,
+  ): Promise<AjusteEstoque> {
     const ajuste = await this.prisma.ajusteEstoque.update({
       where: { id },
       data: {
@@ -55,6 +64,32 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
       },
     });
     return Math.abs(result._sum.valorDelta || 0);
+  }
+
+  async executeApprovalTransaction(params: {
+    ajusteId: number;
+    aprovadorId: number;
+    loteId: number;
+    novaQuantidade: number;
+  }): Promise<AjusteEstoque> {
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Atualizar Saldo do Lote
+      await (tx as any).lote.update({
+        where: { id: params.loteId },
+        data: { quantidade: params.novaQuantidade },
+      });
+
+      // 2. Atualizar Status do Ajuste
+      const ajuste = await (tx as any).ajusteEstoque.update({
+        where: { id: params.ajusteId },
+        data: {
+          statusAprovacao: 'APROVADO',
+          aprovadorId: params.aprovadorId,
+        },
+      });
+
+      return this.mapToDomain(ajuste);
+    });
   }
 
   private mapToDomain(prismaAjuste: any): AjusteEstoque {

@@ -13,7 +13,9 @@ async function generateSwagger() {
 
   const config = new DocumentBuilder()
     .setTitle('SGE Fortal — API')
-    .setDescription('Sistema de Gestão de Estoque — Documentação completa dos endpoints REST')
+    .setDescription(
+      'Sistema de Gestão de Estoque — Documentação completa dos endpoints REST',
+    )
     .setVersion('1.0.0')
     .addBearerAuth()
     .addTag('Auth', 'Autenticação e geração de tokens JWT')

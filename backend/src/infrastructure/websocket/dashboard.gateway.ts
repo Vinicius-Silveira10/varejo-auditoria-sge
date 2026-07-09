@@ -1,4 +1,10 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayInit,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, Injectable } from '@nestjs/common';
 
@@ -8,7 +14,9 @@ import { Logger, Injectable } from '@nestjs/common';
     origin: '*',
   },
 })
-export class DashboardGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class DashboardGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 

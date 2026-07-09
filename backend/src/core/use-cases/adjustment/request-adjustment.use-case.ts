@@ -27,7 +27,9 @@ export class RequestAdjustmentUseCase {
     }
 
     if (lote.emInventario) {
-      throw new Error('RN-INV-006: Lote bloqueado para contagem de inventário. Solicitações de ajuste suspensas.');
+      throw new Error(
+        'RN-INV-006: Lote bloqueado para contagem de inventário. Solicitações de ajuste suspensas.',
+      );
     }
 
     const produto = await this.productRepository.findById(lote.produtoId);
@@ -38,7 +40,8 @@ export class RequestAdjustmentUseCase {
     const saldoTeorico = lote.quantidade;
     const custoMedio = produto.custoMedio;
 
-    const deltaPercent = saldoTeorico > 0 ? dto.quantidadeDelta / saldoTeorico : 1;
+    const deltaPercent =
+      saldoTeorico > 0 ? dto.quantidadeDelta / saldoTeorico : 1;
     const valorDelta = dto.quantidadeDelta * custoMedio;
 
     let nivelAprovacao = 'GESTOR';

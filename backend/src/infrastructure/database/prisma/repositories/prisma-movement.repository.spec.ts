@@ -51,20 +51,34 @@ describe('PrismaMovementRepository', () => {
     }).compile();
 
     repository = module.get<PrismaMovementRepository>(PrismaMovementRepository);
-    prismaService = module.get(PrismaService) as any;
-    hashService = module.get(HashService) as any;
+    prismaService = module.get(PrismaService);
+    hashService = module.get(HashService);
   });
 
   it('deve registrar uma nova movimentacao com hash encadeado (BUG-007 fix: ChainPointer)', async () => {
     const movRequest = {
-      tipo: 'ENTRADA', loteId: 1, quantidade: 10, motivo: 'Entrada', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'ENTRADA',
+      loteId: 1,
+      quantidade: 10,
+      motivo: 'Entrada',
+      enderecoOrigemId: null,
+      enderecoDestinoId: null,
+      usuarioId: 1,
     };
-    const mockResult = { id: 100, criadoEm: new Date(), hash: 'novoHash', previousHash: 'hashAnterior', ...movRequest };
+    const mockResult = {
+      id: 100,
+      criadoEm: new Date(),
+      hash: 'novoHash',
+      previousHash: 'hashAnterior',
+      ...movRequest,
+    };
 
     hashService.generateHash
       .mockReturnValueOnce('tempHash') // primeira chamada: hash temporário
       .mockReturnValueOnce('novoHash'); // segunda chamada: hash real
-    (prismaService.movimentacao.create as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.movimentacao.create as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.create(movRequest);
 
@@ -72,8 +86,8 @@ describe('PrismaMovementRepository', () => {
       data: {
         ...movRequest,
         hash: 'novoHash',
-        previousHash: 'hashAnterior'
-      }
+        previousHash: 'hashAnterior',
+      },
     });
     expect(result).toEqual(mockResult);
   });
@@ -81,9 +95,21 @@ describe('PrismaMovementRepository', () => {
   it('deve buscar histórico de movimentacoes por lote', async () => {
     const loteId = 1;
     const mockMovs = [
-      { id: 100, tipo: 'ENTRADA', loteId, quantidade: 10, motivo: 'Entrada', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1, criadoEm: new Date() },
+      {
+        id: 100,
+        tipo: 'ENTRADA',
+        loteId,
+        quantidade: 10,
+        motivo: 'Entrada',
+        enderecoOrigemId: null,
+        enderecoDestinoId: null,
+        usuarioId: 1,
+        criadoEm: new Date(),
+      },
     ];
-    (prismaService.movimentacao.findMany as jest.Mock).mockResolvedValue(mockMovs);
+    (prismaService.movimentacao.findMany as jest.Mock).mockResolvedValue(
+      mockMovs,
+    );
 
     const result = await repository.findByLote(loteId);
 
@@ -100,12 +126,28 @@ describe('PrismaMovementRepository', () => {
     chainPointerMock.findUnique.mockResolvedValueOnce(null);
 
     const movRequest = {
-      tipo: 'ENTRADA', loteId: 1, quantidade: 5, motivo: 'Primeiro', enderecoOrigemId: null, enderecoDestinoId: null, usuarioId: 1
+      tipo: 'ENTRADA',
+      loteId: 1,
+      quantidade: 5,
+      motivo: 'Primeiro',
+      enderecoOrigemId: null,
+      enderecoDestinoId: null,
+      usuarioId: 1,
     };
-    const mockResult = { id: 1, criadoEm: new Date(), hash: 'hashPrimeiro', previousHash: null, ...movRequest };
+    const mockResult = {
+      id: 1,
+      criadoEm: new Date(),
+      hash: 'hashPrimeiro',
+      previousHash: null,
+      ...movRequest,
+    };
 
-    hashService.generateHash.mockReturnValueOnce('hashTemp').mockReturnValueOnce('hashPrimeiro');
-    (prismaService.movimentacao.create as jest.Mock).mockResolvedValue(mockResult);
+    hashService.generateHash
+      .mockReturnValueOnce('hashTemp')
+      .mockReturnValueOnce('hashPrimeiro');
+    (prismaService.movimentacao.create as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.create(movRequest);
     expect(result.previousHash).toBeNull();

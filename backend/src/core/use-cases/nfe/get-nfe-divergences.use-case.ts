@@ -5,15 +5,15 @@ export class GetNfeDivergencesUseCase {
 
   async execute() {
     const divergentNfes = await this.nfeRepository.findDivergent();
-    
-    return divergentNfes.map(nfe => ({
+
+    return divergentNfes.map((nfe) => ({
       id: nfe.id,
       chaveAcesso: nfe.chaveAcesso,
       numero: nfe.numero,
       serie: nfe.serie,
       dataEmissao: nfe.dataEmissao,
       valorTotal: nfe.valorTotal,
-      divergencias: nfe.divergencias
+      divergencias: nfe.divergencias,
     }));
   }
 }

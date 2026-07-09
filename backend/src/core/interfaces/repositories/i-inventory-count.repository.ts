@@ -10,12 +10,20 @@ export interface ContagemInventario {
 }
 
 export interface IInventoryCountRepository {
-  create(data: Omit<ContagemInventario, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<ContagemInventario>;
+  create(
+    data: Omit<ContagemInventario, 'id' | 'criadoEm' | 'atualizadoEm'>,
+  ): Promise<ContagemInventario>;
   findById(id: number): Promise<ContagemInventario | null>;
-  updateCount(id: number, quantidadeFisica: number, status: string): Promise<ContagemInventario>;
+  updateCount(
+    id: number,
+    quantidadeFisica: number,
+    status: string,
+  ): Promise<ContagemInventario>;
   updateStatus(id: number, status: string): Promise<ContagemInventario>;
   findAllFinished(): Promise<ContagemInventario[]>;
-  findLatestFinishedByProduct(produtoId: number): Promise<ContagemInventario | null>;
+  findLatestFinishedByProduct(
+    produtoId: number,
+  ): Promise<ContagemInventario | null>;
   aggregateAccuracyMetrics(): Promise<{
     totalTeorico: number;
     totalFisico: number;

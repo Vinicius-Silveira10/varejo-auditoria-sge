@@ -16,7 +16,9 @@ export class RetentionGuard {
   static assertPurgeable(criadoEm: Date): void {
     const now = new Date();
     const retentionLimit = new Date(now);
-    retentionLimit.setFullYear(retentionLimit.getFullYear() - RetentionGuard.RETENTION_YEARS);
+    retentionLimit.setFullYear(
+      retentionLimit.getFullYear() - RetentionGuard.RETENTION_YEARS,
+    );
 
     if (criadoEm > retentionLimit) {
       throw new ForbiddenException(

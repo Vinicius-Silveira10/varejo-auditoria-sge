@@ -82,7 +82,11 @@ export class PrismaBatchRepository implements IBatchRepository {
     });
   }
 
-  async getDeadStockKpi(): Promise<{ totalAtivos: number; parados90Dias: number; porcentagem: number }> {
+  async getDeadStockKpi(): Promise<{
+    totalAtivos: number;
+    parados90Dias: number;
+    porcentagem: number;
+  }> {
     const cutOffDate = new Date();
     cutOffDate.setDate(cutOffDate.getDate() - 90);
 

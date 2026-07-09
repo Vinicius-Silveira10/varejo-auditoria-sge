@@ -20,8 +20,16 @@ import { PrismaModule } from '../database/prisma/prisma.module';
   providers: [
     {
       provide: UpdateAverageCostUseCase,
-      useFactory: (productRepo: IProductRepository, batchRepo: IBatchRepository, logCustoRepo: ILogCustoRepository) => {
-        return new UpdateAverageCostUseCase(productRepo, batchRepo, logCustoRepo);
+      useFactory: (
+        productRepo: IProductRepository,
+        batchRepo: IBatchRepository,
+        logCustoRepo: ILogCustoRepository,
+      ) => {
+        return new UpdateAverageCostUseCase(
+          productRepo,
+          batchRepo,
+          logCustoRepo,
+        );
       },
       inject: ['IProductRepository', 'IBatchRepository', 'ILogCustoRepository'],
     },

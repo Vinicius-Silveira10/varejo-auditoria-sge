@@ -31,7 +31,9 @@ describe('Flow E2E (Integration)', () => {
 
     createOrder = moduleFixture.get<CreateOrderUseCase>(CreateOrderUseCase);
     pickOrder = moduleFixture.get<PickOrderUseCase>(PickOrderUseCase);
-    registerMovement = moduleFixture.get<RegisterMovementUseCase>(RegisterMovementUseCase);
+    registerMovement = moduleFixture.get<RegisterMovementUseCase>(
+      RegisterMovementUseCase,
+    );
     closeOrder = moduleFixture.get<CloseOrderUseCase>(CloseOrderUseCase);
     receiveBatch = moduleFixture.get<ReceiveBatchUseCase>(ReceiveBatchUseCase);
     productRepo = moduleFixture.get<IProductRepository>('IProductRepository');
@@ -45,12 +47,34 @@ describe('Flow E2E (Integration)', () => {
 
   it('deve realizar o fluxo completo: Entrada -> Pedido -> Picking -> Saída -> Fechamento', async () => {
     const ts = Date.now();
-    const user = await userRepo.create({ nome: 'Admin', email: `admin-${ts}@test.com`, senha: '123', perfil: 'ADMIN' });
-    const product = await productRepo.create({ sku: `FLOW-${ts}`, descricao: 'Flow Test', categoria: 'Secos', custoMedio: 5, tipoZonaRequerida: 'SECO' } as any);
-    const address = await addressRepo.create({ codigo: `ADDR-FLOW-${ts}`, zona: 'A-01', tipoZona: 'SECO', capacidade: 1000 });
-    
+    const user = await userRepo.create({
+      nome: 'Admin',
+      email: `admin-${ts}@test.com`,
+      senha: '123',
+      perfil: 'ADMIN',
+    });
+    const product = await productRepo.create({
+      sku: `FLOW-${ts}`,
+      descricao: 'Flow Test',
+      categoria: 'Secos',
+      custoMedio: 5,
+      tipoZonaRequerida: 'SECO',
+    } as any);
+    const address = await addressRepo.create({
+      codigo: `ADDR-FLOW-${ts}`,
+      zona: 'A-01',
+      tipoZona: 'SECO',
+      capacidade: 1000,
+    });
+
     // 2. Entrada de Lote (Logístico)
-    const batch = await receiveBatch.execute({ produtoId: product.id, numeroLote: `L-FLOW-${ts}`, validade: new Date('2027-01-01'), quantidade: 100, custoAquisicao: 5 });
+    const batch = await receiveBatch.execute({
+      produtoId: product.id,
+      numeroLote: `L-FLOW-${ts}`,
+      validade: new Date('2027-01-01'),
+      quantidade: 100,
+      custoAquisicao: 5,
+    });
 
     // 2.1 Colocar no Endereço (Movimentação de Entrada)
     await registerMovement.execute({
@@ -60,13 +84,13 @@ describe('Flow E2E (Integration)', () => {
       motivo: 'Recebimento',
       enderecoOrigemId: null,
       enderecoDestinoId: address.id,
-      usuarioId: user.id
+      usuarioId: user.id,
     });
 
     // 3. Criar Pedido (Feature 1)
     const order = await createOrder.execute({
       codigoPedido: `PED-FLOW-${ts}`,
-      itens: [{ produtoId: product.id, quantidadeSolicitada: 20 }]
+      itens: [{ produtoId: product.id, quantidadeSolicitada: 20 }],
     });
     expect(order.codigoPedido).toBe(`PED-FLOW-${ts}`);
 
@@ -82,16 +106,16 @@ describe('Flow E2E (Integration)', () => {
       motivo: 'Expedição Pedido',
       enderecoOrigemId: address.id,
       enderecoDestinoId: null,
-      usuarioId: user.id
+      usuarioId: user.id,
     });
 
     // 6. Fechamento de Pedido
     // Nota: Como não temos um endpoint de "confirmar separação item a item" ainda,
     // precisamos atualizar a quantidadeSeparada no banco para o teste passar no CloseOrder.
     const orderRepo = app.get('IOrderRepository');
-    await (orderRepo as any).prisma.itemPedido.updateMany({
-        where: { pedidoId: order.id },
-        data: { quantidadeSeparada: 20 }
+    await orderRepo.prisma.itemPedido.updateMany({
+      where: { pedidoId: order.id },
+      data: { quantidadeSeparada: 20 },
     });
 
     const finalOrder = await closeOrder.execute(order.id);

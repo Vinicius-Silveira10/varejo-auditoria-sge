@@ -7,7 +7,9 @@ import { Usuario } from '@prisma/client';
 export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm' | 'ultimoAcesso'>): Promise<Usuario> {
+  async create(
+    data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm' | 'ultimoAcesso'>,
+  ): Promise<Usuario> {
     return this.prisma.usuario.create({
       data,
     });

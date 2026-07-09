@@ -1,5 +1,22 @@
-import { Controller, Post, Body, BadRequestException, HttpCode, HttpStatus, UseGuards, Get, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Get,
+  Param,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RegisterMovementUseCase } from '../../../core/use-cases/movement/register-movement.use-case';
@@ -22,7 +39,10 @@ export class MovementController {
   @Get('batch/:id')
   @ApiOperation({ summary: 'Listar movimentações de um lote específico' })
   @ApiParam({ name: 'id', description: 'ID do lote', type: Number })
-  @ApiResponse({ status: 200, description: 'Movimentações retornadas com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Movimentações retornadas com sucesso.',
+  })
   @ApiResponse({ status: 401, description: 'Não autorizado.' })
   @ApiResponse({ status: 403, description: 'Perfil sem permissão.' })
   async getBatchMovements(@Param('id') id: string) {
@@ -35,14 +55,25 @@ export class MovementController {
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registrar nova movimentação de estoque (entrada, saída ou transferência)' })
-  @ApiResponse({ status: 201, description: 'Movimentação registrada e evento emitido em tempo real.' })
-  @ApiResponse({ status: 400, description: 'Dados inválidos ou regra de negócio violada (RN-TRV-002, RN-EXP-001).' })
+  @ApiOperation({
+    summary:
+      'Registrar nova movimentação de estoque (entrada, saída ou transferência)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Movimentação registrada e evento emitido em tempo real.',
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Dados inválidos ou regra de negócio violada (RN-TRV-002, RN-EXP-001).',
+  })
   @ApiResponse({ status: 401, description: 'Não autorizado.' })
-  async registerMovement(@Body() dto: RegisterMovementDto) {
+  async registerMovement(@Body() dto: RegisterMovementDto, @Req() req: any) {
     try {
       const result = await this.registerMovementUseCase.execute({
         ...dto,
+        usuarioId: req.user.userId,
         motivo: dto.motivo ?? null,
         enderecoOrigemId: dto.enderecoOrigemId ?? null,
         enderecoDestinoId: dto.enderecoDestinoId ?? null,
@@ -56,7 +87,11 @@ export class MovementController {
         data: result,
       };
     } catch (error: any) {
-      if (error.message.includes('RN-TRV-002') || error.message.includes('RN-EXP-001') || error.message.includes('não encontrado')) {
+      if (
+        error.message.includes('RN-TRV-002') ||
+        error.message.includes('RN-EXP-001') ||
+        error.message.includes('não encontrado')
+      ) {
         throw new BadRequestException(error.message);
       }
       throw error;

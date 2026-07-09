@@ -27,7 +27,7 @@ export class GetOtifDashboardUseCase {
 
     for (const pedido of pedidos) {
       let divergente = false;
-      
+
       for (const item of pedido.itens) {
         if (item.quantidadeSolicitada !== item.quantidadeSeparada) {
           divergente = true;

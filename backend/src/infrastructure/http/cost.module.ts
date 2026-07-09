@@ -11,7 +11,10 @@ import { PrismaModule } from '../database/prisma/prisma.module';
   providers: [
     {
       provide: GetProductCostHistoryUseCase,
-      useFactory: (logRepo: ILogCustoRepository, productRepo: IProductRepository) => {
+      useFactory: (
+        logRepo: ILogCustoRepository,
+        productRepo: IProductRepository,
+      ) => {
         return new GetProductCostHistoryUseCase(logRepo, productRepo);
       },
       inject: ['ILogCustoRepository', 'IProductRepository'],

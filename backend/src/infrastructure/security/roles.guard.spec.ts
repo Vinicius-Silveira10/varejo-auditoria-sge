@@ -14,13 +14,13 @@ describe('RolesGuard', () => {
 
   it('deve permitir acesso se não houver roles requeridas', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(null);
-    
+
     const context = {
       getHandler: () => ({}),
       getClass: () => ({}),
       switchToHttp: () => ({
-        getRequest: () => ({})
-      })
+        getRequest: () => ({}),
+      }),
     } as unknown as ExecutionContext;
 
     expect(guard.canActivate(context)).toBe(true);
@@ -28,15 +28,15 @@ describe('RolesGuard', () => {
 
   it('deve permitir acesso se o usuário tiver a role requerida', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
-    
+
     const context = {
       getHandler: () => ({}),
       getClass: () => ({}),
       switchToHttp: () => ({
         getRequest: () => ({
-          user: { perfil: 'ADMIN' }
-        })
-      })
+          user: { perfil: 'ADMIN' },
+        }),
+      }),
     } as unknown as ExecutionContext;
 
     expect(guard.canActivate(context)).toBe(true);
@@ -44,15 +44,15 @@ describe('RolesGuard', () => {
 
   it('deve negar acesso se o usuário não tiver a role requerida', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.GESTOR]);
-    
+
     const context = {
       getHandler: () => ({}),
       getClass: () => ({}),
       switchToHttp: () => ({
         getRequest: () => ({
-          user: { perfil: 'OPERADOR' }
-        })
-      })
+          user: { perfil: 'OPERADOR' },
+        }),
+      }),
     } as unknown as ExecutionContext;
 
     expect(guard.canActivate(context)).toBe(false);
@@ -60,16 +60,16 @@ describe('RolesGuard', () => {
 
   it('deve negar acesso se não houver usuário no request', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.ADMIN]);
-    
+
     const context = {
       getHandler: () => ({}),
       getClass: () => ({}),
       switchToHttp: () => ({
-        getRequest: () => ({}) // sem user, sem url/method (logger pode falhar sem eles)
-      })
+        getRequest: () => ({}), // sem user, sem url/method (logger pode falhar sem eles)
+      }),
     } as unknown as ExecutionContext;
 
     // isAuthorized retorna undefined (falsy) quando user.perfil é undefined — comportamento correto
     expect(guard.canActivate(context)).toBeFalsy();
   });
-})
+});

@@ -19,10 +19,18 @@ import { PrismaModule } from '../database/prisma/prisma.module';
   providers: [
     {
       provide: RequestAdjustmentUseCase,
-      useFactory: (adjRepo: IAdjustmentRepository, batchRepo: IBatchRepository, prodRepo: IProductRepository) => {
+      useFactory: (
+        adjRepo: IAdjustmentRepository,
+        batchRepo: IBatchRepository,
+        prodRepo: IProductRepository,
+      ) => {
         return new RequestAdjustmentUseCase(adjRepo, batchRepo, prodRepo);
       },
-      inject: ['IAdjustmentRepository', 'IBatchRepository', 'IProductRepository'],
+      inject: [
+        'IAdjustmentRepository',
+        'IBatchRepository',
+        'IProductRepository',
+      ],
     },
     {
       provide: StartCountUseCase,
@@ -33,9 +41,21 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         movRepo: IMovementRepository,
         productRepo: IProductRepository,
       ) => {
-        return new StartCountUseCase(countRepo, batchRepo, addressRepo, movRepo, productRepo);
+        return new StartCountUseCase(
+          countRepo,
+          batchRepo,
+          addressRepo,
+          movRepo,
+          productRepo,
+        );
       },
-      inject: ['IInventoryCountRepository', 'IBatchRepository', 'IAddressRepository', 'IMovementRepository', 'IProductRepository'],
+      inject: [
+        'IInventoryCountRepository',
+        'IBatchRepository',
+        'IAddressRepository',
+        'IMovementRepository',
+        'IProductRepository',
+      ],
     },
     {
       provide: RegisterCountUseCase,
@@ -46,13 +66,28 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         addressRepo: IAddressRepository,
         movRepo: IMovementRepository,
       ) => {
-        return new RegisterCountUseCase(countRepo, batchRepo, reqAdjUseCase, addressRepo, movRepo);
+        return new RegisterCountUseCase(
+          countRepo,
+          batchRepo,
+          reqAdjUseCase,
+          addressRepo,
+          movRepo,
+        );
       },
-      inject: ['IInventoryCountRepository', 'IBatchRepository', RequestAdjustmentUseCase, 'IAddressRepository', 'IMovementRepository'],
+      inject: [
+        'IInventoryCountRepository',
+        'IBatchRepository',
+        RequestAdjustmentUseCase,
+        'IAddressRepository',
+        'IMovementRepository',
+      ],
     },
     {
       provide: GetInventoryValueReportUseCase,
-      useFactory: (prodRepo: IProductRepository, batchRepo: IBatchRepository) => {
+      useFactory: (
+        prodRepo: IProductRepository,
+        batchRepo: IBatchRepository,
+      ) => {
         return new GetInventoryValueReportUseCase(prodRepo, batchRepo);
       },
       inject: ['IProductRepository', 'IBatchRepository'],

@@ -1,5 +1,10 @@
 import { Controller, Post, Body, Req, UseGuards, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { StartCountUseCase } from '../../../core/use-cases/inventory/start-count.use-case';
@@ -24,7 +29,10 @@ export class InventoryController {
 
   @Get('report/accuracy')
   @ApiOperation({ summary: 'Obter acuracidade do inventário' })
-  @ApiResponse({ status: 200, description: 'Acuracidade calculada com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Acuracidade calculada com sucesso.',
+  })
   async getInventoryAccuracy() {
     const result = await this.getInventoryAccuracyUseCase.execute();
     return {
@@ -59,7 +67,10 @@ export class InventoryController {
 
   @Post('register')
   @ApiOperation({ summary: 'Registrar contagem física' })
-  @ApiResponse({ status: 201, description: 'Contagem registrada e divergências processadas.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Contagem registrada e divergências processadas.',
+  })
   async registerCount(@Body() body: RegisterCountBodyDto, @Req() req: any) {
     const { contagemId, quantidadeFisica, isRecontagem } = body;
     const usuarioId = req.user.userId;

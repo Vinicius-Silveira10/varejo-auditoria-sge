@@ -30,25 +30,37 @@ export class ReceiveBatchUseCase {
 
   async execute(request: ReceiveBatchRequest): Promise<Lote> {
     const produto = await this.productRepository.findById(request.produtoId);
-    
+
     if (!produto) {
-      throw new Error(`RN-BAT-001: Produto com ID ${request.produtoId} não encontrado`);
+      throw new Error(
+        `RN-BAT-001: Produto com ID ${request.produtoId} não encontrado`,
+      );
     }
 
     if (!produto.ativo) {
-      throw new Error(`RN-BAT-002: Não é possível receber lote para um produto desativado`);
+      throw new Error(
+        `RN-BAT-002: Não é possível receber lote para um produto desativado`,
+      );
     }
 
     // RN-REC-001: Conciliação automática NF-e vs Físico
     if (request.notaFiscalId) {
-      const nfe = await this.notaFiscalRepository.findById(request.notaFiscalId);
+      const nfe = await this.notaFiscalRepository.findById(
+        request.notaFiscalId,
+      );
       if (!nfe) {
-        throw new Error(`RN-REC-001: NF-e com ID ${request.notaFiscalId} não encontrada`);
+        throw new Error(
+          `RN-REC-001: NF-e com ID ${request.notaFiscalId} não encontrada`,
+        );
       }
 
-      const itemNfe = nfe.itensNfe.find((item) => item.produtoSku === produto.sku);
+      const itemNfe = nfe.itensNfe.find(
+        (item) => item.produtoSku === produto.sku,
+      );
       if (!itemNfe) {
-        throw new Error(`RN-REC-001: Produto ${produto.sku} não encontrado na NF-e ${request.notaFiscalId}`);
+        throw new Error(
+          `RN-REC-001: Produto ${produto.sku} não encontrado na NF-e ${request.notaFiscalId}`,
+        );
       }
 
       // GAP-004 FIX — RN-REC-001: Tolerância sistêmica de 2% para divergências de quantidade
@@ -58,26 +70,39 @@ export class ReceiveBatchUseCase {
       );
 
       if (!dentroTolerancia) {
-        const deltaPercent = Math.abs((request.quantidade - itemNfe.quantidade) / itemNfe.quantidade) * 100;
-        const divergencias = JSON.stringify([{
-          sku: produto.sku,
-          tipo: 'QUANTIDADE_DIVERGENTE',
-          detalhe: `Quantidade física (${request.quantidade}) difere da NF-e (${itemNfe.quantidade}) em ${deltaPercent.toFixed(2)}% — acima da tolerância de 2% (RN-REC-001)`,
-          quantidadeNfe: itemNfe.quantidade,
-          quantidadeFisica: request.quantidade,
-          deltaPercent,
-        }]);
-        await this.notaFiscalRepository.updateStatus(request.notaFiscalId, 'DIVERGENTE', divergencias);
+        const deltaPercent =
+          Math.abs(
+            (request.quantidade - itemNfe.quantidade) / itemNfe.quantidade,
+          ) * 100;
+        const divergencias = JSON.stringify([
+          {
+            sku: produto.sku,
+            tipo: 'QUANTIDADE_DIVERGENTE',
+            detalhe: `Quantidade física (${request.quantidade}) difere da NF-e (${itemNfe.quantidade}) em ${deltaPercent.toFixed(2)}% — acima da tolerância de 2% (RN-REC-001)`,
+            quantidadeNfe: itemNfe.quantidade,
+            quantidadeFisica: request.quantidade,
+            deltaPercent,
+          },
+        ]);
+        await this.notaFiscalRepository.updateStatus(
+          request.notaFiscalId,
+          'DIVERGENTE',
+          divergencias,
+        );
       }
     }
 
     // RN-REC-003: Perecíveis exigem lote/validade e evidência fotográfica obrigatórios
     if (produto.perecivel) {
       if (!request.validade) {
-        throw new Error('RN-REC-003: Produto perecível exige data de validade obrigatória no recebimento.');
+        throw new Error(
+          'RN-REC-003: Produto perecível exige data de validade obrigatória no recebimento.',
+        );
       }
       if (!request.evidenciaUrl) {
-        throw new Error('RN-REC-003: Produto perecível exige foto de evidência obrigatória no recebimento.');
+        throw new Error(
+          'RN-REC-003: Produto perecível exige foto de evidência obrigatória no recebimento.',
+        );
       }
     }
 
@@ -103,13 +128,20 @@ export class ReceiveBatchUseCase {
 
     // RN-REC-001: Fechamento de status da NF-e (Se todos os itens foram recebidos)
     if (request.notaFiscalId) {
-      const nfe = await this.notaFiscalRepository.findById(request.notaFiscalId);
+      const nfe = await this.notaFiscalRepository.findById(
+        request.notaFiscalId,
+      );
       if (nfe) {
-        const lotesRecebidos = await this.batchRepository.countByNotaFiscal(request.notaFiscalId);
+        const lotesRecebidos = await this.batchRepository.countByNotaFiscal(
+          request.notaFiscalId,
+        );
         if (lotesRecebidos === nfe.itensNfe.length) {
           // Só muda para CONFERIDO se não estiver DIVERGENTE
           if (nfe.status !== 'DIVERGENTE') {
-            await this.notaFiscalRepository.updateStatus(request.notaFiscalId, 'CONFERIDO');
+            await this.notaFiscalRepository.updateStatus(
+              request.notaFiscalId,
+              'CONFERIDO',
+            );
           }
         }
       }

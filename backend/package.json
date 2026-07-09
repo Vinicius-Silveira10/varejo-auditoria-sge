@@ -21,6 +21,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "swagger:export": "ts-node -r tsconfig-paths/register src/generate-swagger.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^11.0.1",

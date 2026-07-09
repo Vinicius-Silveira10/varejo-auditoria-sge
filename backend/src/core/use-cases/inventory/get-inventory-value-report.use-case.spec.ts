@@ -14,13 +14,16 @@ describe('GetInventoryValueReportUseCase', () => {
     batchRepository = {
       findAvailableByProduct: jest.fn(),
     } as any;
-    sut = new GetInventoryValueReportUseCase(productRepository, batchRepository);
+    sut = new GetInventoryValueReportUseCase(
+      productRepository,
+      batchRepository,
+    );
   });
 
   it('deve calcular o valor total do estoque corretamente', async () => {
     productRepository.findAll.mockResolvedValue([
       { id: 1, sku: 'P001', descricao: 'Prod 1', custoMedio: 10.5 },
-      { id: 2, sku: 'P002', descricao: 'Prod 2', custoMedio: 20.0 }
+      { id: 2, sku: 'P002', descricao: 'Prod 2', custoMedio: 20.0 },
     ] as any);
 
     batchRepository.findAvailableByProduct.mockImplementation(async (id) => {
@@ -39,7 +42,7 @@ describe('GetInventoryValueReportUseCase', () => {
 
   it('não deve incluir produtos sem estoque no relatório', async () => {
     productRepository.findAll.mockResolvedValue([
-      { id: 1, sku: 'P001', descricao: 'Prod 1', custoMedio: 10.5 }
+      { id: 1, sku: 'P001', descricao: 'Prod 1', custoMedio: 10.5 },
     ] as any);
 
     batchRepository.findAvailableByProduct.mockResolvedValue([]);

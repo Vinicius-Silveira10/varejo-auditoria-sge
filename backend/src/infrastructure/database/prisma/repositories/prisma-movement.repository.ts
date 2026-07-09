@@ -21,7 +21,10 @@ export class PrismaMovementRepository implements IMovementRepository {
    * eliminando a race condition de leitura paralela do último registro.
    */
   private async atomicGetAndSetHash(
-    tx: Omit<PrismaService, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>,
+    tx: Omit<
+      PrismaService,
+      '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+    >,
     newHash: string,
   ): Promise<string | null> {
     // Lê o ponteiro atual e retorna o lastHash antes de atualizar
@@ -39,7 +42,9 @@ export class PrismaMovementRepository implements IMovementRepository {
     return previousHash;
   }
 
-  async create(data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<Movimentacao> {
+  async create(
+    data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+  ): Promise<Movimentacao> {
     return await this.prisma.$transaction(async (tx) => {
       // Gera hash temporário para reservar o slot; será sobrescrito logo abaixo
       const tempHash = this.hashService.generateHash(data, 'TEMP');
@@ -71,7 +76,10 @@ export class PrismaMovementRepository implements IMovementRepository {
     });
   }
 
-  async findPaginatedOrdered(skip: number, take: number): Promise<Movimentacao[]> {
+  async findPaginatedOrdered(
+    skip: number,
+    take: number,
+  ): Promise<Movimentacao[]> {
     return this.prisma.movimentacao.findMany({
       skip,
       take,
@@ -84,7 +92,10 @@ export class PrismaMovementRepository implements IMovementRepository {
   }
 
   async executeMovementTransaction(params: {
-    movementData: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>;
+    movementData: Omit<
+      Movimentacao,
+      'id' | 'criadoEm' | 'hash' | 'previousHash'
+    >;
     loteId: number;
     quantidadeDeltaLote: number;
     origemId?: number;
@@ -100,7 +111,9 @@ export class PrismaMovementRepository implements IMovementRepository {
       });
 
       if (loteDb.quantidade < 0) {
-        throw new Error('RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.');
+        throw new Error(
+          'RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.',
+        );
       }
 
       // 2. Atualizar Endereço Origem (se houver)
@@ -120,9 +133,15 @@ export class PrismaMovementRepository implements IMovementRepository {
       }
 
       // 4. BUG-007 FIX: Hash atômico via ChainPointer — sem race condition
-      const tempHash = this.hashService.generateHash(params.movementData, 'TEMP');
+      const tempHash = this.hashService.generateHash(
+        params.movementData,
+        'TEMP',
+      );
       const previousHash = await this.atomicGetAndSetHash(tx as any, tempHash);
-      const hash = this.hashService.generateHash(params.movementData, previousHash);
+      const hash = this.hashService.generateHash(
+        params.movementData,
+        previousHash,
+      );
 
       await (tx as any).chainPointer.update({
         where: { tabela: CHAIN_KEY },
@@ -135,7 +154,9 @@ export class PrismaMovementRepository implements IMovementRepository {
     });
   }
 
-  async getMovementQuantitiesByProduct(dias: number): Promise<Array<{ produtoId: number; quantidadeTotal: number }>> {
+  async getMovementQuantitiesByProduct(
+    dias: number,
+  ): Promise<Array<{ produtoId: number; quantidadeTotal: number }>> {
     const cutOffDate = new Date();
     cutOffDate.setDate(cutOffDate.getDate() - dias);
 

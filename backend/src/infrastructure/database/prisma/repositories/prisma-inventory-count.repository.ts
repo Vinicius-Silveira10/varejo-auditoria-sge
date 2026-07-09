@@ -1,13 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IInventoryCountRepository, ContagemInventario } from '../../../../core/interfaces/repositories/i-inventory-count.repository';
+import {
+  IInventoryCountRepository,
+  ContagemInventario,
+} from '../../../../core/interfaces/repositories/i-inventory-count.repository';
 import { StatusContagem } from '@prisma/client';
 
 @Injectable()
 export class PrismaInventoryCountRepository implements IInventoryCountRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<ContagemInventario, 'id' | 'criadoEm' | 'atualizadoEm'>): Promise<ContagemInventario> {
+  async create(
+    data: Omit<ContagemInventario, 'id' | 'criadoEm' | 'atualizadoEm'>,
+  ): Promise<ContagemInventario> {
     const contagem = await this.prisma.contagemInventario.create({
       data: {
         loteId: data.loteId,
@@ -25,12 +30,16 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
     const contagem = await this.prisma.contagemInventario.findUnique({
       where: { id },
     });
-    
+
     if (!contagem) return null;
     return this.mapToDomain(contagem);
   }
 
-  async updateCount(id: number, quantidadeFisica: number, status: string): Promise<ContagemInventario> {
+  async updateCount(
+    id: number,
+    quantidadeFisica: number,
+    status: string,
+  ): Promise<ContagemInventario> {
     const contagem = await this.prisma.contagemInventario.update({
       where: { id },
       data: {
@@ -70,7 +79,9 @@ export class PrismaInventoryCountRepository implements IInventoryCountRepository
     return contagens.map((c) => this.mapToDomain(c));
   }
 
-  async findLatestFinishedByProduct(produtoId: number): Promise<ContagemInventario | null> {
+  async findLatestFinishedByProduct(
+    produtoId: number,
+  ): Promise<ContagemInventario | null> {
     const latest = await this.prisma.contagemInventario.findFirst({
       where: {
         status: { not: 'PENDENTE' },

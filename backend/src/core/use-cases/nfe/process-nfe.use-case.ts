@@ -1,6 +1,10 @@
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { ParseNfeXmlService, ParsedNfe, ParsedNfeItem } from './parse-nfe-xml.service';
+import {
+  ParseNfeXmlService,
+  ParsedNfe,
+  ParsedNfeItem,
+} from './parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../batch/receive-batch.use-case';
 import { NotaFiscal, ItemNfe } from '@prisma/client';
 
@@ -10,7 +14,10 @@ const NFE_QUANTITY_TOLERANCE = 0.02;
 export interface NfeDivergencia {
   sku: string;
   descricaoNfe: string;
-  tipo: 'SKU_NAO_ENCONTRADO' | 'QUANTIDADE_DIVERGENTE' | 'PERECIVEL_SEM_VALIDADE';
+  tipo:
+    | 'SKU_NAO_ENCONTRADO'
+    | 'QUANTIDADE_DIVERGENTE'
+    | 'PERECIVEL_SEM_VALIDADE';
   detalhe: string;
   quantidadeNfe: number;
   deltaPercent?: number;
@@ -36,9 +43,13 @@ export class ProcessNfeUseCase {
     const parsedNfe: ParsedNfe = this.parseNfeXmlService.parse(xmlContent);
 
     // 2. RN-REC-002: Bloqueio de NF-e duplicada
-    const existente = await this.notaFiscalRepository.findByChaveAcesso(parsedNfe.chaveAcesso);
+    const existente = await this.notaFiscalRepository.findByChaveAcesso(
+      parsedNfe.chaveAcesso,
+    );
     if (existente) {
-      throw new Error('RN-REC-002: NF-e já registrada. Chave de acesso duplicada.');
+      throw new Error(
+        'RN-REC-002: NF-e já registrada. Chave de acesso duplicada.',
+      );
     }
 
     // 3. RN-REC-001: Conferência automática — validar cada item
@@ -97,7 +108,8 @@ export class ProcessNfeUseCase {
       valorTotal: parsedNfe.valorTotal,
       xmlOriginal: xmlContent,
       status,
-      divergencias: divergencias.length > 0 ? JSON.stringify(divergencias) : undefined,
+      divergencias:
+        divergencias.length > 0 ? JSON.stringify(divergencias) : undefined,
       itensNfe: parsedNfe.itens.map((item) => ({
         produtoSku: item.sku,
         descricaoNfe: item.descricao,
@@ -121,8 +133,8 @@ export class ProcessNfeUseCase {
             produtoId: produto.id,
             quantidade: item.quantidade,
             custoAquisicao: item.valorUnitario,
-            notaFiscalId: notaFiscal.id,      // BUG-001: vínculo fiscal obrigatório
-            validade: item.validade,           // BUG-001: data de validade do XML
+            notaFiscalId: notaFiscal.id, // BUG-001: vínculo fiscal obrigatório
+            validade: item.validade, // BUG-001: data de validade do XML
             // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
           });
           lotesGerados++;
@@ -142,9 +154,14 @@ export class ProcessNfeUseCase {
    * GAP-004 FIX — RN-REC-001: Verifica se a diferença de quantidade está dentro da tolerância de 2%.
    * Usado pelo ReceiveBatchUseCase ao conciliar a contagem física com a NF-e.
    */
-  static isQuantidadeDentroTolerancia(quantidadeNfe: number, quantidadeFisica: number): boolean {
+  static isQuantidadeDentroTolerancia(
+    quantidadeNfe: number,
+    quantidadeFisica: number,
+  ): boolean {
     if (quantidadeNfe === 0) return quantidadeFisica === 0;
-    const deltaPercent = Math.abs((quantidadeFisica - quantidadeNfe) / quantidadeNfe);
+    const deltaPercent = Math.abs(
+      (quantidadeFisica - quantidadeNfe) / quantidadeNfe,
+    );
     return deltaPercent <= NFE_QUANTITY_TOLERANCE;
   }
 }

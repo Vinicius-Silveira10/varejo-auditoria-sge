@@ -28,7 +28,13 @@ describe('PrismaBatchRepository', () => {
   });
 
   it('deve criar um novo lote no banco', async () => {
-    const data = { numeroLote: 'L-01', produtoId: 10, quantidade: 50, validade: null, ativo: true };
+    const data = {
+      numeroLote: 'L-01',
+      produtoId: 10,
+      quantidade: 50,
+      validade: null,
+      ativo: true,
+    };
     const mockCreated = { id: 1, criadoEm: new Date(), ...data };
     (prismaService.lote.create as jest.Mock).mockResolvedValue(mockCreated);
 
@@ -40,26 +46,47 @@ describe('PrismaBatchRepository', () => {
 
   it('deve buscar um lote por id', async () => {
     const loteId = 1;
-    const mockLote = { id: loteId, produtoId: 10, numeroLote: 'L01', quantidade: 50, validade: null, ativo: true };
+    const mockLote = {
+      id: loteId,
+      produtoId: 10,
+      numeroLote: 'L01',
+      quantidade: 50,
+      validade: null,
+      ativo: true,
+    };
     (prismaService.lote.findUnique as jest.Mock).mockResolvedValue(mockLote);
 
     const result = await repository.findById(loteId);
 
-    expect(prismaService.lote.findUnique).toHaveBeenCalledWith({ where: { id: loteId } });
+    expect(prismaService.lote.findUnique).toHaveBeenCalledWith({
+      where: { id: loteId },
+    });
     expect(result).toEqual(mockLote);
   });
 
   it('deve buscar lotes disponíveis por produto', async () => {
     const produtoId = 10;
     const mockLotes = [
-      { id: 1, produtoId, numeroLote: 'L01', quantidade: 50, validade: null, ativo: true },
+      {
+        id: 1,
+        produtoId,
+        numeroLote: 'L01',
+        quantidade: 50,
+        validade: null,
+        ativo: true,
+      },
     ];
     (prismaService.lote.findMany as jest.Mock).mockResolvedValue(mockLotes);
 
     const result = await repository.findAvailableByProduct(produtoId);
 
     expect(prismaService.lote.findMany).toHaveBeenCalledWith({
-      where: { produtoId, quantidade: { gt: 0 }, ativo: true, emInventario: false },
+      where: {
+        produtoId,
+        quantidade: { gt: 0 },
+        ativo: true,
+        emInventario: false,
+      },
       orderBy: { validade: 'asc' },
     });
     expect(result).toEqual(mockLotes);
@@ -68,7 +95,14 @@ describe('PrismaBatchRepository', () => {
   it('deve atualizar a quantidade de um lote', async () => {
     const loteId = 1;
     const novaQuantidade = 100;
-    const mockLote = { id: loteId, produtoId: 10, numeroLote: 'L01', quantidade: novaQuantidade, validade: null, ativo: true };
+    const mockLote = {
+      id: loteId,
+      produtoId: 10,
+      numeroLote: 'L01',
+      quantidade: novaQuantidade,
+      validade: null,
+      ativo: true,
+    };
     (prismaService.lote.update as jest.Mock).mockResolvedValue(mockLote);
 
     const result = await repository.updateQuantidade(loteId, novaQuantidade);

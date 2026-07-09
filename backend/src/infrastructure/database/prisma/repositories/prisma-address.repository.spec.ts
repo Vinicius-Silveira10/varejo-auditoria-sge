@@ -39,18 +39,36 @@ describe('PrismaAddressRepository', () => {
 
   it('deve buscar um endereco por codigo', async () => {
     const codigo = 'A-01';
-    const mockResult = { id: 1, codigo, zona: 'Seca', capacidade: 100, ocupado: 0, ativo: true };
-    (prismaService.endereco.findUnique as jest.Mock).mockResolvedValue(mockResult);
+    const mockResult = {
+      id: 1,
+      codigo,
+      zona: 'Seca',
+      capacidade: 100,
+      ocupado: 0,
+      ativo: true,
+    };
+    (prismaService.endereco.findUnique as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.findByCodigo(codigo);
 
-    expect(prismaService.endereco.findUnique).toHaveBeenCalledWith({ where: { codigo } });
+    expect(prismaService.endereco.findUnique).toHaveBeenCalledWith({
+      where: { codigo },
+    });
     expect(result).toEqual(mockResult);
   });
 
   it('deve desativar um endereco', async () => {
     const id = 1;
-    const mockResult = { id, codigo: 'A-01', zona: 'Seca', capacidade: 100, ocupado: 0, ativo: false };
+    const mockResult = {
+      id,
+      codigo: 'A-01',
+      zona: 'Seca',
+      capacidade: 100,
+      ocupado: 0,
+      ativo: false,
+    };
     (prismaService.endereco.update as jest.Mock).mockResolvedValue(mockResult);
 
     const result = await repository.disable(id);

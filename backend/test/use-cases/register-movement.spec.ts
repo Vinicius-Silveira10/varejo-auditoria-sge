@@ -19,7 +19,10 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
       findByLote: jest.fn(),
     };
 
-    useCase = new RegisterMovementUseCase(mockBatchRepository, mockMovementRepository);
+    useCase = new RegisterMovementUseCase(
+      mockBatchRepository,
+      mockMovementRepository,
+    );
   });
 
   it('deve bloquear a saída se o saldo for negativo (RN-TRV-002)', async () => {
@@ -44,9 +47,11 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
 
     mockBatchRepository.findById.mockResolvedValue(mockLote);
 
-    await expect(useCase.execute(movData)).rejects.toThrow('RN-TRV-002: Saldo insuficiente para a movimentação.');
+    await expect(useCase.execute(movData)).rejects.toThrow(
+      'RN-TRV-002: Saldo insuficiente para a movimentação.',
+    );
   });
-  
+
   it('deve bloquear a expedição se violar política FEFO (RN-EXP-001)', async () => {
     const mockLoteSelecionado: Lote = {
       id: 2,
@@ -77,8 +82,13 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
     };
 
     mockBatchRepository.findById.mockResolvedValue(mockLoteSelecionado);
-    mockBatchRepository.findAvailableByProduct.mockResolvedValue([mockLoteSelecionado, mockLoteMaisAntigo]);
+    mockBatchRepository.findAvailableByProduct.mockResolvedValue([
+      mockLoteSelecionado,
+      mockLoteMaisAntigo,
+    ]);
 
-    await expect(useCase.execute(movData)).rejects.toThrow('RN-EXP-001: Violação de FEFO. Existe um lote com validade mais próxima a expirar.');
+    await expect(useCase.execute(movData)).rejects.toThrow(
+      'RN-EXP-001: Violação de FEFO. Existe um lote com validade mais próxima a expirar.',
+    );
   });
 });

@@ -1,4 +1,11 @@
-import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, IsIn } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+  IsIn,
+} from 'class-validator';
 
 export class RegisterMovementDto {
   @IsString()
@@ -26,7 +33,4 @@ export class RegisterMovementDto {
   @IsOptional()
   enderecoDestinoId?: number;
 
-  @IsInt()
-  @IsNotEmpty()
-  usuarioId: number;
 }

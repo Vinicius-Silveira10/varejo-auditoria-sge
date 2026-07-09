@@ -1,5 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { GetInventoryAccuracyUseCase } from '../../../core/use-cases/inventory/get-inventory-accuracy.use-case';
@@ -55,7 +60,9 @@ export class DashboardController {
   }
 
   @Get('kpis')
-  @ApiOperation({ summary: 'KPIs estratégicos (acurácia, recontagens, perdas)' })
+  @ApiOperation({
+    summary: 'KPIs estratégicos (acurácia, recontagens, perdas)',
+  })
   @ApiResponse({ status: 200, description: 'KPIs retornados com sucesso.' })
   async getKpis() {
     return await this.getKpisDashboardUseCase.execute();

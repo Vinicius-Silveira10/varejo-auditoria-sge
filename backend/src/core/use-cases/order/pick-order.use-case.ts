@@ -38,24 +38,29 @@ export class PickOrderUseCase {
     }
 
     if (pedido.status !== 'PENDENTE') {
-      throw new Error(`RN-EXP-002: Pedido ${pedidoId} não está em status PENDENTE (status atual: ${pedido.status}).`);
+      throw new Error(
+        `RN-EXP-002: Pedido ${pedidoId} não está em status PENDENTE (status atual: ${pedido.status}).`,
+      );
     }
 
     const pickingList: ItemPicking[] = [];
     let totalMovimentacoes = 0;
 
     for (const item of pedido.itens) {
-      const lotes = await this.batchRepository.findAvailableByProduct(item.produtoId);
+      const lotes = await this.batchRepository.findAvailableByProduct(
+        item.produtoId,
+      );
 
       // RN-EXP-001: Ordenar por FEFO — lotes COM validade primeiro (mais próximos), sem validade por último
       const lotesOrdenados = lotes.sort((a, b) => {
         if (!a.validade && !b.validade) return 0;
-        if (!a.validade) return 1;  // sem validade → vai para o fim
+        if (!a.validade) return 1; // sem validade → vai para o fim
         if (!b.validade) return -1; // sem validade → vai para o fim
         return a.validade.getTime() - b.validade.getTime();
       });
 
-      let quantidadeRestante = item.quantidadeSolicitada - item.quantidadeSeparada;
+      let quantidadeRestante =
+        item.quantidadeSolicitada - item.quantidadeSeparada;
       const sugestoes: PickSuggestion[] = [];
 
       for (const lote of lotesOrdenados) {
@@ -99,16 +104,19 @@ export class PickOrderUseCase {
             enderecoOrigemId: null,
             enderecoDestinoId: null,
             usuarioId: operadorId,
-          } as Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+          },
           loteId: sugestao.loteId,
           quantidadeDeltaLote: -sugestao.quantidadeSeparada,
         });
 
         // Atualizar quantidadeSeparada no ItemPedido
         const novaQtdSeparada =
-          (pedido.itens.find((i) => i.id === sugestao.itemPedidoId)?.quantidadeSeparada ?? 0) +
-          sugestao.quantidadeSeparada;
-        await this.orderRepository.updateItemSeparado(sugestao.itemPedidoId, novaQtdSeparada);
+          (pedido.itens.find((i) => i.id === sugestao.itemPedidoId)
+            ?.quantidadeSeparada ?? 0) + sugestao.quantidadeSeparada;
+        await this.orderRepository.updateItemSeparado(
+          sugestao.itemPedidoId,
+          novaQtdSeparada,
+        );
 
         totalMovimentacoes++;
       }

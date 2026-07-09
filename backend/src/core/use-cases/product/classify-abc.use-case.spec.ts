@@ -32,11 +32,41 @@ describe('ClassifyAbcUseCase', () => {
 
   it('deve classificar produtos corretamente nas curvas A, B e C', async () => {
     const mockProducts = [
-      { id: 1, sku: 'P1', descricao: 'P1', categoria: 'Cat', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 10, ativo: true, curvaAbc: 'C' },
-      { id: 2, sku: 'P2', descricao: 'P2', categoria: 'Cat', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 5, ativo: true, curvaAbc: 'C' },
-      { id: 3, sku: 'P3', descricao: 'P3', categoria: 'Cat', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 2, ativo: true, curvaAbc: 'C' },
+      {
+        id: 1,
+        sku: 'P1',
+        descricao: 'P1',
+        categoria: 'Cat',
+        perecivel: false,
+        tipoZonaRequerida: 'SECO',
+        custoMedio: 10,
+        ativo: true,
+        curvaAbc: 'C',
+      },
+      {
+        id: 2,
+        sku: 'P2',
+        descricao: 'P2',
+        categoria: 'Cat',
+        perecivel: false,
+        tipoZonaRequerida: 'SECO',
+        custoMedio: 5,
+        ativo: true,
+        curvaAbc: 'C',
+      },
+      {
+        id: 3,
+        sku: 'P3',
+        descricao: 'P3',
+        categoria: 'Cat',
+        perecivel: false,
+        tipoZonaRequerida: 'SECO',
+        custoMedio: 2,
+        ativo: true,
+        curvaAbc: 'C',
+      },
     ];
-    mockProductRepo.findAll.mockResolvedValue(mockProducts as any);
+    mockProductRepo.findAll.mockResolvedValue(mockProducts);
 
     // Movimentações:
     // P1: qty = 80 -> value = 80 * 10 = 800
@@ -57,7 +87,9 @@ describe('ClassifyAbcUseCase', () => {
     const result = await useCase.execute({ dias: 30 });
 
     expect(mockProductRepo.findAll).toHaveBeenCalled();
-    expect(mockMovementRepo.getMovementQuantitiesByProduct).toHaveBeenCalledWith(30);
+    expect(
+      mockMovementRepo.getMovementQuantitiesByProduct,
+    ).toHaveBeenCalledWith(30);
 
     expect(mockProductRepo.updateCurvaAbc).toHaveBeenCalledWith(1, 'A');
     expect(mockProductRepo.updateCurvaAbc).toHaveBeenCalledWith(2, 'B');
@@ -74,9 +106,19 @@ describe('ClassifyAbcUseCase', () => {
 
   it('deve classificar todos como C se não houver nenhuma movimentação', async () => {
     const mockProducts = [
-      { id: 1, sku: 'P1', descricao: 'P1', categoria: 'Cat', perecivel: false, tipoZonaRequerida: 'SECO', custoMedio: 10, ativo: true, curvaAbc: 'A' },
+      {
+        id: 1,
+        sku: 'P1',
+        descricao: 'P1',
+        categoria: 'Cat',
+        perecivel: false,
+        tipoZonaRequerida: 'SECO',
+        custoMedio: 10,
+        ativo: true,
+        curvaAbc: 'A',
+      },
     ];
-    mockProductRepo.findAll.mockResolvedValue(mockProducts as any);
+    mockProductRepo.findAll.mockResolvedValue(mockProducts);
     mockMovementRepo.getMovementQuantitiesByProduct.mockResolvedValue([]);
 
     mockProductRepo.updateCurvaAbc.mockImplementation(async (id, curva) => {

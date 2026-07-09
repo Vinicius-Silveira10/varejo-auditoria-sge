@@ -20,13 +20,26 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         addressRepo: IAddressRepository,
         productRepo: IProductRepository,
       ) => {
-        return new RegisterMovementUseCase(batchRepo, movementRepo, addressRepo, productRepo);
+        return new RegisterMovementUseCase(
+          batchRepo,
+          movementRepo,
+          addressRepo,
+          productRepo,
+        );
       },
-      inject: ['IBatchRepository', 'IMovementRepository', 'IAddressRepository', 'IProductRepository'],
+      inject: [
+        'IBatchRepository',
+        'IMovementRepository',
+        'IAddressRepository',
+        'IProductRepository',
+      ],
     },
     {
       provide: GetBatchMovementsUseCase,
-      useFactory: (movementRepo: IMovementRepository, batchRepo: IBatchRepository) => {
+      useFactory: (
+        movementRepo: IMovementRepository,
+        batchRepo: IBatchRepository,
+      ) => {
         return new GetBatchMovementsUseCase(movementRepo, batchRepo);
       },
       inject: ['IMovementRepository', 'IBatchRepository'],

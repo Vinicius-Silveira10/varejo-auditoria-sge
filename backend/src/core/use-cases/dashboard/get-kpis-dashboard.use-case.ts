@@ -14,15 +14,22 @@ export class GetKpisDashboardUseCase {
   ) {}
 
   async execute(): Promise<KpisDashboardResult> {
-    const [accuracyMetrics, totalRecontagens, perdasAjustes] = await Promise.all([
-      this.inventoryCountRepo.aggregateAccuracyMetrics(),
-      this.inventoryCountRepo.countRecounts(),
-      this.adjustmentRepo.sumFinancialLosses(),
-    ]);
+    const [accuracyMetrics, totalRecontagens, perdasAjustes] =
+      await Promise.all([
+        this.inventoryCountRepo.aggregateAccuracyMetrics(),
+        this.inventoryCountRepo.countRecounts(),
+        this.adjustmentRepo.sumFinancialLosses(),
+      ]);
 
-    const acuraciaGeral = accuracyMetrics.totalTeorico > 0
-      ? Math.round((1 - (accuracyMetrics.totalDivergenciaAbsoluta / accuracyMetrics.totalTeorico)) * 100)
-      : 100;
+    const acuraciaGeral =
+      accuracyMetrics.totalTeorico > 0
+        ? Math.round(
+            (1 -
+              accuracyMetrics.totalDivergenciaAbsoluta /
+                accuracyMetrics.totalTeorico) *
+              100,
+          )
+        : 100;
 
     return {
       acuraciaGeral,

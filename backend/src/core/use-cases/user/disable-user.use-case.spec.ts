@@ -17,8 +17,24 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
   });
 
   it('deve desativar um usuário existente via soft delete', async () => {
-    mockUserRepo.findById.mockResolvedValue({ id: 1, nome: 'João', email: 'joao@test.com', senha: 'hash', perfil: 'OPERADOR', ativo: true, criadoEm: new Date() });
-    mockUserRepo.disable.mockResolvedValue({ id: 1, nome: 'João', email: 'joao@test.com', senha: 'hash', perfil: 'OPERADOR', ativo: false, criadoEm: new Date() });
+    mockUserRepo.findById.mockResolvedValue({
+      id: 1,
+      nome: 'João',
+      email: 'joao@test.com',
+      senha: 'hash',
+      perfil: 'OPERADOR',
+      ativo: true,
+      criadoEm: new Date(),
+    });
+    mockUserRepo.disable.mockResolvedValue({
+      id: 1,
+      nome: 'João',
+      email: 'joao@test.com',
+      senha: 'hash',
+      perfil: 'OPERADOR',
+      ativo: false,
+      criadoEm: new Date(),
+    });
 
     const result = await useCase.execute(1);
 
@@ -29,12 +45,24 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
   it('deve falhar se o usuário não existir', async () => {
     mockUserRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toThrow('Usuário não encontrado.');
+    await expect(useCase.execute(999)).rejects.toThrow(
+      'Usuário não encontrado.',
+    );
   });
 
   it('deve falhar se o usuário já estiver desativado', async () => {
-    mockUserRepo.findById.mockResolvedValue({ id: 1, nome: 'João', email: 'joao@test.com', senha: 'hash', perfil: 'OPERADOR', ativo: false, criadoEm: new Date() });
+    mockUserRepo.findById.mockResolvedValue({
+      id: 1,
+      nome: 'João',
+      email: 'joao@test.com',
+      senha: 'hash',
+      perfil: 'OPERADOR',
+      ativo: false,
+      criadoEm: new Date(),
+    });
 
-    await expect(useCase.execute(1)).rejects.toThrow('Usuário já está desativado.');
+    await expect(useCase.execute(1)).rejects.toThrow(
+      'Usuário já está desativado.',
+    );
   });
 });

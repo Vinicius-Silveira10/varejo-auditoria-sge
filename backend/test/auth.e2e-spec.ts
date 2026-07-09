@@ -18,7 +18,7 @@ describe('Auth (e2e)', () => {
     prisma = app.get(PrismaService);
 
     await app.init();
-    
+
     // Limpar tabela de usuarios antes dos testes
     await prisma.usuario.deleteMany();
   });

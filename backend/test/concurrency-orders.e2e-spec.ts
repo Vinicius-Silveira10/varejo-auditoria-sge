@@ -24,7 +24,9 @@ describe('Concurrency Test', () => {
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    registerMovement = moduleFixture.get<RegisterMovementUseCase>(RegisterMovementUseCase);
+    registerMovement = moduleFixture.get<RegisterMovementUseCase>(
+      RegisterMovementUseCase,
+    );
     receiveBatch = moduleFixture.get<ReceiveBatchUseCase>(ReceiveBatchUseCase);
     productRepo = moduleFixture.get<IProductRepository>('IProductRepository');
     addressRepo = moduleFixture.get<IAddressRepository>('IAddressRepository');
@@ -38,17 +40,39 @@ describe('Concurrency Test', () => {
 
   it('deve impedir furo de estoque em movimentações simultâneas (Race Condition)', async () => {
     const ts = Date.now();
-    const user = await userRepo.create({ nome: 'Stress', email: `stress-${ts}@test.com`, senha: '123', perfil: 'ADMIN' });
-    const product = await productRepo.create({ sku: `STRESS-${ts}`, descricao: 'Stress Test', categoria: 'Secos', custoMedio: 10, tipoZonaRequerida: 'SECO' } as any);
-    const address = await addressRepo.create({ codigo: `ADDR-STRESS-${ts}`, zona: 'A-01', tipoZona: 'SECO', capacidade: 1000 });
+    const user = await userRepo.create({
+      nome: 'Stress',
+      email: `stress-${ts}@test.com`,
+      senha: '123',
+      perfil: 'ADMIN',
+    });
+    const product = await productRepo.create({
+      sku: `STRESS-${ts}`,
+      descricao: 'Stress Test',
+      categoria: 'Secos',
+      custoMedio: 10,
+      tipoZonaRequerida: 'SECO',
+    } as any);
+    const address = await addressRepo.create({
+      codigo: `ADDR-STRESS-${ts}`,
+      zona: 'A-01',
+      tipoZona: 'SECO',
+      capacidade: 1000,
+    });
 
     // 1. Entrada de 10 unidades (O ReceiveBatch já define a quantidade no lote)
-    const batch = await receiveBatch.execute({ produtoId: product.id, numeroLote: `L-STRESS-${ts}`, validade: new Date('2027-01-01'), quantidade: 10, custoAquisicao: 10 });
-    
+    const batch = await receiveBatch.execute({
+      produtoId: product.id,
+      numeroLote: `L-STRESS-${ts}`,
+      validade: new Date('2027-01-01'),
+      quantidade: 10,
+      custoAquisicao: 10,
+    });
+
     // 2. Disparar 10 tentativas simultâneas de tirar 2 unidades (Total 20, mas só tem 10)
     const attempts = 10;
     const results = await Promise.allSettled(
-      Array.from({ length: attempts }).map(() => 
+      Array.from({ length: attempts }).map(() =>
         registerMovement.execute({
           tipo: 'SAIDA',
           loteId: batch.id,
@@ -56,14 +80,14 @@ describe('Concurrency Test', () => {
           motivo: 'Race Test',
           enderecoOrigemId: address.id, // Embora não tenhamos feito a ENTRADA oficial via UseCase, o endereço existe
           enderecoDestinoId: null,
-          usuarioId: user.id
-        })
-      )
+          usuarioId: user.id,
+        }),
+      ),
     );
 
     // 3. Analisar Resultados
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
-    const failureCount = results.filter(r => r.status === 'rejected').length;
+    const successCount = results.filter((r) => r.status === 'fulfilled').length;
+    const failureCount = results.filter((r) => r.status === 'rejected').length;
 
     // Só podem ter passado exatamente 5 (5 * 2 = 10)
     expect(successCount).toBe(5);

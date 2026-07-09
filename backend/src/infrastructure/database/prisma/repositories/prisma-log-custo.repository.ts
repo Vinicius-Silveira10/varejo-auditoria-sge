@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { ILogCustoRepository, LogCusto } from '../../../../core/interfaces/repositories/i-log-custo.repository';
+import {
+  ILogCustoRepository,
+  LogCusto,
+} from '../../../../core/interfaces/repositories/i-log-custo.repository';
 
 import { HashService } from '../../../security/hash.service';
 
@@ -10,13 +13,17 @@ const CHAIN_KEY = 'LogCusto';
 export class PrismaLogCustoRepository implements ILogCustoRepository {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly hashService: HashService
+    private readonly hashService: HashService,
   ) {}
 
-  async create(log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>): Promise<LogCusto> {
+  async create(
+    log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+  ): Promise<LogCusto> {
     return await this.prisma.$transaction(async (tx) => {
       // BUG-007 FIX: ChainPointer atômico para eliminar race condition
-      const pointer = await (tx as any).chainPointer.findUnique({ where: { tabela: CHAIN_KEY } });
+      const pointer = await (tx as any).chainPointer.findUnique({
+        where: { tabela: CHAIN_KEY },
+      });
       const previousHash = pointer?.lastHash ?? null;
       const hash = this.hashService.generateHash(log, previousHash);
 

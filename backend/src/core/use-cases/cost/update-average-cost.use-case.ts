@@ -18,7 +18,9 @@ export class UpdateAverageCostUseCase {
 
   async execute(dto: UpdateAverageCostDto) {
     if (dto.quantidadeEntrada <= 0) {
-      throw new Error('RN-CST-001: Quantidade de entrada deve ser maior que zero para cálculo de custo.');
+      throw new Error(
+        'RN-CST-001: Quantidade de entrada deve ser maior que zero para cálculo de custo.',
+      );
     }
     if (dto.custoEntrada < 0) {
       throw new Error('RN-CST-001: Custo de entrada não pode ser negativo.');
@@ -29,8 +31,13 @@ export class UpdateAverageCostUseCase {
       throw new Error('Produto não encontrado');
     }
 
-    const lotes = await this.batchRepository.findAvailableByProduct(dto.produtoId);
-    const quantidadeAnterior = lotes.reduce((acc, lote) => acc + lote.quantidade, 0);
+    const lotes = await this.batchRepository.findAvailableByProduct(
+      dto.produtoId,
+    );
+    const quantidadeAnterior = lotes.reduce(
+      (acc, lote) => acc + lote.quantidade,
+      0,
+    );
     const custoAnterior = produto.custoMedio;
 
     let novoCusto = 0;
@@ -41,14 +48,20 @@ export class UpdateAverageCostUseCase {
       novoCusto = dto.custoEntrada;
     } else {
       // Fórmula do Custo Médio Ponderado
-      novoCusto = ((custoAnterior * quantidadeAnterior) + (dto.custoEntrada * dto.quantidadeEntrada)) / quantidadeNova;
+      novoCusto =
+        (custoAnterior * quantidadeAnterior +
+          dto.custoEntrada * dto.quantidadeEntrada) /
+        quantidadeNova;
     }
 
     // Arredondamento de 6 casas decimais (RN-CST-001/Riscos)
     novoCusto = Number(novoCusto.toFixed(6));
 
     // Atualizar no Produto
-    const produtoAtualizado = await this.productRepository.updateCustoMedio(produto.id, novoCusto);
+    const produtoAtualizado = await this.productRepository.updateCustoMedio(
+      produto.id,
+      novoCusto,
+    );
 
     // Gravar Log de Rastreabilidade (RN-CST-001 / RN-AJU-004)
     const log = await this.logCustoRepository.create({

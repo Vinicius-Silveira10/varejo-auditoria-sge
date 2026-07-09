@@ -23,8 +23,20 @@ describe('CloseOrderUseCase', () => {
       criadoEm: new Date(),
       atualizadoEm: new Date(),
       itens: [
-        { id: 1, pedidoId: 1, produtoId: 10, quantidadeSolicitada: 5, quantidadeSeparada: 5 },
-        { id: 2, pedidoId: 1, produtoId: 20, quantidadeSolicitada: 10, quantidadeSeparada: 10 },
+        {
+          id: 1,
+          pedidoId: 1,
+          produtoId: 10,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 5,
+        },
+        {
+          id: 2,
+          pedidoId: 1,
+          produtoId: 20,
+          quantidadeSolicitada: 10,
+          quantidadeSeparada: 10,
+        },
       ],
     });
 
@@ -51,14 +63,26 @@ describe('CloseOrderUseCase', () => {
       criadoEm: new Date(),
       atualizadoEm: new Date(),
       itens: [
-        { id: 1, pedidoId: 2, produtoId: 10, quantidadeSolicitada: 5, quantidadeSeparada: 5 },
-        { id: 2, pedidoId: 2, produtoId: 20, quantidadeSolicitada: 10, quantidadeSeparada: 8 }, // Faltam 2
+        {
+          id: 1,
+          pedidoId: 2,
+          produtoId: 10,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 5,
+        },
+        {
+          id: 2,
+          pedidoId: 2,
+          produtoId: 20,
+          quantidadeSolicitada: 10,
+          quantidadeSeparada: 8,
+        }, // Faltam 2
       ],
     });
 
     await expect(useCase.execute(2)).rejects.toThrow('RN-EXP-002');
     await expect(useCase.execute(2)).rejects.toThrow('Produto 20: falta 2');
-    
+
     expect(mockOrderRepo.updateStatus).not.toHaveBeenCalled();
   });
 

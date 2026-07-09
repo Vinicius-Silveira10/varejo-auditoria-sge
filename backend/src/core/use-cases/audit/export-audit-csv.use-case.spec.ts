@@ -64,7 +64,9 @@ describe('ExportAuditCsvUseCase (LGPD & Security)', () => {
     expect(mockLogCustoRepo.findAllOrdered).toHaveBeenCalled();
 
     const lines = csvContent.split('\n');
-    expect(lines[0]).toBe('TipoLog,Data,TargetId,Quantidade,CustoMedio,UsuarioAnonimizado,Hash,HashAnterior');
+    expect(lines[0]).toBe(
+      'TipoLog,Data,TargetId,Quantidade,CustoMedio,UsuarioAnonimizado,Hash,HashAnterior',
+    );
 
     // Linha de movimentação pseudonimizada
     const movLine = lines[1];
@@ -78,7 +80,11 @@ describe('ExportAuditCsvUseCase (LGPD & Security)', () => {
 
     // Valida que o hash SHA-256 (do email + salt) está presente (comprimento de 16 caracteres substring)
     const salt = 'SGE_SALT_LGPD_2026';
-    const expectedHash = crypto.createHash('sha256').update('operator@nexus.com' + salt).digest('hex').substring(0, 16);
+    const expectedHash = crypto
+      .createHash('sha256')
+      .update('operator@nexus.com' + salt)
+      .digest('hex')
+      .substring(0, 16);
     expect(movLine).toContain(expectedHash);
 
     // Linha de log de custo

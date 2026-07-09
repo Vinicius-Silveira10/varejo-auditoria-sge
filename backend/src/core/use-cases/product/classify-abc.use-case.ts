@@ -19,7 +19,8 @@ export class ClassifyAbcUseCase {
     const products = await this.productRepository.findAll();
 
     // 2. Buscar quantidades de movimentações de saída agrupadas por produto
-    const movementQuantities = await this.movementRepository.getMovementQuantitiesByProduct(dias);
+    const movementQuantities =
+      await this.movementRepository.getMovementQuantitiesByProduct(dias);
 
     // Criar um mapa para consulta rápida de quantidade total movida por produtoId
     const qtyMap = new Map<number, number>();
@@ -41,14 +42,20 @@ export class ClassifyAbcUseCase {
     productValues.sort((a, b) => b.valorTotal - a.valorTotal);
 
     // 5. Calcular a soma de todos os valores movimentados
-    const totalAll = productValues.reduce((sum, item) => sum + item.valorTotal, 0);
+    const totalAll = productValues.reduce(
+      (sum, item) => sum + item.valorTotal,
+      0,
+    );
 
     const updatedProducts: Produto[] = [];
 
     if (totalAll === 0) {
       // Se não houver movimentação de saída com valor, classifica todos como "C"
       for (const item of productValues) {
-        const updated = await this.productRepository.updateCurvaAbc(item.product.id, 'C');
+        const updated = await this.productRepository.updateCurvaAbc(
+          item.product.id,
+          'C',
+        );
         updatedProducts.push(updated);
       }
     } else {
@@ -65,7 +72,10 @@ export class ClassifyAbcUseCase {
           curva = 'B';
         }
 
-        const updated = await this.productRepository.updateCurvaAbc(item.product.id, curva);
+        const updated = await this.productRepository.updateCurvaAbc(
+          item.product.id,
+          curva,
+        );
         updatedProducts.push(updated);
       }
     }

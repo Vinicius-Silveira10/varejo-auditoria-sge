@@ -15,12 +15,12 @@ describe('PrismaOrderRepository', () => {
     prisma = module.get<PrismaService>(PrismaService);
 
     // Limpar tabelas respeitando FK constraints (filho antes do pai)
-    await prisma.chainPointer.deleteMany();  // sem dependências
+    await prisma.chainPointer.deleteMany(); // sem dependências
     await prisma.itemPedido.deleteMany();
     await prisma.pedidoExpedicao.deleteMany();
-    await prisma.movimentacao.deleteMany();  // FK: Movimentacao.loteId → Lote
+    await prisma.movimentacao.deleteMany(); // FK: Movimentacao.loteId → Lote
     await prisma.logCusto.deleteMany();
-    await prisma.lote.deleteMany();          // FK: Lote.produtoId → Produto
+    await prisma.lote.deleteMany(); // FK: Lote.produtoId → Produto
     await prisma.produto.deleteMany();
     await prisma.usuario.deleteMany();
   });
@@ -96,7 +96,7 @@ describe('PrismaOrderRepository', () => {
     });
 
     const atualizado = await repository.updateStatus(criado.id, 'SEPARACAO');
-    
+
     expect(atualizado.id).toBe(criado.id);
     expect(atualizado.status).toBe('SEPARACAO');
   });
@@ -108,11 +108,21 @@ describe('PrismaOrderRepository', () => {
 
     const uniqueId = Date.now();
     const usuario1 = await prisma.usuario.create({
-      data: { nome: 'U1', email: `u1_${uniqueId}@teste.com`, senha: '123', perfil: 'OPERADOR' }
+      data: {
+        nome: 'U1',
+        email: `u1_${uniqueId}@teste.com`,
+        senha: '123',
+        perfil: 'OPERADOR',
+      },
     });
 
     const usuario2 = await prisma.usuario.create({
-      data: { nome: 'U2', email: `u2_${uniqueId}@teste.com`, senha: '123', perfil: 'GESTOR' }
+      data: {
+        nome: 'U2',
+        email: `u2_${uniqueId}@teste.com`,
+        senha: '123',
+        perfil: 'GESTOR',
+      },
     });
 
     const criado = await repository.create({
@@ -121,7 +131,11 @@ describe('PrismaOrderRepository', () => {
       itens: [{ produtoId: produto.id, quantidadeSolicitada: 1 }],
     });
 
-    const atualizado = await repository.updateConferentes(criado.id, usuario1.id, usuario2.id);
+    const atualizado = await repository.updateConferentes(
+      criado.id,
+      usuario1.id,
+      usuario2.id,
+    );
 
     expect(atualizado.status).toBe('CONFERIDO');
     expect(atualizado.conferente1Id).toBe(usuario1.id);

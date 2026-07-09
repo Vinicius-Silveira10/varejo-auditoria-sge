@@ -1,4 +1,7 @@
-import { ILogCustoRepository, LogCusto } from '../../interfaces/repositories/i-log-custo.repository';
+import {
+  ILogCustoRepository,
+  LogCusto,
+} from '../../interfaces/repositories/i-log-custo.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 
 export class GetProductCostHistoryUseCase {

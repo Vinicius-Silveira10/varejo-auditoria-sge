@@ -38,7 +38,11 @@ describe('PickOrderUseCase', () => {
     } as any;
 
     // GAP-002 FIX: PickOrderUseCase agora exige IMovementRepository como 3º argumento
-    useCase = new PickOrderUseCase(mockOrderRepo, mockBatchRepo, mockMovementRepo);
+    useCase = new PickOrderUseCase(
+      mockOrderRepo,
+      mockBatchRepo,
+      mockMovementRepo,
+    );
   });
 
   it('deve separar lotes seguindo a política FEFO (vencimento mais próximo primeiro)', async () => {
@@ -49,13 +53,32 @@ describe('PickOrderUseCase', () => {
       codigoPedido: 'PED-001',
       status: 'PENDENTE', // obrigatório
       itens: [
-        { id: 10, produtoId: 1, quantidadeSolicitada: 50, quantidadeSeparada: 0 }
-      ]
+        {
+          id: 10,
+          produtoId: 1,
+          quantidadeSolicitada: 50,
+          quantidadeSeparada: 0,
+        },
+      ],
     };
 
     const mockBatches = [
-      { id: 101, numeroLote: 'L-OLD', produtoId: 1, quantidade: 30, validade: new Date('2026-10-01'), emInventario: false },
-      { id: 102, numeroLote: 'L-NEW', produtoId: 1, quantidade: 100, validade: new Date('2027-01-01'), emInventario: false },
+      {
+        id: 101,
+        numeroLote: 'L-OLD',
+        produtoId: 1,
+        quantidade: 30,
+        validade: new Date('2026-10-01'),
+        emInventario: false,
+      },
+      {
+        id: 102,
+        numeroLote: 'L-NEW',
+        produtoId: 1,
+        quantidade: 100,
+        validade: new Date('2027-01-01'),
+        emInventario: false,
+      },
     ];
 
     mockOrderRepo.findById.mockResolvedValue(mockOrder as any);
@@ -74,8 +97,13 @@ describe('PickOrderUseCase', () => {
     expect(itemPick.sugestoes[1].quantidadeSeparada).toBe(20);
     // Deve ter gerado 2 movimentações de EXPEDICAO
     expect(result.totalMovimentacoes).toBe(2);
-    expect(mockMovementRepo.executeMovementTransaction).toHaveBeenCalledTimes(2);
-    expect(mockOrderRepo.updateStatus).toHaveBeenCalledWith(orderId, 'SEPARACAO');
+    expect(mockMovementRepo.executeMovementTransaction).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(mockOrderRepo.updateStatus).toHaveBeenCalledWith(
+      orderId,
+      'SEPARACAO',
+    );
   });
 
   it('deve falhar se pedido não estiver em status PENDENTE', async () => {
@@ -90,25 +118,56 @@ describe('PickOrderUseCase', () => {
     const mockOrder = {
       id: orderId,
       status: 'PENDENTE', // obrigatório — sem isso, RN-EXP-002 é lançada antes
-      itens: [{ id: 11, produtoId: 1, quantidadeSolicitada: 100, quantidadeSeparada: 0 }]
+      itens: [
+        {
+          id: 11,
+          produtoId: 1,
+          quantidadeSolicitada: 100,
+          quantidadeSeparada: 0,
+        },
+      ],
     };
-    const mockBatches = [{ id: 101, numeroLote: 'L-1', quantidade: 40, validade: new Date() }];
+    const mockBatches = [
+      { id: 101, numeroLote: 'L-1', quantidade: 40, validade: new Date() },
+    ];
 
     mockOrderRepo.findById.mockResolvedValue(mockOrder as any);
     mockBatchRepo.findAvailableByProduct.mockResolvedValue(mockBatches as any);
 
-    await expect(useCase.execute(orderId, 99)).rejects.toThrow('RN-EXP-004: Saldo insuficiente');
+    await expect(useCase.execute(orderId, 99)).rejects.toThrow(
+      'RN-EXP-004: Saldo insuficiente',
+    );
   });
 
   it('deve priorizar lotes sem validade por último (RN-EXP-001 fix)', async () => {
     const mockOrder = {
-      id: 3, status: 'PENDENTE',
-      itens: [{ id: 12, produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }]
+      id: 3,
+      status: 'PENDENTE',
+      itens: [
+        {
+          id: 12,
+          produtoId: 1,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
     };
 
     const mockBatches = [
-      { id: 201, numeroLote: 'SEM-VAL', produtoId: 1, quantidade: 10, validade: null },
-      { id: 202, numeroLote: 'COM-VAL', produtoId: 1, quantidade: 10, validade: new Date('2026-08-01') },
+      {
+        id: 201,
+        numeroLote: 'SEM-VAL',
+        produtoId: 1,
+        quantidade: 10,
+        validade: null,
+      },
+      {
+        id: 202,
+        numeroLote: 'COM-VAL',
+        produtoId: 1,
+        quantidade: 10,
+        validade: new Date('2026-08-01'),
+      },
     ];
 
     mockOrderRepo.findById.mockResolvedValue(mockOrder as any);

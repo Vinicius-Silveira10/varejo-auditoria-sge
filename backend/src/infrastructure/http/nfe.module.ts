@@ -31,9 +31,19 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         costUpdateQueue: Queue,
         nfRepo: INotaFiscalRepository,
       ) => {
-        return new ReceiveBatchUseCase(batchRepo, productRepo, costUpdateQueue, nfRepo);
+        return new ReceiveBatchUseCase(
+          batchRepo,
+          productRepo,
+          costUpdateQueue,
+          nfRepo,
+        );
       },
-      inject: ['IBatchRepository', 'IProductRepository', getQueueToken('cost-update'), 'INotaFiscalRepository'],
+      inject: [
+        'IBatchRepository',
+        'IProductRepository',
+        getQueueToken('cost-update'),
+        'INotaFiscalRepository',
+      ],
     },
     {
       provide: ProcessNfeUseCase,
@@ -43,9 +53,19 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         parseService: ParseNfeXmlService,
         receiveBatchUseCase: ReceiveBatchUseCase,
       ) => {
-        return new ProcessNfeUseCase(nfRepo, productRepo, parseService, receiveBatchUseCase);
+        return new ProcessNfeUseCase(
+          nfRepo,
+          productRepo,
+          parseService,
+          receiveBatchUseCase,
+        );
       },
-      inject: ['INotaFiscalRepository', 'IProductRepository', ParseNfeXmlService, ReceiveBatchUseCase],
+      inject: [
+        'INotaFiscalRepository',
+        'IProductRepository',
+        ParseNfeXmlService,
+        ReceiveBatchUseCase,
+      ],
     },
     {
       provide: GetNotaFiscalDetailsUseCase,

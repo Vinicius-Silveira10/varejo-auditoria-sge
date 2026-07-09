@@ -1,5 +1,21 @@
-import { Controller, Post, Body, Patch, Param, BadRequestException, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  Patch,
+  Param,
+  BadRequestException,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RegisterProductUseCase } from '../../../core/use-cases/product/register-product.use-case';
@@ -47,7 +63,11 @@ export class ProductController {
   @ApiOperation({ summary: 'Desativar um produto' })
   @ApiParam({ name: 'id', description: 'ID do produto' })
   @ApiResponse({ status: 200, description: 'Produto desativado com sucesso.' })
-  @ApiResponse({ status: 400, description: 'Produto possui saldo em estoque (RN-PROD-002) ou não encontrado.' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Produto possui saldo em estoque (RN-PROD-002) ou não encontrado.',
+  })
   async disableProduct(@Param('id') id: string) {
     try {
       const result = await this.disableProductUseCase.execute(+id);
@@ -56,7 +76,10 @@ export class ProductController {
         data: result,
       };
     } catch (error: any) {
-      if (error.message.includes('RN-PROD-002') || error.message.includes('RN-PROD-003')) {
+      if (
+        error.message.includes('RN-PROD-002') ||
+        error.message.includes('RN-PROD-003')
+      ) {
         throw new BadRequestException(error.message);
       }
       throw error;
@@ -65,8 +88,13 @@ export class ProductController {
 
   @Post('classify-abc')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Calcular e atualizar a classificação da Curva ABC dos produtos' })
-  @ApiResponse({ status: 200, description: 'Classificação ABC recalculada com sucesso.' })
+  @ApiOperation({
+    summary: 'Calcular e atualizar a classificação da Curva ABC dos produtos',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Classificação ABC recalculada com sucesso.',
+  })
   async classifyAbc(@Body() body: { dias?: number }) {
     const result = await this.classifyAbcUseCase.execute({ dias: body?.dias });
     return {

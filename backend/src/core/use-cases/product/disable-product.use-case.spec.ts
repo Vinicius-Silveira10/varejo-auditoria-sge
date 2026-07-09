@@ -17,7 +17,15 @@ describe('DisableProductUseCase', () => {
   });
 
   it('deve desativar um produto existente', async () => {
-    const mockProduct = { id: 1, sku: 'PROD-01', descricao: 'Teste', categoria: 'Teste', perecivel: false, custoMedio: 0, ativo: true };
+    const mockProduct = {
+      id: 1,
+      sku: 'PROD-01',
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+      custoMedio: 0,
+      ativo: true,
+    };
     const mockDisabledProduct = { ...mockProduct, ativo: false };
 
     mockRepository.findById.mockResolvedValue(mockProduct);
@@ -33,15 +41,27 @@ describe('DisableProductUseCase', () => {
   it('deve falhar se o produto não for encontrado (RN-PROD-002)', async () => {
     mockRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(99)).rejects.toThrow('RN-PROD-002: Produto com ID 99 não encontrado');
+    await expect(useCase.execute(99)).rejects.toThrow(
+      'RN-PROD-002: Produto com ID 99 não encontrado',
+    );
     expect(mockRepository.disable).not.toHaveBeenCalled();
   });
 
   it('deve falhar se o produto já estiver desativado (RN-PROD-003)', async () => {
-    const mockProduct = { id: 1, sku: 'PROD-01', descricao: 'Teste', categoria: 'Teste', perecivel: false, custoMedio: 0, ativo: false };
+    const mockProduct = {
+      id: 1,
+      sku: 'PROD-01',
+      descricao: 'Teste',
+      categoria: 'Teste',
+      perecivel: false,
+      custoMedio: 0,
+      ativo: false,
+    };
     mockRepository.findById.mockResolvedValue(mockProduct);
 
-    await expect(useCase.execute(1)).rejects.toThrow('RN-PROD-003: O produto com ID 1 já está desativado');
+    await expect(useCase.execute(1)).rejects.toThrow(
+      'RN-PROD-003: O produto com ID 1 já está desativado',
+    );
     expect(mockRepository.disable).not.toHaveBeenCalled();
   });
 });

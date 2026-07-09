@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IOrderRepository, PedidoExpedicaoWithItems } from '../../../../core/interfaces/repositories/i-order.repository';
+import {
+  IOrderRepository,
+  PedidoExpedicaoWithItems,
+} from '../../../../core/interfaces/repositories/i-order.repository';
 import { PedidoExpedicao, StatusPedido } from '@prisma/client';
 
 @Injectable()
@@ -50,7 +53,11 @@ export class PrismaOrderRepository implements IOrderRepository {
     });
   }
 
-  async updateConferentes(id: number, conferente1Id: number, conferente2Id?: number): Promise<PedidoExpedicao> {
+  async updateConferentes(
+    id: number,
+    conferente1Id: number,
+    conferente2Id?: number,
+  ): Promise<PedidoExpedicao> {
     return this.prisma.pedidoExpedicao.update({
       where: { id },
       data: {
@@ -69,7 +76,10 @@ export class PrismaOrderRepository implements IOrderRepository {
     });
   }
 
-  async updateItemSeparado(itemPedidoId: number, quantidadeSeparada: number): Promise<void> {
+  async updateItemSeparado(
+    itemPedidoId: number,
+    quantidadeSeparada: number,
+  ): Promise<void> {
     await this.prisma.itemPedido.update({
       where: { id: itemPedidoId },
       data: { quantidadeSeparada },

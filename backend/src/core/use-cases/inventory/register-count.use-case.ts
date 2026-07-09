@@ -21,7 +21,9 @@ export class RegisterCountUseCase {
   ) {}
 
   async execute(dto: RegisterCountDto) {
-    const contagem = await this.inventoryCountRepository.findById(dto.contagemId);
+    const contagem = await this.inventoryCountRepository.findById(
+      dto.contagemId,
+    );
 
     if (!contagem) {
       throw new Error('Contagem não encontrada.');
@@ -32,10 +34,13 @@ export class RegisterCountUseCase {
     }
 
     const delta = dto.quantidadeFisica - contagem.quantidadeTeorica;
-    const deltaPercent = contagem.quantidadeTeorica > 0 
-      ? Math.abs(delta / contagem.quantidadeTeorica) * 100 
-      : (delta !== 0 ? 100 : 0);
-    
+    const deltaPercent =
+      contagem.quantidadeTeorica > 0
+        ? Math.abs(delta / contagem.quantidadeTeorica) * 100
+        : delta !== 0
+          ? 100
+          : 0;
+
     let status = 'CONCLUIDO';
     let ajusteResult = null;
     let recontagemExigida = false;
@@ -60,15 +65,20 @@ export class RegisterCountUseCase {
     const contagemAtualizada = await this.inventoryCountRepository.updateCount(
       contagem.id as number,
       dto.quantidadeFisica,
-      status
+      status,
     );
 
     // RN-INV-006: Só desbloqueia se a contagem for final (não exige recontagem)
     if (!recontagemExigida) {
       // Identificar o endereço associado ao lote (via movimentos) e desbloqueá-lo
-      const movements = await this.movementRepository.findByLote(contagem.loteId);
-      const lastMov = movements.find((m) => m.enderecoDestinoId || m.enderecoOrigemId);
-      const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
+      const movements = await this.movementRepository.findByLote(
+        contagem.loteId,
+      );
+      const lastMov = movements.find(
+        (m) => m.enderecoDestinoId || m.enderecoOrigemId,
+      );
+      const enderecoId =
+        lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
       if (enderecoId) {
         await this.addressRepository.desbloquear(enderecoId);
       }

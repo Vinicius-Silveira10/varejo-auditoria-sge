@@ -1,4 +1,7 @@
-import { IOrderRepository, PedidoExpedicaoWithItems } from '../../interfaces/repositories/i-order.repository';
+import {
+  IOrderRepository,
+  PedidoExpedicaoWithItems,
+} from '../../interfaces/repositories/i-order.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { CreateOrderDto } from '../../../infrastructure/http/dtos/create-order.dto';
 

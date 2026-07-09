@@ -6,7 +6,9 @@ import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './infrastructure/http/filters/http-exception.filter';
 
 async function bootstrap() {
-  process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://admin:fortalpassword@127.0.0.1:5433/fortal_sge?schema=public';
+  process.env.DATABASE_URL =
+    process.env.DATABASE_URL ||
+    'postgresql://admin:fortalpassword@127.0.0.1:5433/fortal_sge?schema=public';
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());

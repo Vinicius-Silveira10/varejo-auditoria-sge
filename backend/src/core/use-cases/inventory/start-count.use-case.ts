@@ -26,7 +26,9 @@ export class StartCountUseCase {
     }
 
     if (!lote.ativo) {
-      throw new Error('Não é possível iniciar inventário de um lote desativado.');
+      throw new Error(
+        'Não é possível iniciar inventário de um lote desativado.',
+      );
     }
 
     if ((lote as any).emInventario) {
@@ -41,21 +43,28 @@ export class StartCountUseCase {
 
     const curva = (produto as any).curvaAbc || 'C';
     if (curva === 'B' || curva === 'C') {
-      const latestCount = await this.inventoryCountRepository.findLatestFinishedByProduct(produto.id);
+      const latestCount =
+        await this.inventoryCountRepository.findLatestFinishedByProduct(
+          produto.id,
+        );
       if (latestCount && latestCount.criadoEm) {
         const diffMs = Date.now() - latestCount.criadoEm.getTime();
         const diffDays = diffMs / (1000 * 60 * 60 * 24);
-        
+
         const minDays = curva === 'B' ? 15 : 30;
         if (diffDays < minDays) {
-          throw new Error(`RN-INV-004: Frequência de inventário para produtos de classe ${curva} não respeitada (mínimo ${minDays} dias).`);
+          throw new Error(
+            `RN-INV-004: Frequência de inventário para produtos de classe ${curva} não respeitada (mínimo ${minDays} dias).`,
+          );
         }
       }
     }
 
     // Identificar o endereço associado ao lote (via movimentos) e bloqueá-lo
     const movements = await this.movementRepository.findByLote(dto.loteId);
-    const lastMov = movements.find((m) => m.enderecoDestinoId || m.enderecoOrigemId);
+    const lastMov = movements.find(
+      (m) => m.enderecoDestinoId || m.enderecoOrigemId,
+    );
     const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
     if (enderecoId) {
       await this.addressRepository.bloquear(enderecoId);

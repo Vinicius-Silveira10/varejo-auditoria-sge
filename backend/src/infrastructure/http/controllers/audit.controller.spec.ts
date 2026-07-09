@@ -90,7 +90,9 @@ describe('AuditController', () => {
   });
 
   it('deve falhar se dataLimite for data invalida', async () => {
-    await expect(controller.purge('data-invalida')).rejects.toThrow(BadRequestException);
+    await expect(controller.purge('data-invalida')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('deve chamar exportCsv e retornar o conteudo formatado em CSV', async () => {
@@ -104,7 +106,10 @@ describe('AuditController', () => {
 
     expect(mockExportAuditCsvUseCase.execute).toHaveBeenCalled();
     expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
-    expect(mockRes.setHeader).toHaveBeenCalledWith('Content-Disposition', 'attachment; filename=audit-log.csv');
+    expect(mockRes.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename=audit-log.csv',
+    );
     expect(mockRes.status).toHaveBeenCalledWith(200);
     expect(mockRes.send).toHaveBeenCalledWith('csv-content');
   });

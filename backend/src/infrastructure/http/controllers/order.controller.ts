@@ -1,5 +1,21 @@
-import { Controller, Patch, Param, Body, BadRequestException, UseGuards, Post, Get, Req } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import {
+  Controller,
+  Patch,
+  Param,
+  Body,
+  BadRequestException,
+  UseGuards,
+  Post,
+  Get,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { Roles, Role } from '../../security/roles.decorator';
 import { CloseOrderUseCase } from '../../../core/use-cases/order/close-order.use-case';
@@ -26,7 +42,10 @@ export class OrderController {
   @Roles(Role.GESTOR, Role.ADMIN)
   @Get('dashboard/otif')
   @ApiOperation({ summary: 'Obter dashboard OTIF de pedidos de expedição' })
-  @ApiResponse({ status: 200, description: 'Dashboard OTIF calculado com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard OTIF calculado com sucesso.',
+  })
   async getOtifDashboard() {
     const result = await this.getOtifDashboardUseCase.execute();
     return { data: result };
@@ -34,10 +53,18 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Post(':id/pick')
-  @ApiOperation({ summary: 'Iniciar picking de um pedido (FEFO) — efetiva débito no estoque' })
+  @ApiOperation({
+    summary: 'Iniciar picking de um pedido (FEFO) — efetiva débito no estoque',
+  })
   @ApiParam({ name: 'id', description: 'ID do Pedido de Expedição' })
-  @ApiResponse({ status: 201, description: 'Picking realizado com sucesso. Lotes debitados.' })
-  @ApiResponse({ status: 400, description: 'Saldo insuficiente ou pedido em status inválido.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Picking realizado com sucesso. Lotes debitados.',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Saldo insuficiente ou pedido em status inválido.',
+  })
   async pickOrder(@Param('id') id: string, @Req() req: any) {
     try {
       const operadorId: number = req.user.userId;
@@ -47,7 +74,10 @@ export class OrderController {
         data: result,
       };
     } catch (error: any) {
-      if (error.message.includes('RN-EXP-004') || error.message.includes('RN-EXP-002')) {
+      if (
+        error.message.includes('RN-EXP-004') ||
+        error.message.includes('RN-EXP-002')
+      ) {
         throw new BadRequestException(error.message);
       }
       throw error;
@@ -69,10 +99,15 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Patch(':id/verify')
-  @ApiOperation({ summary: 'Conferir um pedido com dois conferentes (RN-EXP-003)' })
+  @ApiOperation({
+    summary: 'Conferir um pedido com dois conferentes (RN-EXP-003)',
+  })
   @ApiParam({ name: 'id', description: 'ID do pedido' })
   @ApiResponse({ status: 200, description: 'Pedido conferido com sucesso.' })
-  @ApiResponse({ status: 400, description: 'Pedido não encontrado ou regra de dupla conferência violada.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Pedido não encontrado ou regra de dupla conferência violada.',
+  })
   async verifyOrder(@Param('id') id: string, @Body() dto: VerifyOrderDto) {
     try {
       const result = await this.verifyOrderUseCase.execute({
@@ -94,10 +129,15 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Patch(':id/close')
-  @ApiOperation({ summary: 'Expedir um pedido (encerrar e marcar como EXPEDIDO)' })
+  @ApiOperation({
+    summary: 'Expedir um pedido (encerrar e marcar como EXPEDIDO)',
+  })
   @ApiParam({ name: 'id', description: 'ID do pedido' })
   @ApiResponse({ status: 200, description: 'Pedido expedido com sucesso.' })
-  @ApiResponse({ status: 400, description: 'Pedido em status inválido para expedição (RN-EXP-002).' })
+  @ApiResponse({
+    status: 400,
+    description: 'Pedido em status inválido para expedição (RN-EXP-002).',
+  })
   async closeOrder(@Param('id') id: string) {
     try {
       const result = await this.closeOrderUseCase.execute(+id);
