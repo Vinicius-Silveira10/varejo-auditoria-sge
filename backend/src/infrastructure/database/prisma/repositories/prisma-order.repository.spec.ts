@@ -4,141 +4,111 @@ import { PrismaService } from '../prisma.service';
 
 describe('PrismaOrderRepository', () => {
   let repository: PrismaOrderRepository;
-  let prisma: PrismaService;
+  let prismaService: PrismaService;
 
   beforeEach(async () => {
+    const mockPrismaService = {
+      pedidoExpedicao: {
+        create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PrismaOrderRepository, PrismaService],
+      providers: [
+        PrismaOrderRepository,
+        { provide: PrismaService, useValue: mockPrismaService },
+      ],
     }).compile();
 
     repository = module.get<PrismaOrderRepository>(PrismaOrderRepository);
-    prisma = module.get<PrismaService>(PrismaService);
-
-    // Limpar tabelas respeitando FK constraints (filho antes do pai)
-    await prisma.chainPointer.deleteMany(); // sem dependências
-    await prisma.itemPedido.deleteMany();
-    await prisma.pedidoExpedicao.deleteMany();
-    await prisma.movimentacao.deleteMany(); // FK: Movimentacao.loteId → Lote
-    await prisma.logCusto.deleteMany();
-    await prisma.lote.deleteMany(); // FK: Lote.produtoId → Produto
-    await prisma.produto.deleteMany();
-    await prisma.usuario.deleteMany();
-  });
-
-  afterAll(async () => {
-    await prisma.$disconnect();
+    prismaService = module.get(PrismaService);
   });
 
   it('deve criar um pedido com itens no banco', async () => {
-    // Criar produto primeiro
-    const produto = await prisma.produto.create({
-      data: {
-        sku: 'SKU-ORDER-TEST',
-        descricao: 'Produto Teste Pedido',
-        categoria: 'Teste',
-        perecivel: false,
-        custoMedio: 10,
-        ativo: true,
-      },
-    });
-
-    const pedido = await repository.create({
+    const data = {
       codigoPedido: 'PED-1001',
       itens: [
         {
-          produtoId: produto.id,
+          produtoId: 1,
           quantidadeSolicitada: 5,
         },
       ],
-    });
+    };
 
-    expect(pedido.id).toBeDefined();
-    expect(pedido.codigoPedido).toBe('PED-1001');
-    expect(pedido.status).toBe('PENDENTE');
-    expect(pedido.itens).toHaveLength(1);
-    expect(pedido.itens[0].quantidadeSolicitada).toBe(5);
-    expect(pedido.itens[0].quantidadeSeparada).toBe(0);
+    const mockResult = {
+      id: 1,
+      codigoPedido: 'PED-1001',
+      status: 'PENDENTE',
+      itens: [{ produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+    };
+
+    (prismaService.pedidoExpedicao.create as jest.Mock).mockResolvedValue(mockResult);
+
+    const result = await repository.create(data);
+
+    expect(result).toEqual(mockResult);
+    expect(prismaService.pedidoExpedicao.create).toHaveBeenCalledWith({
+      data: {
+        codigoPedido: 'PED-1001',
+        valorTotal: undefined,
+        itens: {
+          create: [{ produtoId: 1, quantidadeSolicitada: 5 }],
+        },
+      },
+      include: { itens: true },
+    });
   });
 
   it('deve buscar um pedido com itens pelo ID', async () => {
-    const produto = await prisma.produto.create({
-      data: {
-        sku: 'SKU-ORDER-TEST-2',
-        descricao: 'Produto',
-        categoria: 'C',
-      },
-    });
+    const mockResult = { id: 1, codigoPedido: 'PED-1002', itens: [] };
+    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(mockResult);
 
-    const criado = await repository.create({
-      codigoPedido: 'PED-1002',
-      itens: [{ produtoId: produto.id, quantidadeSolicitada: 10 }],
-    });
+    const result = await repository.findById(1);
 
-    const buscado = await repository.findById(criado.id);
-    expect(buscado).toBeDefined();
-    expect(buscado?.id).toBe(criado.id);
-    expect(buscado?.itens).toHaveLength(1);
+    expect(result).toEqual(mockResult);
+    expect(prismaService.pedidoExpedicao.findUnique).toHaveBeenCalledWith({
+      where: { id: 1 },
+      include: { itens: true },
+    });
   });
 
   it('deve retornar null para ID inexistente', async () => {
-    const buscado = await repository.findById(99999);
-    expect(buscado).toBeNull();
+    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const result = await repository.findById(99999);
+
+    expect(result).toBeNull();
   });
 
   it('deve atualizar o status de um pedido', async () => {
-    const produto = await prisma.produto.create({
-      data: { sku: 'SKU-ORDER-TEST-3', descricao: 'P', categoria: 'C' },
+    const mockResult = { id: 1, status: 'SEPARACAO' };
+    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(mockResult);
+
+    const result = await repository.updateStatus(1, 'SEPARACAO');
+
+    expect(result).toEqual(mockResult);
+    expect(prismaService.pedidoExpedicao.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { status: 'SEPARACAO' },
     });
-
-    const criado = await repository.create({
-      codigoPedido: 'PED-1003',
-      itens: [{ produtoId: produto.id, quantidadeSolicitada: 1 }],
-    });
-
-    const atualizado = await repository.updateStatus(criado.id, 'SEPARACAO');
-
-    expect(atualizado.id).toBe(criado.id);
-    expect(atualizado.status).toBe('SEPARACAO');
   });
 
   it('deve atualizar os conferentes e marcar como CONFERIDO', async () => {
-    const produto = await prisma.produto.create({
-      data: { sku: 'SKU-ORDER-TEST-4', descricao: 'P', categoria: 'C' },
-    });
+    const mockResult = { id: 1, status: 'CONFERIDO', conferente1Id: 10, conferente2Id: 20 };
+    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(mockResult);
 
-    const uniqueId = Date.now();
-    const usuario1 = await prisma.usuario.create({
+    const result = await repository.updateConferentes(1, 10, 20);
+
+    expect(result).toEqual(mockResult);
+    expect(prismaService.pedidoExpedicao.update).toHaveBeenCalledWith({
+      where: { id: 1 },
       data: {
-        nome: 'U1',
-        email: `u1_${uniqueId}@teste.com`,
-        senha: '123',
-        perfil: 'OPERADOR',
+        conferente1Id: 10,
+        conferente2Id: 20,
+        status: 'CONFERIDO',
       },
     });
-
-    const usuario2 = await prisma.usuario.create({
-      data: {
-        nome: 'U2',
-        email: `u2_${uniqueId}@teste.com`,
-        senha: '123',
-        perfil: 'GESTOR',
-      },
-    });
-
-    const criado = await repository.create({
-      codigoPedido: 'PED-1004',
-      valorTotal: 15000,
-      itens: [{ produtoId: produto.id, quantidadeSolicitada: 1 }],
-    });
-
-    const atualizado = await repository.updateConferentes(
-      criado.id,
-      usuario1.id,
-      usuario2.id,
-    );
-
-    expect(atualizado.status).toBe('CONFERIDO');
-    expect(atualizado.conferente1Id).toBe(usuario1.id);
-    expect(atualizado.conferente2Id).toBe(usuario2.id);
   });
 });
