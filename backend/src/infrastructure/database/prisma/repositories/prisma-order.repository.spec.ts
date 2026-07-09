@@ -52,9 +52,10 @@ describe('PrismaOrderRepository', () => {
     expect(prismaService.pedidoExpedicao.create).toHaveBeenCalledWith({
       data: {
         codigoPedido: 'PED-1001',
-        valorTotal: undefined,
+        valorTotal: 0,
+        status: 'PENDENTE',
         itens: {
-          create: [{ produtoId: 1, quantidadeSolicitada: 5 }],
+          create: [{ produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
         },
       },
       include: { itens: true },
