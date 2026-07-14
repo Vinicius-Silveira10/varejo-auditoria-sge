@@ -14,4 +14,5 @@ export interface IBatchRepository {
     parados90Dias: number;
     porcentagem: number;
   }>;
+  findActiveWithBalance(): Promise<Lote[]>;
 }

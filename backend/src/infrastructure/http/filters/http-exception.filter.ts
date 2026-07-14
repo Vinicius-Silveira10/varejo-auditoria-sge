@@ -7,6 +7,11 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import {
+  DomainException,
+  NotFoundException,
+  ConflictException,
+} from '../../../core/exceptions/domain.exception';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -17,15 +22,29 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    let message: object | string;
 
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : { message: exception.message || 'Internal server error' };
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.getResponse();
+    } else if (exception instanceof DomainException) {
+      // Violação de regra de negócio → 400 Bad Request
+      status = HttpStatus.BAD_REQUEST;
+      message = { message: exception.message, error: 'Bad Request' };
+    } else if (exception instanceof NotFoundException) {
+      // Recurso não encontrado → 404
+      status = HttpStatus.NOT_FOUND;
+      message = { message: exception.message, error: 'Not Found' };
+    } else if (exception instanceof ConflictException) {
+      // Conflito de estado → 409
+      status = HttpStatus.CONFLICT;
+      message = { message: exception.message, error: 'Conflict' };
+    } else {
+      // Erro inesperado → 500 (comportamento original preservado)
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = { message: exception.message || 'Internal server error' };
+    }
 
     const errorResponse = {
       statusCode: status,
@@ -47,3 +66,4 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorResponse);
   }
 }
+

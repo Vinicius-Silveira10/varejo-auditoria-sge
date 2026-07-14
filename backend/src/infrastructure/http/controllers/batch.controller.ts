@@ -17,11 +17,13 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { ReceiveBatchUseCase } from '../../../core/use-cases/batch/receive-batch.use-case';
 import { GetExpiryAlertsUseCase } from '../../../core/use-cases/batch/get-expiry-alerts.use-case';
 import { DashboardGateway } from '../../websocket/dashboard.gateway';
 import { ReceiveBatchDto } from '../dtos/receive-batch.dto';
+import { GetPendingPutawayBatchesUseCase } from '../../../core/use-cases/batch/get-pending-putaway.use-case';
 
 @ApiTags('Lotes')
 @ApiBearerAuth()
@@ -33,7 +35,17 @@ export class BatchController {
     private readonly receiveBatchUseCase: ReceiveBatchUseCase,
     private readonly getExpiryAlertsUseCase: GetExpiryAlertsUseCase,
     private readonly dashboardGateway: DashboardGateway,
+    private readonly getPendingPutawayBatchesUseCase: GetPendingPutawayBatchesUseCase,
   ) {}
+
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
+  @Get('pending-putaway')
+  @ApiOperation({ summary: 'Listar lotes pendentes de armazenagem (putaway)' })
+  @ApiResponse({ status: 200, description: 'Lotes pendentes recuperados com sucesso.' })
+  async getPendingPutawayBatches() {
+    const result = await this.getPendingPutawayBatchesUseCase.execute();
+    return { data: result };
+  }
 
   @Roles(Role.GESTOR, Role.ADMIN, Role.OPERADOR) // Operadores também precisam saber o que vai vencer
   @Get('alerts/expiry')
@@ -52,6 +64,7 @@ export class BatchController {
   }
 
   @Post()
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Receber um novo lote de produto' })
   @ApiResponse({
@@ -62,12 +75,13 @@ export class BatchController {
     status: 400,
     description: 'Produto não encontrado ou dados inválidos.',
   })
-  async receiveBatch(@Body() dto: ReceiveBatchDto) {
+  async receiveBatch(@Body() dto: ReceiveBatchDto, @CurrentUser('userId') usuarioId: number) {
     try {
       const validadeDate = dto.validade ? new Date(dto.validade) : undefined;
       const result = await this.receiveBatchUseCase.execute({
         ...dto,
         validade: validadeDate,
+        usuarioId: usuarioId,
       });
 
       // Notificar o dashboard em tempo real (F-06 / GAP-008)

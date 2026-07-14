@@ -4,6 +4,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { ConflictException, DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('StartCountUseCase', () => {
   let useCase: StartCountUseCase;
@@ -52,6 +53,7 @@ describe('StartCountUseCase', () => {
       updateCustoMedio: jest.fn(),
       updateCurvaAbc: jest.fn(),
       disable: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
 
     useCase = new StartCountUseCase(
@@ -104,6 +106,7 @@ describe('StartCountUseCase', () => {
       emInventario: true,
     } as any);
 
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toBeInstanceOf(ConflictException);
     await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toThrow(
       'Este lote já está sob contagem de inventário.',
     );
@@ -130,6 +133,7 @@ describe('StartCountUseCase', () => {
       criadoEm: tenDaysAgo,
     } as any);
 
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toThrow(
       'RN-INV-004: Frequência de inventário para produtos de classe B não respeitada (mínimo 15 dias).',
     );
@@ -159,5 +163,33 @@ describe('StartCountUseCase', () => {
 
     const result = await useCase.execute({ loteId: 1, usuarioId: 2 });
     expect(result.id).toBe(10);
+  });
+
+  it('deve falhar se lote não existir', async () => {
+    mockBatchRepo.findById.mockResolvedValue(null);
+    await expect(useCase.execute({ loteId: 99, usuarioId: 2 })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute({ loteId: 99, usuarioId: 2 })).rejects.toThrow('Lote não encontrado.');
+  });
+
+  it('deve falhar se lote estiver desativado', async () => {
+    mockBatchRepo.findById.mockResolvedValue({
+      id: 1,
+      ativo: false,
+    } as any);
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toThrow('Não é possível iniciar inventário de um lote desativado.');
+  });
+
+  it('deve falhar se produto não existir', async () => {
+    mockBatchRepo.findById.mockResolvedValue({
+      id: 1,
+      produtoId: 10,
+      quantidade: 100,
+      ativo: true,
+      emInventario: false,
+    } as any);
+    mockProductRepo.findById.mockResolvedValue(null);
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute({ loteId: 1, usuarioId: 2 })).rejects.toThrow('Produto não encontrado.');
   });
 });

@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import { BadRequestException } from '@nestjs/common';
 
 export interface ParsedNfeItem {
   sku: string; // cProd (código do produto)
@@ -32,14 +33,14 @@ export class ParseNfeXmlService {
 
   parse(xmlContent: string): ParsedNfe {
     if (!xmlContent || xmlContent.trim().length === 0) {
-      throw new Error('XML da NF-e está vazio ou inválido.');
+      throw new BadRequestException('XML da NF-e está vazio ou inválido.');
     }
 
     let parsed: any;
     try {
       parsed = this.parser.parse(xmlContent);
     } catch (error) {
-      throw new Error(
+      throw new BadRequestException(
         'Falha ao interpretar o XML da NF-e. Verifique o formato.',
       );
     }
@@ -50,7 +51,7 @@ export class ParseNfeXmlService {
     const infNFe = nfe.infNFe || nfe;
 
     if (!infNFe) {
-      throw new Error(
+      throw new BadRequestException(
         'Estrutura XML inválida: elemento infNFe não encontrado.',
       );
     }
@@ -62,7 +63,7 @@ export class ParseNfeXmlService {
       '';
 
     if (!chaveAcesso || chaveAcesso.length !== 44) {
-      throw new Error('Chave de acesso da NF-e inválida ou não encontrada.');
+      throw new BadRequestException('Chave de acesso da NF-e inválida ou não encontrada.');
     }
 
     // Dados da identificação
@@ -113,7 +114,7 @@ export class ParseNfeXmlService {
     });
 
     if (itens.length === 0) {
-      throw new Error('NF-e não contém itens (det).');
+      throw new BadRequestException('NF-e não contém itens (det).');
     }
 
     return {

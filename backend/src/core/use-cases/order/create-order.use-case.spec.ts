@@ -1,6 +1,7 @@
 import { CreateOrderUseCase } from './create-order.use-case';
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 describe('CreateOrderUseCase', () => {
   let useCase: CreateOrderUseCase;
@@ -59,6 +60,7 @@ describe('CreateOrderUseCase', () => {
 
     productRepository.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(dto)).rejects.toThrow(
       'Produto com ID 999 não encontrado',
     );

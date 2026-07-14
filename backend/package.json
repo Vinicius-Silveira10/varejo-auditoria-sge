@@ -18,8 +18,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "swagger:export": "ts-node -r tsconfig-paths/register src/generate-swagger.ts"
+    "test:e2e": "ts-node scripts/run-e2e.ts",
+    "swagger:export": "ts-node -r tsconfig-paths/register src/generate-swagger.ts",
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -33,6 +34,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.27",
     "@nestjs/swagger": "^11.4.2",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.27",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",

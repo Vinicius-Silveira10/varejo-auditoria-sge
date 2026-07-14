@@ -31,10 +31,10 @@ describe('Smoke Test (Final Validation)', () => {
       });
   });
 
-  it('Security: deve negar acesso (403) sem token JWT (RolesGuard)', () => {
+  it('Security: deve negar acesso (401) sem token JWT (RolesGuard)', () => {
     return request(app.getHttpServer())
       .get('/orders/dashboard/otif')
-      .expect(403);
+      .expect(401);
   });
 
   it('Global Error Handling: deve retornar erro padronizado para rota inexistente', () => {
@@ -48,9 +48,9 @@ describe('Smoke Test (Final Validation)', () => {
       });
   });
 
-  it('Dashboards: deve estar protegido por Role', async () => {
+  it('Dashboards: deve negar acesso (401) se não estiver autenticado/autorizado', async () => {
     return request(app.getHttpServer())
       .get('/orders/dashboard/otif')
-      .expect(403);
+      .expect(401);
   });
 });

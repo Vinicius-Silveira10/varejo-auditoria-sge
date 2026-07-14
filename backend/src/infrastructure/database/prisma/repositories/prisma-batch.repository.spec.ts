@@ -34,7 +34,7 @@ describe('PrismaBatchRepository', () => {
       quantidade: 50,
       validade: null,
       ativo: true,
-    };
+    } as any;
     const mockCreated = { id: 1, criadoEm: new Date(), ...data };
     (prismaService.lote.create as jest.Mock).mockResolvedValue(mockCreated);
 

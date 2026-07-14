@@ -29,9 +29,10 @@ describe('PrismaProductRepository', () => {
   it('deve criar um produto no banco', async () => {
     const data = {
       sku: 'PROD-01',
-      descricao: 'Teste',
-      categoria: 'Teste',
+      descricao: 'Arroz',
+      categoria: 'Grãos',
       perecivel: false,
+      tipoZonaRequerida: 'SECO',
     };
     const mockCreated = { id: 1, custoMedio: 0, ativo: true, ...data };
     (prismaService.produto.create as jest.Mock).mockResolvedValue(mockCreated);

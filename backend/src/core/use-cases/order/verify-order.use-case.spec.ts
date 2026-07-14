@@ -1,5 +1,6 @@
 import { VerifyOrderUseCase } from './verify-order.use-case';
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('VerifyOrderUseCase', () => {
   let useCase: VerifyOrderUseCase;
@@ -11,6 +12,9 @@ describe('VerifyOrderUseCase', () => {
       findById: jest.fn(),
       updateStatus: jest.fn(),
       updateConferentes: jest.fn(),
+      findAll: jest.fn(),
+      updateItemSeparado: jest.fn(),
+      countPendingPicking: jest.fn(),
     };
 
     useCase = new VerifyOrderUseCase(mockOrderRepo);
@@ -51,6 +55,9 @@ describe('VerifyOrderUseCase', () => {
 
     await expect(
       useCase.execute({ pedidoId: 2, conferente1Id: 10 }),
+    ).rejects.toBeInstanceOf(DomainException);
+    await expect(
+      useCase.execute({ pedidoId: 2, conferente1Id: 10 }),
     ).rejects.toThrow(
       'RN-EXP-003: Pedidos de alto valor (>= 10000) exigem um segundo conferente',
     );
@@ -66,6 +73,9 @@ describe('VerifyOrderUseCase', () => {
       itens: [],
     } as any);
 
+    await expect(
+      useCase.execute({ pedidoId: 3, conferente1Id: 10, conferente2Id: 10 }),
+    ).rejects.toBeInstanceOf(DomainException);
     await expect(
       useCase.execute({ pedidoId: 3, conferente1Id: 10, conferente2Id: 10 }),
     ).rejects.toThrow('não podem ser a mesma pessoa');
@@ -102,6 +112,9 @@ describe('VerifyOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue(null);
     await expect(
       useCase.execute({ pedidoId: 99, conferente1Id: 1 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      useCase.execute({ pedidoId: 99, conferente1Id: 1 }),
     ).rejects.toThrow('não encontrado');
   });
 
@@ -113,6 +126,9 @@ describe('VerifyOrderUseCase', () => {
       itens: [],
     } as any);
 
+    await expect(
+      useCase.execute({ pedidoId: 5, conferente1Id: 1 }),
+    ).rejects.toBeInstanceOf(DomainException);
     await expect(
       useCase.execute({ pedidoId: 5, conferente1Id: 1 }),
     ).rejects.toThrow('já está com status CONFERIDO');

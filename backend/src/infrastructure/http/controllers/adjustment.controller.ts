@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  Req,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -15,6 +14,7 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RequestAdjustmentUseCase } from '../../../core/use-cases/adjustment/request-adjustment.use-case';
 import { ApproveAdjustmentUseCase } from '../../../core/use-cases/adjustment/approve-adjustment.use-case';
@@ -49,10 +49,9 @@ export class AdjustmentController {
   @ApiResponse({ status: 401, description: 'Não autorizado.' })
   async requestAdjustment(
     @Body() body: RequestAdjustmentBodyDto,
-    @Req() req: any,
+    @CurrentUser('userId') solicitanteId: number,
   ) {
     const { loteId, quantidadeDelta, motivo } = body;
-    const solicitanteId = req.user.userId;
 
     const result = await this.requestAdjustmentUseCase.execute({
       loteId,
@@ -84,11 +83,10 @@ export class AdjustmentController {
   })
   async approveAdjustment(
     @Body() body: ApproveAdjustmentBodyDto,
-    @Req() req: any,
+    @CurrentUser('userId') aprovadorId: number,
+    @CurrentUser('perfil') aprovadorRole: string,
   ) {
     const { ajusteId, aprovado } = body;
-    const aprovadorId = req.user.userId;
-    const aprovadorRole = req.user.perfil; // JWT deve ter injetado o perfil
 
     const result = await this.approveAdjustmentUseCase.execute({
       ajusteId,

@@ -18,9 +18,11 @@ import { OrderModule } from './infrastructure/http/order.module';
 import { CostModule } from './infrastructure/http/cost.module';
 import { DashboardModule } from './infrastructure/http/dashboard.module';
 import { WebsocketModule } from './infrastructure/websocket/websocket.module';
-import { QueueModule } from './infrastructure/queue/queue.module';
 import { JwtAuthGuard } from './infrastructure/security/jwt-auth.guard';
 import { RolesGuard } from './infrastructure/security/roles.guard';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { CustomThrottlerGuard } from './infrastructure/security/custom-throttler.guard';
+
 
 @Module({
   imports: [
@@ -38,13 +40,19 @@ import { RolesGuard } from './infrastructure/security/roles.guard';
     CostModule,
     DashboardModule, // GAP-001 / ARQT-001 FIX: DashboardModule registrado
     WebsocketModule,
-    QueueModule,
     BullModule.forRoot({
       redis: {
         host: process.env.REDIS_HOST || 'localhost',
         port: Number(process.env.REDIS_PORT) || 6379,
       },
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 50,
+      },
+    ]),
   ],
   controllers: [AppController, HealthController],
   providers: [
@@ -58,6 +66,10 @@ import { RolesGuard } from './infrastructure/security/roles.guard';
     {
       provide: APP_GUARD,
       useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
     },
   ],
 })

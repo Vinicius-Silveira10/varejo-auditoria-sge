@@ -2,6 +2,7 @@ import { AuthenticateUserUseCase } from './authenticate-user.use-case';
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { DomainException } from '../../exceptions/domain.exception';
 
 jest.mock('bcrypt');
 
@@ -36,6 +37,7 @@ describe('AuthenticateUserUseCase', () => {
       perfil: 'ADMIN',
       ativo: true,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     };
 
     mockRepository.findByEmail.mockResolvedValue(mockUser);
@@ -61,6 +63,7 @@ describe('AuthenticateUserUseCase', () => {
     const request = { email: 'wrong@test.com', senhaBruta: '123456' };
     mockRepository.findByEmail.mockResolvedValue(null);
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-002: Credenciais inválidas',
     );
@@ -76,11 +79,13 @@ describe('AuthenticateUserUseCase', () => {
       perfil: 'ADMIN',
       ativo: true,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     };
 
     mockRepository.findByEmail.mockResolvedValue(mockUser);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-002: Credenciais inválidas',
     );
@@ -96,10 +101,12 @@ describe('AuthenticateUserUseCase', () => {
       perfil: 'ADMIN',
       ativo: false,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     };
 
     mockRepository.findByEmail.mockResolvedValue(mockUser);
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-003: Usuário inativo ou bloqueado',
     );

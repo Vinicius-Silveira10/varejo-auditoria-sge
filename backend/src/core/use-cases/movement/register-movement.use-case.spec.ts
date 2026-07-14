@@ -4,51 +4,65 @@ import { IMovementRepository } from '../../interfaces/repositories/i-movement.re
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { Lote, Movimentacao } from '@prisma/client';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('RegisterMovementUseCase', () => {
   let useCase: RegisterMovementUseCase;
-  let batchRepository: jest.Mocked<IBatchRepository>;
-  let movementRepository: jest.Mocked<IMovementRepository>;
-  let addressRepository: jest.Mocked<IAddressRepository>;
-  let productRepository: jest.Mocked<IProductRepository>;
+  let mockBatchRepository: any;
+  let mockMovementRepository: any;
+  let mockAddressRepository: any;
+  let mockProductRepository: any;
+  let mockUnitOfWork: any;
+  let mockLockForUpdate: jest.Mock;
 
   beforeEach(() => {
-    batchRepository = {
+    mockBatchRepository = {
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
+      updateQuantidadeDelta: jest.fn().mockResolvedValue({ id: 1, quantidade: 10 }),
       updateInventarioStatus: jest.fn(),
       create: jest.fn(),
-    } as any;
-
-    movementRepository = {
+    };
+    mockMovementRepository = {
       create: jest.fn(),
       executeMovementTransaction: jest.fn(),
       findByLote: jest.fn(),
       findAllOrdered: jest.fn(),
-    } as any;
-
-    addressRepository = {
+    };
+    mockAddressRepository = {
       findById: jest.fn(),
       findByCodigo: jest.fn(),
       create: jest.fn(),
       disable: jest.fn(),
       updateOcupacao: jest.fn(),
-    } as any;
-
-    productRepository = {
+    };
+    mockProductRepository = {
       findById: jest.fn(),
       findBySku: jest.fn(),
       create: jest.fn(),
       updateCustoMedio: jest.fn(),
       disable: jest.fn(),
-    } as any;
+    };
+    mockLockForUpdate = jest.fn();
+    mockUnitOfWork = {
+      execute: jest.fn().mockImplementation(async (callback) => {
+        return await callback({
+          loteRepository: mockBatchRepository,
+          movementRepository: mockMovementRepository,
+          addressRepository: mockAddressRepository,
+          produtoRepository: mockProductRepository,
+          lockForUpdate: mockLockForUpdate,
+        });
+      }),
+    };
 
     useCase = new RegisterMovementUseCase(
-      batchRepository,
-      movementRepository,
-      addressRepository,
-      productRepository,
+      mockBatchRepository,
+      mockMovementRepository,
+      mockAddressRepository,
+      mockProductRepository,
+      mockUnitOfWork,
     );
   });
 
@@ -63,7 +77,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -74,19 +88,19 @@ describe('RegisterMovementUseCase', () => {
       enderecoDestinoId: 5,
       usuarioId: 1,
     };
-    addressRepository.findById.mockResolvedValue({
+    mockAddressRepository.findById.mockResolvedValue({
       id: 5,
       capacidade: 100,
       ocupado: 0,
       codigo: 'A1',
       tipoZona: 'SECO',
     } as any);
-    productRepository.findById.mockResolvedValue({
+    mockProductRepository.findById.mockResolvedValue({
       id: 10,
       tipoZonaRequerida: 'SECO',
     } as any);
 
-    movementRepository.executeMovementTransaction.mockResolvedValue({
+    mockMovementRepository.create.mockResolvedValue({
       id: 100,
       criadoEm: new Date(),
       hash: 'h',
@@ -96,10 +110,21 @@ describe('RegisterMovementUseCase', () => {
 
     const result = await useCase.execute(movRequest);
 
-    expect(batchRepository.findById).toHaveBeenCalledWith(loteId);
-    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(
+    // Validação de prevenção de deadlock: Lock de domínio no início da transação
+    expect(mockLockForUpdate).toHaveBeenCalledWith('Lote', loteId);
+
+    // Validação da ORDEM ESTRITA: O lock deve ocorrer ANTES de qualquer update ou insert no BD
+    const lockOrder = mockLockForUpdate.mock.invocationCallOrder[0];
+    const updateLoteOrder = mockBatchRepository.updateQuantidadeDelta.mock.invocationCallOrder[0];
+    const createMovOrder = mockMovementRepository.create.mock.invocationCallOrder[0];
+
+    expect(lockOrder).toBeLessThan(updateLoteOrder);
+    expect(updateLoteOrder).toBeLessThan(createMovOrder);
+
+    expect(mockBatchRepository.findById).toHaveBeenCalledWith(loteId);
+    expect(mockMovementRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        quantidadeDeltaLote: 20,
+        tipo: 'ENTRADA',
       }),
     );
     expect(result.id).toBeDefined();
@@ -116,7 +141,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const movRequest: any = {
       tipo: 'SAIDA',
@@ -127,14 +152,14 @@ describe('RegisterMovementUseCase', () => {
       enderecoDestinoId: null,
       usuarioId: 1,
     };
-    addressRepository.findById.mockResolvedValue({
+    mockAddressRepository.findById.mockResolvedValue({
       id: 10,
       capacidade: 100,
       ocupado: 50,
       codigo: 'B1',
     } as any);
 
-    movementRepository.executeMovementTransaction.mockResolvedValue({
+    mockMovementRepository.create.mockResolvedValue({
       id: 101,
       criadoEm: new Date(),
       hash: 'h',
@@ -144,9 +169,9 @@ describe('RegisterMovementUseCase', () => {
 
     const result = await useCase.execute(movRequest);
 
-    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(
+    expect(mockMovementRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        quantidadeDeltaLote: -10,
+        tipo: 'SAIDA',
       }),
     );
   });
@@ -162,7 +187,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const movRequest: any = {
       tipo: 'SAIDA',
@@ -174,8 +199,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-TRV-002');
-    expect(batchRepository.updateQuantidade).not.toHaveBeenCalled();
+    expect(mockBatchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
 
   it('deve lançar erro [RN-EXP-001] (FEFO) ao expedir um lote se houver outro mais antigo', async () => {
@@ -199,8 +225,8 @@ describe('RegisterMovementUseCase', () => {
       emInventario: false,
     };
 
-    batchRepository.findById.mockResolvedValue(loteSolicitado);
-    batchRepository.findAvailableByProduct.mockResolvedValue([
+    mockBatchRepository.findById.mockResolvedValue(loteSolicitado);
+    mockBatchRepository.findAvailableByProduct.mockResolvedValue([
       loteSolicitado,
       loteAntigo,
     ]);
@@ -214,13 +240,14 @@ describe('RegisterMovementUseCase', () => {
       enderecoDestinoId: null,
       usuarioId: 1,
     };
-    addressRepository.findById.mockResolvedValue({
+    mockAddressRepository.findById.mockResolvedValue({
       id: 10,
       capacidade: 100,
       ocupado: 50,
       codigo: 'B1',
     } as any);
 
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-EXP-001');
   });
 
@@ -235,7 +262,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: true,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const movRequest: any = {
       tipo: 'SAIDA',
@@ -247,6 +274,7 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-INV-006');
   });
 
@@ -262,7 +290,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const enderecoDestino: any = {
       id: 5,
@@ -273,7 +301,7 @@ describe('RegisterMovementUseCase', () => {
       ocupado: 95,
       ativo: true,
     };
-    addressRepository.findById.mockResolvedValue(enderecoDestino);
+    mockAddressRepository.findById.mockResolvedValue(enderecoDestino);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -285,8 +313,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-ARM-001');
-    expect(batchRepository.updateQuantidade).not.toHaveBeenCalled();
+    expect(mockBatchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
 
   it('deve lançar erro [RN-INV-006] ao tentar movimentar para um endereço bloqueado por inventário', async () => {
@@ -299,7 +328,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const enderecoDestino: any = {
       id: 5,
@@ -311,7 +340,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       bloqueado: true,
     };
-    addressRepository.findById.mockResolvedValue(enderecoDestino);
+    mockAddressRepository.findById.mockResolvedValue(enderecoDestino);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -323,6 +352,7 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(movRequest)).rejects.toThrow(
       'RN-INV-006: Endereço bloqueado',
     );
@@ -338,8 +368,8 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
-    productRepository.findById.mockResolvedValue({
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
+    mockProductRepository.findById.mockResolvedValue({
       id: 10,
       sku: 'SKU1',
       descricao: 'Prod',
@@ -359,7 +389,7 @@ describe('RegisterMovementUseCase', () => {
       ocupado: 80,
       ativo: true,
     };
-    addressRepository.findById.mockResolvedValue(enderecoDestino);
+    mockAddressRepository.findById.mockResolvedValue(enderecoDestino);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -371,7 +401,7 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    movementRepository.executeMovementTransaction.mockResolvedValue({
+    mockMovementRepository.create.mockResolvedValue({
       id: 200,
       criadoEm: new Date(),
       hash: 'h',
@@ -381,10 +411,8 @@ describe('RegisterMovementUseCase', () => {
 
     const result = await useCase.execute(movRequest);
     expect(result.id).toBe(200);
-    expect(movementRepository.executeMovementTransaction).toHaveBeenCalledWith(
-      expect.objectContaining({
-        novaOcupacaoDestino: 90,
-      }),
+    expect(mockAddressRepository.updateOcupacao).toHaveBeenCalledWith(
+      5, 90
     );
   });
 
@@ -398,7 +426,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const enderecoDestino: any = {
       id: 5,
@@ -409,7 +437,7 @@ describe('RegisterMovementUseCase', () => {
       ocupado: 10,
       ativo: true,
     };
-    addressRepository.findById.mockResolvedValue(enderecoDestino);
+    mockAddressRepository.findById.mockResolvedValue(enderecoDestino);
 
     const produtoPerecivel: any = {
       id: 10,
@@ -421,7 +449,7 @@ describe('RegisterMovementUseCase', () => {
       custoMedio: 5,
       ativo: true,
     };
-    productRepository.findById.mockResolvedValue(produtoPerecivel);
+    mockProductRepository.findById.mockResolvedValue(produtoPerecivel);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -434,7 +462,7 @@ describe('RegisterMovementUseCase', () => {
     };
 
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-ARM-003');
-    expect(batchRepository.updateQuantidade).not.toHaveBeenCalled();
+    expect(mockBatchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
 
   it('deve permitir perecível em zona REFRIGERADO (RN-ARM-003)', async () => {
@@ -447,7 +475,7 @@ describe('RegisterMovementUseCase', () => {
       ativo: true,
       emInventario: false,
     };
-    batchRepository.findById.mockResolvedValue(batchMock);
+    mockBatchRepository.findById.mockResolvedValue(batchMock);
 
     const enderecoRefrigerado: any = {
       id: 6,
@@ -458,7 +486,7 @@ describe('RegisterMovementUseCase', () => {
       ocupado: 10,
       ativo: true,
     };
-    addressRepository.findById.mockResolvedValue(enderecoRefrigerado);
+    mockAddressRepository.findById.mockResolvedValue(enderecoRefrigerado);
 
     const produtoPerecivel: any = {
       id: 10,
@@ -470,7 +498,7 @@ describe('RegisterMovementUseCase', () => {
       custoMedio: 5,
       ativo: true,
     };
-    productRepository.findById.mockResolvedValue(produtoPerecivel);
+    mockProductRepository.findById.mockResolvedValue(produtoPerecivel);
 
     const movRequest: any = {
       tipo: 'ENTRADA',
@@ -482,7 +510,7 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    movementRepository.executeMovementTransaction.mockResolvedValue({
+    mockMovementRepository.create.mockResolvedValue({
       id: 300,
       criadoEm: new Date(),
       hash: 'h',

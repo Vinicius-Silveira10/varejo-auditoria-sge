@@ -8,41 +8,38 @@ import { ReceiveBatchUseCase } from '../../core/use-cases/batch/receive-batch.us
 import { INotaFiscalRepository } from '../../core/interfaces/repositories/i-nota-fiscal.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
-import { Queue } from 'bull';
-import { getQueueToken } from '@nestjs/bull';
-import { QueueModule } from '../queue/queue.module';
 import { PrismaModule } from '../database/prisma/prisma.module';
+import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
+import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
+import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
+import { PrismaNotaFiscalRepository } from '../database/prisma/repositories/prisma-nota-fiscal.repository';
 
 /**
  * GAP-009 FIX: NfeModule atualizado.
- * - Importa QueueModule para injetar a fila 'cost-update' no ReceiveBatchUseCase.
- * - Remove a injeção síncrona de UpdateAverageCostUseCase deste módulo.
+ * - Remove a injeção da fila 'cost-update'.
  */
 @Module({
-  imports: [PrismaModule, QueueModule],
+  imports: [PrismaModule],
   controllers: [NfeController],
   providers: [
     ParseNfeXmlService,
     {
       provide: ReceiveBatchUseCase,
       useFactory: (
-        batchRepo: IBatchRepository,
-        productRepo: IProductRepository,
-        costUpdateQueue: Queue,
-        nfRepo: INotaFiscalRepository,
+        productRepo: PrismaProductRepository,
+        notaFiscalRepo: PrismaNotaFiscalRepository,
+        unitOfWork: IUnitOfWork,
       ) => {
         return new ReceiveBatchUseCase(
-          batchRepo,
           productRepo,
-          costUpdateQueue,
-          nfRepo,
+          notaFiscalRepo,
+          unitOfWork,
         );
       },
       inject: [
-        'IBatchRepository',
         'IProductRepository',
-        getQueueToken('cost-update'),
         'INotaFiscalRepository',
+        'IUnitOfWork',
       ],
     },
     {

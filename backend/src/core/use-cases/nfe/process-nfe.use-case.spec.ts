@@ -3,6 +3,7 @@ import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fisc
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { ParseNfeXmlService } from './parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../batch/receive-batch.use-case';
+import { ConflictException } from '../../exceptions/domain.exception';
 
 // XML de exemplo válido (padrão SEFAZ simplificado)
 const VALID_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -96,6 +97,8 @@ describe('ProcessNfeUseCase', () => {
       create: jest.fn(),
       findByChaveAcesso: jest.fn(),
       updateStatus: jest.fn(),
+      findById: jest.fn(),
+      findDivergent: jest.fn(),
     };
 
     mockProductRepo = {
@@ -104,6 +107,9 @@ describe('ProcessNfeUseCase', () => {
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
       disable: jest.fn(),
+      updateCurvaAbc: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
 
     parseService = new ParseNfeXmlService();
@@ -178,7 +184,7 @@ describe('ProcessNfeUseCase', () => {
 
     mockReceiveBatchUseCase.execute.mockResolvedValue({} as any);
 
-    const result = await useCase.execute(VALID_XML);
+    const result = await useCase.execute(VALID_XML, 999);
 
     expect(result.status).toBe('CONFERIDO');
     expect(result.divergencias).toHaveLength(0);
@@ -192,7 +198,8 @@ describe('ProcessNfeUseCase', () => {
   it('deve rejeitar NF-e duplicada com erro RN-REC-002', async () => {
     mockNfRepo.findByChaveAcesso.mockResolvedValue({ id: 1 } as any);
 
-    await expect(useCase.execute(VALID_XML)).rejects.toThrow('RN-REC-002');
+    await expect(useCase.execute(VALID_XML, 999)).rejects.toBeInstanceOf(ConflictException);
+    await expect(useCase.execute(VALID_XML, 999)).rejects.toThrow('RN-REC-002');
     expect(mockNfRepo.create).not.toHaveBeenCalled();
   });
 
@@ -207,7 +214,7 @@ describe('ProcessNfeUseCase', () => {
       itensNfe: [],
     } as any);
 
-    const result = await useCase.execute(XML_SKU_DESCONHECIDO);
+    const result = await useCase.execute(XML_SKU_DESCONHECIDO, 999);
 
     expect(result.status).toBe('DIVERGENTE');
     expect(result.divergencias).toHaveLength(1);
@@ -234,7 +241,7 @@ describe('ProcessNfeUseCase', () => {
       itensNfe: [],
     } as any);
 
-    const result = await useCase.execute(XML_SKU_DESCONHECIDO);
+    const result = await useCase.execute(XML_SKU_DESCONHECIDO, 999);
 
     expect(result.status).toBe('DIVERGENTE');
     expect(result.divergencias[0].detalhe).toContain('desativado');
@@ -242,6 +249,6 @@ describe('ProcessNfeUseCase', () => {
   });
 
   it('deve falhar com XML vazio', async () => {
-    await expect(useCase.execute('')).rejects.toThrow('vazio');
+    await expect(useCase.execute('', 999)).rejects.toThrow('vazio');
   });
 });

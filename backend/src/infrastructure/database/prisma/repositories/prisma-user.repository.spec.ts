@@ -28,9 +28,9 @@ describe('PrismaUserRepository', () => {
   it('deve criar um usuario', async () => {
     const data = {
       nome: 'Admin',
-      email: 'admin@test.com',
-      senha: 'hashed',
-      perfil: 'ADMIN',
+      email: 'test@example.com',
+      senha: '123',
+      perfil: 'OPERADOR' as any,
     };
     const mockCreated = { id: 1, ativo: true, criadoEm: new Date(), ...data };
     (prismaService.usuario.create as jest.Mock).mockResolvedValue(mockCreated);

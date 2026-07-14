@@ -18,6 +18,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { ProcessNfeUseCase } from '../../../core/use-cases/nfe/process-nfe.use-case';
 import { GetNotaFiscalDetailsUseCase } from '../../../core/use-cases/nfe/get-nfe-details.use-case';
@@ -73,9 +74,9 @@ export class NfeController {
     status: 409,
     description: 'Chave de acesso já processada anteriormente (RN-REC-002).',
   })
-  async processNfe(@Body() dto: ProcessNfeDto) {
+  async processNfe(@Body() dto: ProcessNfeDto, @CurrentUser('userId') usuarioId: number) {
     try {
-      const result = await this.processNfeUseCase.execute(dto.xmlContent);
+      const result = await this.processNfeUseCase.execute(dto.xmlContent, usuarioId);
       return {
         message:
           result.status === 'CONFERIDO'

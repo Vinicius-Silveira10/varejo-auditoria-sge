@@ -1,9 +1,7 @@
-import {
-  IOrderRepository,
-  PedidoExpedicaoWithItems,
-} from '../../interfaces/repositories/i-order.repository';
+import { IOrderRepository, PedidoExpedicaoWithItems } from '../../interfaces/repositories/i-order.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { CreateOrderDto } from '../../../infrastructure/http/dtos/create-order.dto';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 export class CreateOrderUseCase {
   constructor(
@@ -16,7 +14,7 @@ export class CreateOrderUseCase {
     for (const item of data.itens) {
       const produto = await this.productRepository.findById(item.produtoId);
       if (!produto) {
-        throw new Error(`Produto com ID ${item.produtoId} não encontrado.`);
+        throw new NotFoundException(`Produto com ID ${item.produtoId} não encontrado.`);
       }
     }
 

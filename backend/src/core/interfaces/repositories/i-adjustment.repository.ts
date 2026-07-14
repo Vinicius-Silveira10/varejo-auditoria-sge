@@ -22,10 +22,4 @@ export interface IAdjustmentRepository {
     aprovadorId: number,
   ): Promise<AjusteEstoque>;
   sumFinancialLosses(): Promise<number>;
-  executeApprovalTransaction(params: {
-    ajusteId: number;
-    aprovadorId: number;
-    loteId: number;
-    novaQuantidade: number;
-  }): Promise<AjusteEstoque>;
 }

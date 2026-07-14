@@ -11,12 +11,17 @@ import { PrismaInventoryCountRepository } from './repositories/prisma-inventory-
 import { PrismaNotaFiscalRepository } from './repositories/prisma-nota-fiscal.repository';
 import { PrismaOrderRepository } from './repositories/prisma-order.repository';
 import { HashService } from '../../security/hash.service';
+import { PrismaUnitOfWork } from './prisma-unit-of-work';
 
 @Global()
 @Module({
   providers: [
     PrismaService,
     HashService,
+    {
+      provide: 'IUnitOfWork',
+      useClass: PrismaUnitOfWork,
+    },
     {
       provide: 'IBatchRepository',
       useClass: PrismaBatchRepository,
@@ -61,6 +66,7 @@ import { HashService } from '../../security/hash.service';
   exports: [
     PrismaService,
     HashService,
+    'IUnitOfWork',
     'IBatchRepository',
     'IMovementRepository',
     'IProductRepository',

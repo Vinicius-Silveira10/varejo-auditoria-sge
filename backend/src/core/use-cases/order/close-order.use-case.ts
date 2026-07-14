@@ -1,5 +1,6 @@
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
 import { PedidoExpedicao } from '@prisma/client';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export class CloseOrderUseCase {
   constructor(private readonly orderRepository: IOrderRepository) {}
@@ -8,11 +9,11 @@ export class CloseOrderUseCase {
     const pedido = await this.orderRepository.findById(pedidoId);
 
     if (!pedido) {
-      throw new Error(`Pedido com ID ${pedidoId} não encontrado.`);
+      throw new NotFoundException(`Pedido com ID ${pedidoId} não encontrado.`);
     }
 
     if (pedido.status === 'EXPEDIDO') {
-      throw new Error('Pedido já está expedido.');
+      throw new DomainException('Pedido já está expedido.');
     }
 
     // RN-EXP-002: Validação de pedido expedido
@@ -32,7 +33,7 @@ export class CloseOrderUseCase {
       const detalhes = pendencias
         .map((p) => `Produto ${p.produtoId}: falta ${p.faltando}`)
         .join(', ');
-      throw new Error(
+      throw new DomainException(
         `RN-EXP-002: Não é possível expedir o pedido. Existem itens com picking pendente: ${detalhes}`,
       );
     }

@@ -1,6 +1,7 @@
 import { SuggestPutawayUseCase } from './suggest-putaway.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('SuggestPutawayUseCase', () => {
   let useCase: SuggestPutawayUseCase;
@@ -160,6 +161,9 @@ describe('SuggestPutawayUseCase', () => {
 
     await expect(
       useCase.execute({ produtoId: 99, quantidade: 10 }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      useCase.execute({ produtoId: 99, quantidade: 10 }),
     ).rejects.toThrow('RN-ARM-002');
   });
 
@@ -174,6 +178,9 @@ describe('SuggestPutawayUseCase', () => {
       ativo: false,
     } as any);
 
+    await expect(
+      useCase.execute({ produtoId: 1, quantidade: 10 }),
+    ).rejects.toBeInstanceOf(DomainException);
     await expect(
       useCase.execute({ produtoId: 1, quantidade: 10 }),
     ).rejects.toThrow('desativado');

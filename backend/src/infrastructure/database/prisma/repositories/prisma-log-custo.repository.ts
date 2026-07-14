@@ -18,20 +18,34 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
 
   async create(
     log: Omit<LogCusto, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+    existingTx?: any,
   ): Promise<LogCusto> {
-    return await this.prisma.$transaction(async (tx) => {
-      // BUG-007 FIX: ChainPointer atômico para eliminar race condition
-      const pointer = await (tx as any).chainPointer.findUnique({
-        where: { tabela: CHAIN_KEY },
-      });
-      const previousHash = pointer?.lastHash ?? null;
-      const hash = this.hashService.generateHash(log, previousHash);
+    const execute = async (tx: any) => {
+      // BUG-007 FIX: ChainPointer atômico para eliminar race condition com Lock de Banco (FOR UPDATE)
+      const rows = (await tx.$queryRawUnsafe(
+        `SELECT "lastHash" FROM "ChainPointer" WHERE tabela = $1 FOR UPDATE`,
+        CHAIN_KEY,
+      )) as { lastHash: string }[];
 
-      await (tx as any).chainPointer.upsert({
-        where: { tabela: CHAIN_KEY },
-        update: { lastHash: hash },
-        create: { tabela: CHAIN_KEY, lastHash: hash },
-      });
+      let previousHash: string | null = null;
+      if (rows && rows.length > 0) {
+        previousHash = rows[0].lastHash;
+        const hash = this.hashService.generateHash(log, previousHash);
+        await (tx as any).chainPointer.update({
+          where: { tabela: CHAIN_KEY },
+          data: { lastHash: hash },
+        });
+        var finalHash = hash; // scoping issue workaround
+      } else {
+        const hash = this.hashService.generateHash(log, null);
+        await (tx as any).chainPointer.upsert({
+          where: { tabela: CHAIN_KEY },
+          update: { lastHash: hash },
+          create: { tabela: CHAIN_KEY, lastHash: hash },
+        });
+        var finalHash = hash;
+      }
+      const hash = finalHash;
 
       const created = await (tx as any).logCusto.create({
         data: {
@@ -47,7 +61,11 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
       });
 
       return { ...created, motivo: created.motivo ?? undefined };
-    });
+    };
+
+    if (existingTx) return execute(existingTx);
+    if (typeof this.prisma.$transaction !== 'function') return execute(this.prisma);
+    return this.prisma.$transaction(execute);
   }
 
   async findByProdutoId(produtoId: number): Promise<LogCusto[]> {

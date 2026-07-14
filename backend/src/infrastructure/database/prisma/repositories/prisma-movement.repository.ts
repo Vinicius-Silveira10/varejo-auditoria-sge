@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IMovementRepository } from '../../../../core/interfaces/repositories/i-movement.repository';
+import { IMovementRepository, LoteAddressAllocation } from '../../../../core/interfaces/repositories/i-movement.repository';
 import { Movimentacao } from '@prisma/client';
 
 import { HashService } from '../../../security/hash.service';
@@ -27,28 +27,45 @@ export class PrismaMovementRepository implements IMovementRepository {
     >,
     newHash: string,
   ): Promise<string | null> {
-    // Lê o ponteiro atual e retorna o lastHash antes de atualizar
-    const pointer = await (tx as any).chainPointer.findUnique({
-      where: { tabela: CHAIN_KEY },
-    });
-    const previousHash = pointer?.lastHash ?? null;
+    // Obtém o ponteiro atual com lock explícito FOR UPDATE no banco de dados.
+    // Isso garante que apenas uma transação por vez em todo o pool de conexões do Postgres
+    // possa ler e atualizar o ChainPointer desta tabela, eliminando a corrupção do hash.
+    const rows = await tx.$queryRawUnsafe<{ lastHash: string }[]>(
+      `SELECT "lastHash" FROM "ChainPointer" WHERE tabela = $1 FOR UPDATE`,
+      CHAIN_KEY,
+    );
 
-    await (tx as any).chainPointer.upsert({
-      where: { tabela: CHAIN_KEY },
-      update: { lastHash: newHash },
-      create: { tabela: CHAIN_KEY, lastHash: newHash },
-    });
+    let previousHash: string | null = null;
+    
+    if (rows && rows.length > 0) {
+      previousHash = rows[0].lastHash;
+      // Como a linha já existe e está lockada, podemos apenas atualizar via prisma
+      await (tx as any).chainPointer.update({
+        where: { tabela: CHAIN_KEY },
+        data: { lastHash: newHash },
+      });
+    } else {
+      // Cenário do "Bloco Gênese" (primeiro registro). 
+      // Se duas transações chegarem aqui no início, o upsert resolve eventuais concorrências
+      // forçando um retry interno no Prisma ou falhando por constraint, mas a cadeia não bifurca.
+      await (tx as any).chainPointer.upsert({
+        where: { tabela: CHAIN_KEY },
+        update: { lastHash: newHash },
+        create: { tabela: CHAIN_KEY, lastHash: newHash },
+      });
+    }
 
     return previousHash;
   }
 
   async create(
     data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
+    existingTx?: any,
   ): Promise<Movimentacao> {
-    return await this.prisma.$transaction(async (tx) => {
+    const execute = async (tx: any) => {
       // Gera hash temporário para reservar o slot; será sobrescrito logo abaixo
       const tempHash = this.hashService.generateHash(data, 'TEMP');
-      const previousHash = await this.atomicGetAndSetHash(tx as any, tempHash);
+      const previousHash = await this.atomicGetAndSetHash(tx, tempHash);
       const hash = this.hashService.generateHash(data, previousHash);
 
       // Atualiza o ChainPointer com o hash real
@@ -60,7 +77,11 @@ export class PrismaMovementRepository implements IMovementRepository {
       return (tx as any).movimentacao.create({
         data: { ...data, hash, previousHash },
       });
-    });
+    };
+
+    if (existingTx) return execute(existingTx);
+    if (typeof this.prisma.$transaction !== 'function') return execute(this.prisma);
+    return this.prisma.$transaction(execute);
   }
 
   async findByLote(loteId: number): Promise<Movimentacao[]> {
@@ -91,68 +112,7 @@ export class PrismaMovementRepository implements IMovementRepository {
     return this.prisma.movimentacao.count();
   }
 
-  async executeMovementTransaction(params: {
-    movementData: Omit<
-      Movimentacao,
-      'id' | 'criadoEm' | 'hash' | 'previousHash'
-    >;
-    loteId: number;
-    quantidadeDeltaLote: number;
-    origemId?: number;
-    novaOcupacaoOrigem?: number;
-    destinoId?: number;
-    novaOcupacaoDestino?: number;
-  }): Promise<Movimentacao> {
-    return await this.prisma.$transaction(async (tx) => {
-      // 1. Atualizar Saldo do Lote de forma ATÔMICA
-      const loteDb = await (tx as any).lote.update({
-        where: { id: params.loteId },
-        data: { quantidade: { increment: params.quantidadeDeltaLote } },
-      });
 
-      if (loteDb.quantidade < 0) {
-        throw new Error(
-          'RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.',
-        );
-      }
-
-      // 2. Atualizar Endereço Origem (se houver)
-      if (params.origemId && params.novaOcupacaoOrigem !== undefined) {
-        await (tx as any).endereco.update({
-          where: { id: params.origemId },
-          data: { ocupado: params.novaOcupacaoOrigem },
-        });
-      }
-
-      // 3. Atualizar Endereço Destino (se houver)
-      if (params.destinoId && params.novaOcupacaoDestino !== undefined) {
-        await (tx as any).endereco.update({
-          where: { id: params.destinoId },
-          data: { ocupado: params.novaOcupacaoDestino },
-        });
-      }
-
-      // 4. BUG-007 FIX: Hash atômico via ChainPointer — sem race condition
-      const tempHash = this.hashService.generateHash(
-        params.movementData,
-        'TEMP',
-      );
-      const previousHash = await this.atomicGetAndSetHash(tx as any, tempHash);
-      const hash = this.hashService.generateHash(
-        params.movementData,
-        previousHash,
-      );
-
-      await (tx as any).chainPointer.update({
-        where: { tabela: CHAIN_KEY },
-        data: { lastHash: hash },
-      });
-
-      return (tx as any).movimentacao.create({
-        data: { ...params.movementData, hash, previousHash },
-      });
-    });
-  }
 
   async getMovementQuantitiesByProduct(
     dias: number,
@@ -182,5 +142,44 @@ export class PrismaMovementRepository implements IMovementRepository {
       },
     });
     return result.count;
+  }
+
+  /**
+   * ADR-001: Calcula a posição física atual de um lote por endereço.
+   *
+   * Fórmula:
+   *   Alocado(lote, endereço) = SUM(ARMAZENAGEM onde enderecoDestinoId = endereço)
+   *                            - SUM(EXPEDICAO onde enderecoOrigemId = endereço)
+   *
+   * Apenas endereços com alocação positiva são retornados (já esvaziados são excluídos).
+   * Retorno ordenado por quantidadeAlocada DESC para que o PickOrderUseCase
+   * esvazie endereços na ordem de maior alocação primeiro (menos fragmentação).
+   */
+  async findAllocationByLote(loteId: number): Promise<LoteAddressAllocation[]> {
+    const rows: Array<{ enderecoId: bigint; quantidadeAlocada: bigint }> =
+      await this.prisma.$queryRaw`
+        SELECT
+          "enderecoId",
+          SUM(quantidade) AS "quantidadeAlocada"
+        FROM (
+          SELECT "enderecoDestinoId" AS "enderecoId", quantidade
+          FROM "Movimentacao"
+          WHERE "loteId" = ${loteId} AND tipo = 'ARMAZENAGEM' AND "enderecoDestinoId" IS NOT NULL
+
+          UNION ALL
+
+          SELECT "enderecoOrigemId" AS "enderecoId", -quantidade
+          FROM "Movimentacao"
+          WHERE "loteId" = ${loteId} AND tipo = 'EXPEDICAO' AND "enderecoOrigemId" IS NOT NULL
+        ) movs
+        GROUP BY "enderecoId"
+        HAVING SUM(quantidade) > 0
+        ORDER BY SUM(quantidade) DESC
+      `;
+
+    return rows.map((r) => ({
+      enderecoId: Number(r.enderecoId),
+      quantidadeAlocada: Number(r.quantidadeAlocada),
+    }));
   }
 }

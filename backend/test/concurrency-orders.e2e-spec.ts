@@ -67,6 +67,7 @@ describe('Concurrency Test', () => {
       validade: new Date('2027-01-01'),
       quantidade: 10,
       custoAquisicao: 10,
+      usuarioId: 1,
     });
 
     // 2. Disparar 10 tentativas simultâneas de tirar 2 unidades (Total 20, mas só tem 10)

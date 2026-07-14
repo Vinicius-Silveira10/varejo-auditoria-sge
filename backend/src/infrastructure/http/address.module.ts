@@ -3,8 +3,11 @@ import { AddressController } from './controllers/address.controller';
 import { RegisterAddressUseCase } from '../../core/use-cases/address/register-address.use-case';
 import { DisableAddressUseCase } from '../../core/use-cases/address/disable-address.use-case';
 import { SuggestPutawayUseCase } from '../../core/use-cases/address/suggest-putaway.use-case';
+import { ExecutePutawayUseCase } from '../../core/use-cases/address/execute-putaway.use-case';
 import { GetAddressCapacityAlertsUseCase } from '../../core/use-cases/address/get-address-capacity-alerts.use-case';
 import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
+import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
+import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 
@@ -42,6 +45,23 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         return new GetAddressCapacityAlertsUseCase(addressRepo);
       },
       inject: ['IAddressRepository'],
+    },
+    {
+      provide: ExecutePutawayUseCase,
+      useFactory: (
+        batchRepo: IBatchRepository,
+        addressRepo: IAddressRepository,
+        productRepo: IProductRepository,
+        unitOfWork: IUnitOfWork,
+      ) => {
+        return new ExecutePutawayUseCase(
+          batchRepo,
+          addressRepo,
+          productRepo,
+          unitOfWork,
+        );
+      },
+      inject: ['IBatchRepository', 'IAddressRepository', 'IProductRepository', 'IUnitOfWork'],
     },
   ],
 })

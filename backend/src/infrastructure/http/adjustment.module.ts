@@ -7,6 +7,11 @@ import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.rep
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
+import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
+import { PrismaAdjustmentRepository } from '../database/prisma/repositories/prisma-adjustment.repository';
+import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
+import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
+import { PrismaMovementRepository } from '../database/prisma/repositories/prisma-movement.repository';
 
 @Module({
   imports: [PrismaModule],
@@ -28,20 +33,21 @@ import { PrismaModule } from '../database/prisma/prisma.module';
       ],
     },
     {
-      // RN-AJU-005: ApproveAdjustmentUseCase não depende mais de UpdateAverageCostUseCase.
-      // Ajustes não alteram o Custo Médio Ponderado.
+      // RN-AJU-005: Ajustes não alteram o Custo Médio Ponderado.
       provide: ApproveAdjustmentUseCase,
       useFactory: (
-        adjRepo: IAdjustmentRepository,
-        batchRepo: IBatchRepository,
-        prodRepo: IProductRepository,
-        movRepo: IMovementRepository,
+        adjRepo: PrismaAdjustmentRepository,
+        batchRepo: PrismaBatchRepository,
+        prodRepo: PrismaProductRepository,
+        movRepo: PrismaMovementRepository,
+        unitOfWork: IUnitOfWork,
       ) => {
         return new ApproveAdjustmentUseCase(
           adjRepo,
           batchRepo,
           prodRepo,
           movRepo,
+          unitOfWork,
         );
       },
       inject: [
@@ -49,6 +55,7 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         'IBatchRepository',
         'IProductRepository',
         'IMovementRepository',
+        'IUnitOfWork',
       ],
     },
   ],

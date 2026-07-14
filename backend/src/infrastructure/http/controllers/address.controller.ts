@@ -18,14 +18,18 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { RegisterAddressUseCase } from '../../../core/use-cases/address/register-address.use-case';
 import { DisableAddressUseCase } from '../../../core/use-cases/address/disable-address.use-case';
 import { RegisterAddressDto } from '../dtos/register-address.dto';
 import { SuggestPutawayUseCase } from '../../../core/use-cases/address/suggest-putaway.use-case';
+import { ExecutePutawayUseCase } from '../../../core/use-cases/address/execute-putaway.use-case';
 import { GetAddressCapacityAlertsUseCase } from '../../../core/use-cases/address/get-address-capacity-alerts.use-case';
 import { Roles, Role } from '../../security/roles.decorator';
+
 
 @ApiTags('Endereços')
 @ApiBearerAuth()
@@ -36,6 +40,7 @@ export class AddressController {
     private readonly registerAddressUseCase: RegisterAddressUseCase,
     private readonly disableAddressUseCase: DisableAddressUseCase,
     private readonly suggestPutawayUseCase: SuggestPutawayUseCase,
+    private readonly executePutawayUseCase: ExecutePutawayUseCase,
     private readonly getAddressCapacityAlertsUseCase: GetAddressCapacityAlertsUseCase,
   ) {}
 
@@ -141,5 +146,34 @@ export class AddressController {
       }
       throw error;
     }
+  }
+
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
+  @Post('putaway')
+  @ApiOperation({ summary: 'Efetivar armazenagem física de um lote (putaway)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        loteId: { type: 'number', example: 1 },
+        enderecoDestinoId: { type: 'number', example: 5 },
+        quantidade: { type: 'number', example: 10 }
+      },
+      required: ['loteId', 'enderecoDestinoId', 'quantidade']
+    }
+  })
+  @ApiResponse({ status: 201, description: 'Lote armazenado com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Falha de validação ou capacidade.' })
+  async executePutaway(
+    @Body() body: { loteId: number; enderecoDestinoId: number; quantidade: number },
+    @CurrentUser('userId') usuarioId: number
+  ) {
+    const movimentacao = await this.executePutawayUseCase.execute({
+      loteId: body.loteId,
+      enderecoDestinoId: body.enderecoDestinoId,
+      quantidade: body.quantidade,
+      usuarioId,
+    });
+    return { data: movimentacao };
   }
 }

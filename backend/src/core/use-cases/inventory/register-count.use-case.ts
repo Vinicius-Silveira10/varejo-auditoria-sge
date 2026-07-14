@@ -1,8 +1,9 @@
 import { IInventoryCountRepository } from '../../interfaces/repositories/i-inventory-count.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
-import { RequestAdjustmentUseCase } from '../adjustment/request-adjustment.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
+import { RequestAdjustmentUseCase } from '../adjustment/request-adjustment.use-case';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
+import { ConflictException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface RegisterCountDto {
   contagemId: number;
@@ -26,11 +27,11 @@ export class RegisterCountUseCase {
     );
 
     if (!contagem) {
-      throw new Error('Contagem não encontrada.');
+      throw new NotFoundException('Contagem não encontrada.');
     }
 
     if (contagem.status !== 'PENDENTE') {
-      throw new Error('Esta contagem já foi registrada.');
+      throw new ConflictException('Esta contagem já foi registrada.');
     }
 
     const delta = dto.quantidadeFisica - contagem.quantidadeTeorica;

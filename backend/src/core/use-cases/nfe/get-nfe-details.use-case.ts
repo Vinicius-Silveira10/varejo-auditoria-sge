@@ -1,5 +1,6 @@
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { NotaFiscal, ItemNfe } from '@prisma/client';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 export class GetNotaFiscalDetailsUseCase {
   constructor(private readonly nfeRepository: INotaFiscalRepository) {}
@@ -8,7 +9,7 @@ export class GetNotaFiscalDetailsUseCase {
     const nfe = await this.nfeRepository.findById(id);
 
     if (!nfe) {
-      throw new Error(`Nota Fiscal com ID ${id} não encontrada.`);
+      throw new NotFoundException(`Nota Fiscal com ID ${id} não encontrada.`);
     }
 
     return nfe;

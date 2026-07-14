@@ -7,6 +7,11 @@ import { IMovementRepository } from '../../core/interfaces/repositories/i-moveme
 import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
+import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
+import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
+import { PrismaMovementRepository } from '../database/prisma/repositories/prisma-movement.repository';
+import { PrismaAddressRepository } from '../database/prisma/repositories/prisma-address.repository';
+import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
 
 @Module({
   imports: [PrismaModule],
@@ -15,16 +20,18 @@ import { PrismaModule } from '../database/prisma/prisma.module';
     {
       provide: RegisterMovementUseCase,
       useFactory: (
-        batchRepo: IBatchRepository,
-        movementRepo: IMovementRepository,
-        addressRepo: IAddressRepository,
-        productRepo: IProductRepository,
+        batchRepo: PrismaBatchRepository,
+        movementRepo: PrismaMovementRepository,
+        addressRepo: PrismaAddressRepository,
+        productRepo: PrismaProductRepository,
+        unitOfWork: IUnitOfWork,
       ) => {
         return new RegisterMovementUseCase(
           batchRepo,
           movementRepo,
           addressRepo,
           productRepo,
+          unitOfWork,
         );
       },
       inject: [
@@ -32,6 +39,7 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         'IMovementRepository',
         'IAddressRepository',
         'IProductRepository',
+        'IUnitOfWork',
       ],
     },
     {

@@ -27,8 +27,8 @@ describe('PrismaAddressRepository', () => {
   });
 
   it('deve criar um endereco no banco', async () => {
-    const data = { codigo: 'A-01', zona: 'Seca', capacidade: 100 };
-    const mockCreated = { id: 1, ocupado: 0, ativo: true, ...data };
+    const data = { codigo: 'A-01', zona: 'Seca', tipoZona: 'SECO', capacidade: 100 };
+    const mockCreated = { id: 1, ocupado: 0, ativo: true, bloqueado: false, ...data } as any;
     (prismaService.endereco.create as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await repository.create(data);
@@ -43,9 +43,11 @@ describe('PrismaAddressRepository', () => {
       id: 1,
       codigo,
       zona: 'Seca',
+      tipoZona: 'SECO',
       capacidade: 100,
       ocupado: 0,
       ativo: true,
+      bloqueado: false,
     };
     (prismaService.endereco.findUnique as jest.Mock).mockResolvedValue(
       mockResult,
@@ -65,6 +67,7 @@ describe('PrismaAddressRepository', () => {
       id,
       codigo: 'A-01',
       zona: 'Seca',
+      tipoZona: 'SECO',
       capacidade: 100,
       ocupado: 0,
       ativo: false,

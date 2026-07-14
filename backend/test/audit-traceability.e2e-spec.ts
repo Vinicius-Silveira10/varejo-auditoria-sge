@@ -15,6 +15,7 @@ describe('Audit & Traceability (Integration)', () => {
   let productRepo: IProductRepository;
   let addressRepo: IAddressRepository;
   let userRepo: any;
+  const ts = Date.now();
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -37,11 +38,30 @@ describe('Audit & Traceability (Integration)', () => {
   });
 
   afterAll(async () => {
+    // 1. Limpar Lotes e Movimentacoes
+    const batchRepoPrisma = app.get('IProductRepository').prisma; // Aproveitando prisma client
+    await batchRepoPrisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
+    const batch = await batchRepoPrisma.lote.findFirst({
+      where: { numeroLote: `L-AUDIT-${ts}` }
+    });
+    if (batch) {
+      await batchRepoPrisma.movimentacao.deleteMany({ where: { loteId: batch.id } });
+      await batchRepoPrisma.lote.delete({ where: { id: batch.id } });
+    }
+
+    // 2. Limpar Enderecos, Produtos, Usuarios
+    await batchRepoPrisma.endereco.deleteMany({ where: { codigo: `ADDR-AUDIT-${ts}` } });
+    const product = await batchRepoPrisma.produto.findFirst({ where: { sku: `AUDIT-${ts}` } });
+    if (product) {
+      await batchRepoPrisma.logCusto.deleteMany({ where: { produtoId: product.id } });
+      await batchRepoPrisma.produto.delete({ where: { id: product.id } });
+    }
+    await batchRepoPrisma.usuario.deleteMany({ where: { email: `auditor-${ts}@test.com` } });
+
     await app.close();
   });
 
   it('deve garantir a integridade da corrente de hashes (Blockchain) e rastreabilidade', async () => {
-    const ts = Date.now();
     const user = await userRepo.create({
       nome: 'Auditor',
       email: `auditor-${ts}@test.com`,
@@ -62,19 +82,22 @@ describe('Audit & Traceability (Integration)', () => {
       capacidade: 1000,
     });
 
-    // 1. Primeira Movimentação (ENTRADA)
+    // 1. Primeira Movimentação (ENTRADA via ReceiveBatch)
     const batch = await receiveBatch.execute({
       produtoId: product.id,
       numeroLote: `L-AUDIT-${ts}`,
       validade: new Date('2027-01-01'),
       quantidade: 50,
       custoAquisicao: 10,
+      usuarioId: user.id,
     });
+    
+    // Armazenagem (Mover da doca para o endereço real)
     const mov1 = await registerMovement.execute({
-      tipo: 'ENTRADA',
+      tipo: 'ARMAZENAGEM',
       loteId: batch.id,
       quantidade: 50,
-      motivo: 'Recebimento',
+      motivo: 'Putaway',
       enderecoOrigemId: null,
       enderecoDestinoId: address.id,
       usuarioId: user.id,
@@ -99,8 +122,9 @@ describe('Audit & Traceability (Integration)', () => {
 
     // 4. Testar Use Case de Rastreabilidade (Feature 2)
     const history = await getBatchMovements.execute(batch.id);
-    expect(history).toHaveLength(2);
+    expect(history).toHaveLength(3); // ENTRADA (doca) -> ARMAZENAGEM (address) -> SAIDA (amostra)
     expect(history[0].tipo).toBe('SAIDA'); // Mais recente primeiro
-    expect(history[1].tipo).toBe('ENTRADA');
+    expect(history[1].tipo).toBe('ARMAZENAGEM');
+    expect(history[2].tipo).toBe('ENTRADA');
   });
 });

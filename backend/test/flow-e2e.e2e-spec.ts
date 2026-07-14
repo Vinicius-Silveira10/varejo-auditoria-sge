@@ -20,6 +20,7 @@ describe('Flow E2E (Integration)', () => {
   let productRepo: IProductRepository;
   let addressRepo: IAddressRepository;
   let userRepo: any;
+  const ts = Date.now();
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,11 +43,45 @@ describe('Flow E2E (Integration)', () => {
   });
 
   afterAll(async () => {
+    // Ordem correta de deleção baseada em FK:
+    // ItemPedido -> PedidoExpedicao
+    // Movimentacao -> Lote
+    // Endereco, Produto, Usuario
+
+    // 1. Limpar Pedidos e Itens
+    const orderRepoPrisma = app.get('IOrderRepository').prisma;
+    const order = await orderRepoPrisma.pedidoExpedicao.findFirst({
+      where: { codigoPedido: `PED-FLOW-${ts}` }
+    });
+    if (order) {
+      await orderRepoPrisma.itemPedido.deleteMany({ where: { pedidoId: order.id } });
+      await orderRepoPrisma.pedidoExpedicao.delete({ where: { id: order.id } });
+    }
+
+    // 2. Limpar Lotes e Movimentacoes
+    const batchRepoPrisma = app.get('IBatchRepository').prisma;
+    const batch = await batchRepoPrisma.lote.findFirst({
+      where: { numeroLote: `L-FLOW-${ts}` }
+    });
+    if (batch) {
+      await batchRepoPrisma.movimentacao.deleteMany({ where: { loteId: batch.id } });
+      await batchRepoPrisma.lote.delete({ where: { id: batch.id } });
+    }
+
+    // 3. Limpar Enderecos, Produtos, Usuarios
+    const prisma = app.get('IOrderRepository').prisma; // Aproveitando qualquer prisma client
+    await prisma.endereco.deleteMany({ where: { codigo: `ADDR-FLOW-${ts}` } });
+    const product = await prisma.produto.findFirst({ where: { sku: `FLOW-${ts}` } });
+    if (product) {
+      await prisma.logCusto.deleteMany({ where: { produtoId: product.id } });
+      await prisma.produto.delete({ where: { id: product.id } });
+    }
+    await prisma.usuario.deleteMany({ where: { email: `admin-${ts}@test.com` } });
+
     await app.close();
   });
 
   it('deve realizar o fluxo completo: Entrada -> Pedido -> Picking -> Saída -> Fechamento', async () => {
-    const ts = Date.now();
     const user = await userRepo.create({
       nome: 'Admin',
       email: `admin-${ts}@test.com`,
@@ -74,11 +109,12 @@ describe('Flow E2E (Integration)', () => {
       validade: new Date('2027-01-01'),
       quantidade: 100,
       custoAquisicao: 5,
+      usuarioId: user.id,
     });
 
-    // 2.1 Colocar no Endereço (Movimentação de Entrada)
+    // 2.1 Colocar no Endereço (Movimentação de ARMAZENAGEM)
     await registerMovement.execute({
-      tipo: 'ENTRADA',
+      tipo: 'ARMAZENAGEM',
       loteId: batch.id,
       quantidade: 100,
       motivo: 'Recebimento',
@@ -95,7 +131,7 @@ describe('Flow E2E (Integration)', () => {
     expect(order.codigoPedido).toBe(`PED-FLOW-${ts}`);
 
     // 4. Picking (Sugestão)
-    const picking = await pickOrder.execute(order.id);
+    const picking = await pickOrder.execute(order.id, user.id);
     expect(picking.pickingList[0].sugestoes[0].loteId).toBe(batch.id);
 
     // 5. Saída de Lote (Simulando execução do picking)

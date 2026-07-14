@@ -12,6 +12,8 @@ import { AuthenticateUserUseCase } from '../../../core/use-cases/auth/authentica
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { Public } from '../../security/public.decorator';
+import { Throttle } from '@nestjs/throttler';
+
 
 @Controller('auth')
 export class AuthController {
@@ -38,9 +40,11 @@ export class AuthController {
     }
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
+
   async login(@Body() dto: LoginDto) {
     try {
       const result = await this.authenticateUserUseCase.execute(dto);

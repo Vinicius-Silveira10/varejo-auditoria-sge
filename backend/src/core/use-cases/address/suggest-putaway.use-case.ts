@@ -1,6 +1,7 @@
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { Endereco } from '@prisma/client';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface SuggestPutawayRequest {
   produtoId: number;
@@ -55,13 +56,13 @@ export class SuggestPutawayUseCase {
     const produto = await this.productRepository.findById(request.produtoId);
 
     if (!produto) {
-      throw new Error(
+      throw new NotFoundException(
         `RN-ARM-002: Produto com ID ${request.produtoId} não encontrado.`,
       );
     }
 
     if (!produto.ativo) {
-      throw new Error(
+      throw new DomainException(
         'RN-ARM-002: Produto desativado não pode ser endereçado.',
       );
     }

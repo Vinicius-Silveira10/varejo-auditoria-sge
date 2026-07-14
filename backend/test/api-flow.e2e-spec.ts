@@ -99,6 +99,7 @@ describe('API Flow E2E (Supertest)', () => {
   afterAll(async () => {
     // Tear down: Limpeza completa dos dados inseridos pelo teste
     await prisma.ajusteEstoque.deleteMany({ where: { solicitanteId: adminId }});
+    await prisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
     await prisma.movimentacao.deleteMany({});
     await prisma.lote.deleteMany({ where: { numeroLote: testBatch }});
     await prisma.produto.deleteMany({ where: { sku: testSku }});

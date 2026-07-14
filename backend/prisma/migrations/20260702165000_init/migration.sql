@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "Perfil" AS ENUM ('ADMIN', 'GESTOR', 'OPERADOR');
 
 -- CreateEnum

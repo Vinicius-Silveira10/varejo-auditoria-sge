@@ -10,6 +10,11 @@ async function bootstrap() {
     process.env.DATABASE_URL ||
     'postgresql://admin:fortalpassword@127.0.0.1:5433/fortal_sge?schema=public';
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());
 

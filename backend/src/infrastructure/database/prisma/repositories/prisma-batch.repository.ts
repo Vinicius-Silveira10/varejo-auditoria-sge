@@ -122,4 +122,35 @@ export class PrismaBatchRepository implements IBatchRepository {
       porcentagem,
     };
   }
+
+  async findActiveWithBalance(): Promise<Lote[]> {
+    return this.prisma.lote.findMany({
+      where: {
+        ativo: true,
+        quantidade: { gt: 0 },
+      },
+      include: {
+        produto: true,
+        // ADR-001: inclui apenas ARMAZENAGEM e EXPEDICAO com origemId preenchido
+        // para que GetPendingPutawayBatchesUseCase calcule a fórmula corretamente
+        // sem N+1 queries adicionais.
+        movimentacoes: {
+          where: {
+            OR: [
+              { tipo: 'ARMAZENAGEM' },
+              {
+                tipo: 'EXPEDICAO',
+                enderecoOrigemId: { not: null },
+              },
+            ],
+          },
+          select: {
+            tipo: true,
+            quantidade: true,
+            enderecoOrigemId: true,
+          },
+        },
+      } as any,
+    });
+  }
 }

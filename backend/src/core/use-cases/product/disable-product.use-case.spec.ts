@@ -1,5 +1,6 @@
 import { DisableProductUseCase } from './disable-product.use-case';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('DisableProductUseCase', () => {
   let useCase: DisableProductUseCase;
@@ -12,6 +13,9 @@ describe('DisableProductUseCase', () => {
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
       disable: jest.fn(),
+      updateCurvaAbc: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
     useCase = new DisableProductUseCase(mockRepository);
   });
@@ -25,6 +29,8 @@ describe('DisableProductUseCase', () => {
       perecivel: false,
       custoMedio: 0,
       ativo: true,
+      tipoZonaRequerida: 'SECO',
+      curvaAbc: 'C',
     };
     const mockDisabledProduct = { ...mockProduct, ativo: false };
 
@@ -41,6 +47,7 @@ describe('DisableProductUseCase', () => {
   it('deve falhar se o produto não for encontrado (RN-PROD-002)', async () => {
     mockRepository.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(99)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(99)).rejects.toThrow(
       'RN-PROD-002: Produto com ID 99 não encontrado',
     );
@@ -56,9 +63,12 @@ describe('DisableProductUseCase', () => {
       perecivel: false,
       custoMedio: 0,
       ativo: false,
+      tipoZonaRequerida: 'SECO',
+      curvaAbc: 'C',
     };
     mockRepository.findById.mockResolvedValue(mockProduct);
 
+    await expect(useCase.execute(1)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(1)).rejects.toThrow(
       'RN-PROD-003: O produto com ID 1 já está desativado',
     );

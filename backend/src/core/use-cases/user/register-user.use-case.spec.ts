@@ -1,6 +1,7 @@
 import { RegisterUserUseCase } from './register-user.use-case';
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
 import * as bcrypt from 'bcrypt';
+import { DomainException } from '../../exceptions/domain.exception';
 
 jest.mock('bcrypt');
 
@@ -33,9 +34,10 @@ describe('RegisterUserUseCase', () => {
       nome: request.nome,
       email: request.email,
       senha: mockHashedPassword,
-      perfil: request.perfil,
+      perfil: request.perfil as any,
       ativo: true,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     };
 
     mockRepository.findByEmail.mockResolvedValue(null);
@@ -66,6 +68,7 @@ describe('RegisterUserUseCase', () => {
     };
     mockRepository.findByEmail.mockResolvedValue({ id: 1 } as any);
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-001: Email admin@test.com já está em uso',
     );

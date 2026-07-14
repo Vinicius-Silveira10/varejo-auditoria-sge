@@ -16,6 +16,7 @@ describe('ClassifyAbcUseCase', () => {
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
       disable: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
     mockMovementRepo = {
       getMovementQuantitiesByProduct: jest.fn(),
@@ -24,7 +25,8 @@ describe('ClassifyAbcUseCase', () => {
       findAllOrdered: jest.fn(),
       findPaginatedOrdered: jest.fn(),
       countAll: jest.fn(),
-      executeMovementTransaction: jest.fn(),
+      purgeBefore: jest.fn(),
+      findAllocationByLote: jest.fn(),
     };
 
     useCase = new ClassifyAbcUseCase(mockProductRepo, mockMovementRepo);

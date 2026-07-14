@@ -1,6 +1,7 @@
 import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface RequestAdjustmentDto {
   loteId: number;
@@ -18,23 +19,29 @@ export class RequestAdjustmentUseCase {
 
   async execute(dto: RequestAdjustmentDto) {
     if (!dto.motivo || dto.motivo.trim() === '') {
-      throw new Error('RN-AJU-001: Todo ajuste deve ter motivo classificado.');
+      throw new DomainException('RN-AJU-001: Todo ajuste deve ter motivo classificado.');
     }
 
     const lote = await this.batchRepository.findById(dto.loteId);
     if (!lote) {
-      throw new Error('Lote não encontrado.');
+      throw new NotFoundException('Lote não encontrado.');
     }
 
     if (lote.emInventario) {
-      throw new Error(
+      throw new DomainException(
         'RN-INV-006: Lote bloqueado para contagem de inventário. Solicitações de ajuste suspensas.',
       );
     }
 
     const produto = await this.productRepository.findById(lote.produtoId);
     if (!produto) {
-      throw new Error('Produto não encontrado.');
+      throw new NotFoundException('Produto não encontrado.');
+    }
+
+    if (produto.perecivel && !lote.validade) {
+      throw new DomainException(
+        'RN-AJU-003: Ajustes em produtos perecíveis exigem lote com data de validade preenchida.',
+      );
     }
 
     const saldoTeorico = lote.quantidade;

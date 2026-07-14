@@ -1,5 +1,6 @@
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { Endereco } from '@prisma/client';
+import { ConflictException } from '../../exceptions/domain.exception';
 
 export interface RegisterAddressRequest {
   codigo: string;
@@ -17,7 +18,7 @@ export class RegisterAddressUseCase {
     );
 
     if (existingAddress) {
-      throw new Error(
+      throw new ConflictException(
         `RN-ARM-001: Já existe um endereço cadastrado com o código ${request.codigo}`,
       );
     }

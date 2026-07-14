@@ -1,5 +1,6 @@
 import { CloseOrderUseCase } from './close-order.use-case';
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('CloseOrderUseCase', () => {
   let useCase: CloseOrderUseCase;
@@ -10,6 +11,10 @@ describe('CloseOrderUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       updateStatus: jest.fn(),
+      updateConferentes: jest.fn(),
+      findAll: jest.fn(),
+      updateItemSeparado: jest.fn(),
+      countPendingPicking: jest.fn(),
     };
 
     useCase = new CloseOrderUseCase(mockOrderRepo);
@@ -22,6 +27,9 @@ describe('CloseOrderUseCase', () => {
       status: 'CONFERIDO',
       criadoEm: new Date(),
       atualizadoEm: new Date(),
+      valorTotal: 0,
+      conferente1Id: null,
+      conferente2Id: null,
       itens: [
         {
           id: 1,
@@ -46,7 +54,10 @@ describe('CloseOrderUseCase', () => {
       status: 'EXPEDIDO',
       criadoEm: new Date(),
       atualizadoEm: new Date(),
-    });
+      valorTotal: 0,
+      conferente1Id: null,
+      conferente2Id: null,
+    } as any);
 
     const result = await useCase.execute(1);
 
@@ -62,6 +73,9 @@ describe('CloseOrderUseCase', () => {
       status: 'SEPARACAO',
       criadoEm: new Date(),
       atualizadoEm: new Date(),
+      valorTotal: 0,
+      conferente1Id: null,
+      conferente2Id: null,
       itens: [
         {
           id: 1,
@@ -80,6 +94,7 @@ describe('CloseOrderUseCase', () => {
       ],
     });
 
+    await expect(useCase.execute(2)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(2)).rejects.toThrow('RN-EXP-002');
     await expect(useCase.execute(2)).rejects.toThrow('Produto 20: falta 2');
 
@@ -89,6 +104,7 @@ describe('CloseOrderUseCase', () => {
   it('deve falhar se o pedido não existir', async () => {
     mockOrderRepo.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(99)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(99)).rejects.toThrow('não encontrado');
     expect(mockOrderRepo.updateStatus).not.toHaveBeenCalled();
   });
@@ -100,9 +116,13 @@ describe('CloseOrderUseCase', () => {
       status: 'EXPEDIDO',
       criadoEm: new Date(),
       atualizadoEm: new Date(),
+      valorTotal: 0,
+      conferente1Id: null,
+      conferente2Id: null,
       itens: [],
     });
 
+    await expect(useCase.execute(3)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(3)).rejects.toThrow('já está expedido');
     expect(mockOrderRepo.updateStatus).not.toHaveBeenCalled();
   });

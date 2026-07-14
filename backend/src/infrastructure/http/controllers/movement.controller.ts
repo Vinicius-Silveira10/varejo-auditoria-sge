@@ -8,7 +8,6 @@ import {
   UseGuards,
   Get,
   Param,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +17,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RegisterMovementUseCase } from '../../../core/use-cases/movement/register-movement.use-case';
 import { GetBatchMovementsUseCase } from '../../../core/use-cases/movement/get-batch-movements.use-case';
@@ -69,11 +69,11 @@ export class MovementController {
       'Dados inválidos ou regra de negócio violada (RN-TRV-002, RN-EXP-001).',
   })
   @ApiResponse({ status: 401, description: 'Não autorizado.' })
-  async registerMovement(@Body() dto: RegisterMovementDto, @Req() req: any) {
+  async registerMovement(@Body() dto: RegisterMovementDto, @CurrentUser('userId') usuarioId: number) {
     try {
       const result = await this.registerMovementUseCase.execute({
         ...dto,
-        usuarioId: req.user.userId,
+        usuarioId: usuarioId,
         motivo: dto.motivo ?? null,
         enderecoOrigemId: dto.enderecoOrigemId ?? null,
         enderecoDestinoId: dto.enderecoDestinoId ?? null,

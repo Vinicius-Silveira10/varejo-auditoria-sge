@@ -7,6 +7,7 @@ import {
 } from './parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../batch/receive-batch.use-case';
 import { NotaFiscal, ItemNfe } from '@prisma/client';
+import { ConflictException } from '../../exceptions/domain.exception';
 
 /** Tolerância sistêmica de 2% para divergências de quantidade (RN-REC-001 / PRC-REC-001) */
 const NFE_QUANTITY_TOLERANCE = 0.02;
@@ -38,7 +39,7 @@ export class ProcessNfeUseCase {
     private readonly receiveBatchUseCase: ReceiveBatchUseCase,
   ) {}
 
-  async execute(xmlContent: string): Promise<ProcessNfeResult> {
+  async execute(xmlContent: string, usuarioId: number): Promise<ProcessNfeResult> {
     // 1. Parse do XML
     const parsedNfe: ParsedNfe = this.parseNfeXmlService.parse(xmlContent);
 
@@ -47,7 +48,7 @@ export class ProcessNfeUseCase {
       parsedNfe.chaveAcesso,
     );
     if (existente) {
-      throw new Error(
+      throw new ConflictException(
         'RN-REC-002: NF-e já registrada. Chave de acesso duplicada.',
       );
     }
@@ -128,15 +129,16 @@ export class ProcessNfeUseCase {
         const produto = await this.productRepository.findBySku(item.sku);
 
         if (produto && produto.ativo) {
-          await this.receiveBatchUseCase.execute({
-            numeroLote: `NF-${parsedNfe.numero}-${item.sku}`,
-            produtoId: produto.id,
-            quantidade: item.quantidade,
-            custoAquisicao: item.valorUnitario,
-            notaFiscalId: notaFiscal.id, // BUG-001: vínculo fiscal obrigatório
-            validade: item.validade, // BUG-001: data de validade do XML
-            // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
-          });
+            await this.receiveBatchUseCase.execute({
+              numeroLote: `NF-${parsedNfe.numero}-${item.sku}`,
+              produtoId: produto.id,
+              quantidade: item.quantidade,
+              custoAquisicao: item.valorUnitario,
+              notaFiscalId: notaFiscal.id, // BUG-001: vínculo fiscal obrigatório
+              validade: item.validade, // BUG-001: data de validade do XML
+              usuarioId: usuarioId, // Passado adiante para registro de auditoria
+              // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
+            });
           lotesGerados++;
         }
       }

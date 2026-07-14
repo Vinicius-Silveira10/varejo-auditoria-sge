@@ -1,5 +1,6 @@
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
 import { PedidoExpedicao } from '@prisma/client';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface VerifyOrderRequest {
   pedidoId: number;
@@ -16,24 +17,24 @@ export class VerifyOrderUseCase {
     const pedido = await this.orderRepository.findById(request.pedidoId);
 
     if (!pedido) {
-      throw new Error(`Pedido com ID ${request.pedidoId} não encontrado.`);
+      throw new NotFoundException(`Pedido com ID ${request.pedidoId} não encontrado.`);
     }
 
     if (pedido.status === 'CONFERIDO' || pedido.status === 'EXPEDIDO') {
-      throw new Error(`Pedido já está com status ${pedido.status}.`);
+      throw new DomainException(`Pedido já está com status ${pedido.status}.`);
     }
 
     // Validação RN-EXP-003: Conferência dupla seletiva
     if (pedido.valorTotal >= this.LIMIAR_ALTO_VALOR) {
       if (!request.conferente2Id) {
-        throw new Error(
+        throw new DomainException(
           'RN-EXP-003: Pedidos de alto valor (>= 10000) exigem um segundo conferente obrigatório.',
         );
       }
 
       // Segregation of Duties (SoD) - O segundo conferente não pode ser a mesma pessoa do primeiro
       if (request.conferente1Id === request.conferente2Id) {
-        throw new Error(
+        throw new DomainException(
           'RN-EXP-003: O primeiro e o segundo conferente não podem ser a mesma pessoa.',
         );
       }

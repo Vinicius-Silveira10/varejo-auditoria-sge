@@ -1,5 +1,6 @@
 import { DisableAddressUseCase } from './disable-address.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('DisableAddressUseCase', () => {
   let useCase: DisableAddressUseCase;
@@ -38,6 +39,7 @@ describe('DisableAddressUseCase', () => {
 
   it('deve falhar se o endereco nao for encontrado', async () => {
     mockRepository.findById.mockResolvedValue(null);
+    await expect(useCase.execute(99)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(99)).rejects.toThrow(
       'RN-ARM-002: Endereço com ID 99 não encontrado',
     );
@@ -54,6 +56,7 @@ describe('DisableAddressUseCase', () => {
     };
     mockRepository.findById.mockResolvedValue(mockAddress);
 
+    await expect(useCase.execute(1)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(1)).rejects.toThrow(
       'RN-ARM-003: O endereço com ID 1 já está desativado',
     );

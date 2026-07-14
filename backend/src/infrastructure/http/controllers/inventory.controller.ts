@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { StartCountUseCase } from '../../../core/use-cases/inventory/start-count.use-case';
 import { RegisterCountUseCase } from '../../../core/use-cases/inventory/register-count.use-case';
@@ -53,9 +54,8 @@ export class InventoryController {
   @Post('start')
   @ApiOperation({ summary: 'Iniciar contagem de inventário' })
   @ApiResponse({ status: 201, description: 'Contagem iniciada.' })
-  async startCount(@Body() body: StartCountBodyDto, @Req() req: any) {
+  async startCount(@Body() body: StartCountBodyDto, @CurrentUser('userId') usuarioId: number) {
     const { loteId } = body;
-    const usuarioId = req.user.userId;
 
     const result = await this.startCountUseCase.execute({
       loteId,
@@ -71,9 +71,8 @@ export class InventoryController {
     status: 201,
     description: 'Contagem registrada e divergências processadas.',
   })
-  async registerCount(@Body() body: RegisterCountBodyDto, @Req() req: any) {
+  async registerCount(@Body() body: RegisterCountBodyDto, @CurrentUser('userId') usuarioId: number) {
     const { contagemId, quantidadeFisica, isRecontagem } = body;
-    const usuarioId = req.user.userId;
 
     const result = await this.registerCountUseCase.execute({
       contagemId,

@@ -7,7 +7,6 @@ import {
   UseGuards,
   Post,
   Get,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,6 +16,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
+import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { CloseOrderUseCase } from '../../../core/use-cases/order/close-order.use-case';
 import { VerifyOrderUseCase } from '../../../core/use-cases/order/verify-order.use-case';
@@ -65,9 +65,8 @@ export class OrderController {
     status: 400,
     description: 'Saldo insuficiente ou pedido em status inválido.',
   })
-  async pickOrder(@Param('id') id: string, @Req() req: any) {
+  async pickOrder(@Param('id') id: string, @CurrentUser('userId') operadorId: number) {
     try {
-      const operadorId: number = req.user.userId;
       const result = await this.pickOrderUseCase.execute(+id, operadorId);
       return {
         message: `Picking do pedido #${id} realizado com sucesso. ${result.totalMovimentacoes} movimentação(ões) gerada(s).`,

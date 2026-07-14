@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  db-e2e:
+    image: postgres:15
+    container_name: fortal_sge_db_e2e
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: fortalpassword
+      POSTGRES_DB: fortal_sge_e2e
+    ports:
+      - "5434:5432"
+    # Sem volumes montados para garantir um banco efêmero e limpo a cada execução

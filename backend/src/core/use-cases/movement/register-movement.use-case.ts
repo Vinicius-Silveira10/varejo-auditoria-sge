@@ -2,7 +2,9 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
 import { Movimentacao } from '@prisma/client';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export class RegisterMovementUseCase {
   constructor(
@@ -10,6 +12,7 @@ export class RegisterMovementUseCase {
     private readonly movementRepository: IMovementRepository,
     private readonly addressRepository: IAddressRepository,
     private readonly productRepository: IProductRepository,
+    private readonly unitOfWork: IUnitOfWork,
   ) {}
 
   async execute(
@@ -18,13 +21,13 @@ export class RegisterMovementUseCase {
     const lote = await this.batchRepository.findById(data.loteId);
 
     if (!lote) {
-      throw new Error('Lote não encontrado.');
+      throw new NotFoundException('Lote não encontrado.');
     }
 
     // BUG-004 FIX — RN-INV-006: Bloqueio absoluto de inventário para TODOS os tipos.
     // Antes havia exceção para tipo 'AJUSTE', permitindo adulteração durante contagem.
     if ((lote as any).emInventario) {
-      throw new Error(
+      throw new DomainException(
         'RN-INV-006: Lote bloqueado para contagem de inventário. Todas as movimentações estão suspensas.',
       );
     }
@@ -34,13 +37,13 @@ export class RegisterMovementUseCase {
       (data.tipo === 'SAIDA' || data.tipo === 'EXPEDICAO') &&
       !data.enderecoOrigemId
     ) {
-      throw new Error(
+      throw new DomainException(
         'RN-MOV-001: Movimentação de saída exige um endereço de origem válido.',
       );
     }
 
     if (data.tipo === 'ENTRADA' && !data.enderecoDestinoId) {
-      throw new Error(
+      throw new DomainException(
         'RN-MOV-001: Movimentação de entrada exige um endereço de destino válido.',
       );
     }
@@ -52,12 +55,12 @@ export class RegisterMovementUseCase {
       );
 
       if (!enderecoDestino) {
-        throw new Error('Endereço de destino não encontrado.');
+        throw new NotFoundException('Endereço de destino não encontrado.');
       }
 
       // Verificar se endereço está bloqueado por inventário em andamento (GAP-007)
       if ((enderecoDestino as any).bloqueado) {
-        throw new Error(
+        throw new DomainException(
           'RN-INV-006: Endereço bloqueado para contagem de inventário. Movimentações de entrada suspensas neste endereço.',
         );
       }
@@ -67,7 +70,7 @@ export class RegisterMovementUseCase {
         enderecoDestino.ocupado + data.quantidade >
         enderecoDestino.capacidade
       ) {
-        throw new Error(
+        throw new DomainException(
           `RN-ARM-001: Capacidade excedida. Endereço ${enderecoDestino.codigo} suporta ${enderecoDestino.capacidade}, ocupação atual: ${enderecoDestino.ocupado}, tentativa: +${data.quantidade}.`,
         );
       }
@@ -78,7 +81,7 @@ export class RegisterMovementUseCase {
         produto &&
         (produto as any).tipoZonaRequerida !== (enderecoDestino as any).tipoZona
       ) {
-        throw new Error(
+        throw new DomainException(
           `RN-ARM-003: Incompatibilidade térmica. Produto requer zona ${(produto as any).tipoZonaRequerida}, mas o endereço é ${(enderecoDestino as any).tipoZona}.`,
         );
       }
@@ -89,7 +92,7 @@ export class RegisterMovementUseCase {
         data.enderecoOrigemId,
       );
       if (enderecoOrigem && (enderecoOrigem as any).bloqueado) {
-        throw new Error(
+        throw new DomainException(
           'RN-INV-006: Endereço de origem bloqueado para contagem de inventário. Movimentações de saída suspensas neste endereço.',
         );
       }
@@ -99,7 +102,7 @@ export class RegisterMovementUseCase {
 
     if (data.tipo === 'SAIDA' || data.tipo === 'EXPEDICAO') {
       if (lote.quantidade < data.quantidade) {
-        throw new Error('RN-TRV-002: Saldo insuficiente para a movimentação.');
+        throw new DomainException('RN-TRV-002: Saldo insuficiente para a movimentação.');
       }
 
       if (data.tipo === 'EXPEDICAO') {
@@ -120,7 +123,7 @@ export class RegisterMovementUseCase {
         });
 
         if (olderBatch) {
-          throw new Error(
+          throw new DomainException(
             'RN-EXP-001: Violação de FEFO. Existe um lote com validade mais próxima a expirar.',
           );
         }
@@ -139,12 +142,20 @@ export class RegisterMovementUseCase {
         }
       }
 
-      return await this.movementRepository.executeMovementTransaction({
-        movementData: data,
-        loteId: lote.id,
-        quantidadeDeltaLote: -data.quantidade,
-        origemId: data.enderecoOrigemId ?? undefined,
-        novaOcupacaoOrigem,
+      return await this.unitOfWork.execute(async (ctx) => {
+        // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
+        await ctx.lockForUpdate('Lote', lote.id);
+
+        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(lote.id, -data.quantidade);
+        if (loteDb.quantidade < 0) {
+          throw new DomainException('RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.');
+        }
+
+        if (data.enderecoOrigemId && novaOcupacaoOrigem !== undefined) {
+          await ctx.addressRepository.updateOcupacao(data.enderecoOrigemId, novaOcupacaoOrigem);
+        }
+
+        return await ctx.movementRepository.create(data);
       });
     } else if (data.tipo === 'ENTRADA') {
       let novaOcupacaoDestino: number | undefined;
@@ -157,22 +168,29 @@ export class RegisterMovementUseCase {
         }
       }
 
-      return await this.movementRepository.executeMovementTransaction({
-        movementData: data,
-        loteId: lote.id,
-        quantidadeDeltaLote: data.quantidade,
-        destinoId: data.enderecoDestinoId ?? undefined,
-        novaOcupacaoDestino,
+      return await this.unitOfWork.execute(async (ctx) => {
+        // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
+        await ctx.lockForUpdate('Lote', lote.id);
+
+        await ctx.loteRepository.updateQuantidadeDelta(lote.id, data.quantidade);
+        
+        if (data.enderecoDestinoId && novaOcupacaoDestino !== undefined) {
+          await ctx.addressRepository.updateOcupacao(data.enderecoDestinoId, novaOcupacaoDestino);
+        }
+
+        return await ctx.movementRepository.create(data);
       });
     } else if (data.tipo === 'INVENTARIO' || data.tipo === 'AJUSTE') {
       // BUG-003 FIX: Tipos INVENTARIO e AJUSTE também atualizam saldo do lote atomicamente.
       // O delta é positivo para adições e negativo para subtrações.
       // Para INVENTARIO, data.quantidade pode ser positiva (sobra) ou negativa (falta);
       // convenciona-se que o caller passa o delta já com o sinal correto.
-      return await this.movementRepository.executeMovementTransaction({
-        movementData: data,
-        loteId: lote.id,
-        quantidadeDeltaLote: data.quantidade, // delta com sinal: positivo = entrada, negativo = saída
+      return await this.unitOfWork.execute(async (ctx) => {
+        // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
+        await ctx.lockForUpdate('Lote', lote.id);
+
+        await ctx.loteRepository.updateQuantidadeDelta(lote.id, data.quantidade);
+        return await ctx.movementRepository.create(data);
       });
     }
 

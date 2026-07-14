@@ -3,6 +3,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { ConflictException, DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface StartCountDto {
   loteId: number;
@@ -22,23 +23,23 @@ export class StartCountUseCase {
     const lote = await this.batchRepository.findById(dto.loteId);
 
     if (!lote) {
-      throw new Error('Lote não encontrado.');
+      throw new NotFoundException('Lote não encontrado.');
     }
 
     if (!lote.ativo) {
-      throw new Error(
+      throw new DomainException(
         'Não é possível iniciar inventário de um lote desativado.',
       );
     }
 
     if ((lote as any).emInventario) {
-      throw new Error('Este lote já está sob contagem de inventário.');
+      throw new ConflictException('Este lote já está sob contagem de inventário.');
     }
 
     // Verificar frequência de contagem para classes B/C (GAP-008 / RN-INV-004)
     const produto = await this.productRepository.findById(lote.produtoId);
     if (!produto) {
-      throw new Error('Produto não encontrado.');
+      throw new NotFoundException('Produto não encontrado.');
     }
 
     const curva = (produto as any).curvaAbc || 'C';
@@ -53,7 +54,7 @@ export class StartCountUseCase {
 
         const minDays = curva === 'B' ? 15 : 30;
         if (diffDays < minDays) {
-          throw new Error(
+          throw new DomainException(
             `RN-INV-004: Frequência de inventário para produtos de classe ${curva} não respeitada (mínimo ${minDays} dias).`,
           );
         }

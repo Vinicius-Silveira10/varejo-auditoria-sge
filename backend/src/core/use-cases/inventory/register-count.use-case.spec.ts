@@ -4,6 +4,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { RequestAdjustmentUseCase } from '../adjustment/request-adjustment.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
+import { ConflictException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('RegisterCountUseCase', () => {
   let useCase: RegisterCountUseCase;
@@ -19,6 +20,10 @@ describe('RegisterCountUseCase', () => {
       findById: jest.fn(),
       updateCount: jest.fn(),
       updateStatus: jest.fn(),
+      findAllFinished: jest.fn(),
+      findLatestFinishedByProduct: jest.fn(),
+      aggregateAccuracyMetrics: jest.fn(),
+      countRecounts: jest.fn(),
     };
     mockBatchRepo = {
       create: jest.fn(),
@@ -194,5 +199,30 @@ describe('RegisterCountUseCase', () => {
       false,
     );
     expect(mockReqAdjUseCase.execute).toHaveBeenCalled();
+  });
+
+  it('deve falhar se contagem não for encontrada', async () => {
+    mockCountRepo.findById.mockResolvedValue(null);
+    await expect(
+      useCase.execute({ contagemId: 99, quantidadeFisica: 10, usuarioId: 1 })
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      useCase.execute({ contagemId: 99, quantidadeFisica: 10, usuarioId: 1 })
+    ).rejects.toThrow('Contagem não encontrada.');
+  });
+
+  it('deve falhar se contagem já estiver registrada', async () => {
+    mockCountRepo.findById.mockResolvedValue({
+      id: 1,
+      loteId: 10,
+      quantidadeTeorica: 50,
+      status: 'CONCLUIDO',
+    } as any);
+    await expect(
+      useCase.execute({ contagemId: 1, quantidadeFisica: 10, usuarioId: 1 })
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      useCase.execute({ contagemId: 1, quantidadeFisica: 10, usuarioId: 1 })
+    ).rejects.toThrow('Esta contagem já foi registrada.');
   });
 });

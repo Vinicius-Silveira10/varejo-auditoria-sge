@@ -3,6 +3,8 @@ import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustmen
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
+import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
+import { DomainException, NotFoundException, ConflictException } from '../../exceptions/domain.exception';
 
 describe('ApproveAdjustmentUseCase', () => {
   let useCase: ApproveAdjustmentUseCase;
@@ -10,14 +12,15 @@ describe('ApproveAdjustmentUseCase', () => {
   let mockBatchRepo: jest.Mocked<IBatchRepository>;
   let mockProductRepo: jest.Mocked<IProductRepository>;
   let mockMovementRepo: jest.Mocked<IMovementRepository>;
+  let mockUnitOfWork: jest.Mocked<IUnitOfWork>;
+  let mockLockForUpdate: jest.Mock;
 
   beforeEach(() => {
     mockAdjRepo = {
       create: jest.fn(),
       findById: jest.fn(),
-      updateStatus: jest.fn(),
+      updateStatus: jest.fn().mockImplementation((id, status) => ({ id, statusAprovacao: status })),
       sumFinancialLosses: jest.fn(),
-      executeApprovalTransaction: jest.fn(),
     };
     mockBatchRepo = {
       create: jest.fn(),
@@ -38,23 +41,35 @@ describe('ApproveAdjustmentUseCase', () => {
       findMovementsByAddress: jest.fn(),
       findMovementsByType: jest.fn(),
     };
+    mockLockForUpdate = jest.fn();
+    mockUnitOfWork = {
+      execute: jest.fn().mockImplementation(async (callback) => {
+        return await callback({
+          adjustmentRepository: mockAdjRepo,
+          loteRepository: mockBatchRepo,
+          produtoRepository: mockProductRepo,
+          movementRepository: mockMovementRepo,
+          lockForUpdate: mockLockForUpdate,
+        });
+      }),
+    };
     useCase = new ApproveAdjustmentUseCase(
       mockAdjRepo,
       mockBatchRepo,
       mockProductRepo,
       mockMovementRepo,
+      mockUnitOfWork,
     );
   });
 
-  it('deve reprovar ajuste e retornar', async () => {
+  it('deve reprovar ajuste e criar movimento de rejeição', async () => {
     mockAdjRepo.findById.mockResolvedValue({
       id: 1,
       statusAprovacao: 'PENDENTE',
       solicitanteId: 1,
-    } as any);
-    mockAdjRepo.updateStatus.mockResolvedValue({
-      id: 1,
-      statusAprovacao: 'REJEITADO',
+      loteId: 10,
+      quantidadeDelta: 5,
+      motivo: 'Sobra',
     } as any);
 
     const result = await useCase.execute({
@@ -66,6 +81,15 @@ describe('ApproveAdjustmentUseCase', () => {
 
     expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'REJEITADO', 3);
     expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
+    expect(mockMovementRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tipo: 'AJUSTE_REJEITADO',
+        loteId: 10,
+        quantidade: 5,
+        motivo: 'Sobra',
+        usuarioId: 3,
+      })
+    );
     expect(result.statusAprovacao).toBe('REJEITADO');
   });
 
@@ -85,10 +109,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidade: 1000,
     } as any); // Delta% = 0.5%
     mockProductRepo.findById.mockResolvedValue({ id: 20, custoMedio: 10.0 } as any);
-    mockAdjRepo.executeApprovalTransaction.mockResolvedValue({
-      id: 1,
-      statusAprovacao: 'APROVADO',
-    } as any);
+    mockProductRepo.findById.mockResolvedValue({ id: 20, custoMedio: 10.0 } as any);
 
     await useCase.execute({
       ajusteId: 1,
@@ -97,12 +118,19 @@ describe('ApproveAdjustmentUseCase', () => {
       aprovado: true,
     });
 
-    expect(mockAdjRepo.executeApprovalTransaction).toHaveBeenCalledWith({
-      ajusteId: 1,
-      aprovadorId: 3,
-      loteId: 10,
-      novaQuantidade: 1005,
-    });
+    // Validação estrita da prevenção de deadlock (ADR-005): Lock de Lote no topo
+    expect(mockLockForUpdate).toHaveBeenCalledWith('Lote', 10);
+
+    // Validação da ORDEM ESTRITA: O lock deve ocorrer ANTES de qualquer update ou insert no BD
+    const lockOrder = mockLockForUpdate.mock.invocationCallOrder[0];
+    const updateLoteOrder = mockBatchRepo.updateQuantidade.mock.invocationCallOrder[0];
+    const createMovOrder = mockMovementRepo.create.mock.invocationCallOrder[0];
+
+    expect(lockOrder).toBeLessThan(updateLoteOrder);
+    expect(updateLoteOrder).toBeLessThan(createMovOrder);
+
+    expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1005);
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3);
     expect(mockMovementRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         tipo: 'AJUSTE',
@@ -110,7 +138,7 @@ describe('ApproveAdjustmentUseCase', () => {
         quantidade: 5,
         motivo: 'Sobra',
         usuarioId: 3,
-      }),
+      })
     );
   });
 
@@ -132,6 +160,14 @@ describe('ApproveAdjustmentUseCase', () => {
     } as any);
     mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
+    await expect(
+      useCase.execute({
+        ajusteId: 1,
+        aprovadorId: 3,
+        aprovadorRole: 'GESTOR',
+        aprovado: true,
+      }),
+    ).rejects.toBeInstanceOf(DomainException);
     await expect(
       useCase.execute({
         ajusteId: 1,
@@ -161,10 +197,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidade: 1000,
     } as any);
     mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
-    mockAdjRepo.executeApprovalTransaction.mockResolvedValue({
-      id: 1,
-      statusAprovacao: 'APROVADO',
-    } as any);
+
 
     await useCase.execute({
       ajusteId: 1,
@@ -173,12 +206,8 @@ describe('ApproveAdjustmentUseCase', () => {
       aprovado: true,
     });
 
-    expect(mockAdjRepo.executeApprovalTransaction).toHaveBeenCalledWith({
-      ajusteId: 1,
-      aprovadorId: 9,
-      loteId: 10,
-      novaQuantidade: 1001,
-    });
+    expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1001);
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 9);
   });
 
   it('deve bloquear aprovação pelo próprio solicitante (RN-REL-004 SoD)', async () => {
@@ -200,10 +229,17 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovadorRole: 'ADMIN',
         aprovado: true,
       }),
+    ).rejects.toBeInstanceOf(DomainException);
+    await expect(
+      useCase.execute({
+        ajusteId: 1,
+        aprovadorId: 5,
+        aprovadorRole: 'ADMIN',
+        aprovado: true,
+      }),
     ).rejects.toThrow('RN-REL-004');
 
     expect(mockAdjRepo.updateStatus).not.toHaveBeenCalled();
-    expect(mockAdjRepo.executeApprovalTransaction).not.toHaveBeenCalled();
   });
 
   it('deve falhar se o lote estiver em inventário (RN-INV-006)', async () => {
@@ -218,6 +254,14 @@ describe('ApproveAdjustmentUseCase', () => {
       emInventario: true,
     } as any);
 
+    await expect(
+      useCase.execute({
+        ajusteId: 1,
+        aprovadorId: 3,
+        aprovadorRole: 'GESTOR',
+        aprovado: true,
+      }),
+    ).rejects.toBeInstanceOf(DomainException);
     await expect(
       useCase.execute({
         ajusteId: 1,
@@ -251,10 +295,7 @@ describe('ApproveAdjustmentUseCase', () => {
       id: 20,
       custoMedio: 15.50,
     } as any);
-    mockAdjRepo.executeApprovalTransaction.mockResolvedValue({
-      id: 1,
-      statusAprovacao: 'APROVADO',
-    } as any);
+
 
     await useCase.execute({
       ajusteId: 1,
@@ -267,12 +308,8 @@ describe('ApproveAdjustmentUseCase', () => {
     expect(mockProductRepo.updateCustoMedio).not.toHaveBeenCalled();
 
     // O saldo DO lote deve ter sido atualizado normalmente
-    expect(mockAdjRepo.executeApprovalTransaction).toHaveBeenCalledWith({
-      ajusteId: 1,
-      aprovadorId: 3,
-      loteId: 10,
-      novaQuantidade: 1050,
-    });
+    expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1050);
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3);
   });
 
   it('NÃO deve alterar o custo médio ao aprovar ajuste NEGATIVO (RN-AJU-005)', async () => {
@@ -294,10 +331,7 @@ describe('ApproveAdjustmentUseCase', () => {
       id: 20,
       custoMedio: 15.50,
     } as any);
-    mockAdjRepo.executeApprovalTransaction.mockResolvedValue({
-      id: 1,
-      statusAprovacao: 'APROVADO',
-    } as any);
+
 
     await useCase.execute({
       ajusteId: 1,
@@ -310,11 +344,7 @@ describe('ApproveAdjustmentUseCase', () => {
     expect(mockProductRepo.updateCustoMedio).not.toHaveBeenCalled();
 
     // O saldo deve refletir a redução
-    expect(mockAdjRepo.executeApprovalTransaction).toHaveBeenCalledWith({
-      ajusteId: 1,
-      aprovadorId: 3,
-      loteId: 10,
-      novaQuantidade: 980,
-    });
+    expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 980);
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3);
   });
 });

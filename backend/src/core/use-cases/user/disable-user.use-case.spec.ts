@@ -1,5 +1,6 @@
 import { DisableUserUseCase } from './disable-user.use-case';
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('DisableUserUseCase (RN-TRV-003)', () => {
   let useCase: DisableUserUseCase;
@@ -25,6 +26,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       perfil: 'OPERADOR',
       ativo: true,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     });
     mockUserRepo.disable.mockResolvedValue({
       id: 1,
@@ -34,6 +36,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       perfil: 'OPERADOR',
       ativo: false,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     });
 
     const result = await useCase.execute(1);
@@ -45,6 +48,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
   it('deve falhar se o usuário não existir', async () => {
     mockUserRepo.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(999)).rejects.toThrow(
       'Usuário não encontrado.',
     );
@@ -59,8 +63,10 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       perfil: 'OPERADOR',
       ativo: false,
       criadoEm: new Date(),
+      ultimoAcesso: null,
     });
 
+    await expect(useCase.execute(1)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(1)).rejects.toThrow(
       'Usuário já está desativado.',
     );

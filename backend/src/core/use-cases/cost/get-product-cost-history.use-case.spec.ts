@@ -1,6 +1,7 @@
 import { GetProductCostHistoryUseCase } from './get-product-cost-history.use-case';
-import { ILogCustoRepository } from '../../interfaces/repositories/i-log-custo.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { ILogCustoRepository } from '../../interfaces/repositories/i-log-custo.repository';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 describe('GetProductCostHistoryUseCase', () => {
   let useCase: GetProductCostHistoryUseCase;
@@ -37,6 +38,7 @@ describe('GetProductCostHistoryUseCase', () => {
   it('deve lançar erro se o produto não existir', async () => {
     productRepository.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(999)).rejects.toThrow(
       'Produto com ID 999 não encontrado',
     );

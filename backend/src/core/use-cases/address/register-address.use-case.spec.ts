@@ -1,5 +1,6 @@
 import { RegisterAddressUseCase } from './register-address.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
+import { ConflictException } from '../../exceptions/domain.exception';
 
 describe('RegisterAddressUseCase', () => {
   let useCase: RegisterAddressUseCase;
@@ -42,6 +43,7 @@ describe('RegisterAddressUseCase', () => {
       ...request,
     });
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(ConflictException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-ARM-001: Já existe um endereço cadastrado com o código A-01',
     );

@@ -1,6 +1,7 @@
 import { GetBatchMovementsUseCase } from './get-batch-movements.use-case';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 describe('GetBatchMovementsUseCase', () => {
   let useCase: GetBatchMovementsUseCase;
@@ -34,6 +35,7 @@ describe('GetBatchMovementsUseCase', () => {
   it('deve lançar erro se o lote não existir', async () => {
     batchRepository.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(999)).rejects.toThrow(
       'Lote com ID 999 não encontrado',
     );

@@ -19,12 +19,12 @@ describe('Auth (e2e)', () => {
 
     await app.init();
 
-    // Limpar tabela de usuarios antes dos testes
-    await prisma.usuario.deleteMany();
+    // Limpar tabela de usuarios antes dos testes (apenas o que vamos usar)
+    await prisma.usuario.deleteMany({ where: { email: 'vini@fortal.com' } });
   });
 
   afterAll(async () => {
-    await prisma.usuario.deleteMany();
+    await prisma.usuario.deleteMany({ where: { email: 'vini@fortal.com' } });
     await app.close();
   });
 
@@ -38,7 +38,7 @@ describe('Auth (e2e)', () => {
         perfil: 'ADMIN',
       })
       .expect(201)
-      .expect((res) => {
+      .expect((res: any) => {
         expect(res.body.message).toEqual('Usuário registrado com sucesso');
         expect(res.body.data.email).toEqual('vini@fortal.com');
         expect(res.body.data.senha).toBeUndefined();
@@ -53,7 +53,7 @@ describe('Auth (e2e)', () => {
         senhaBruta: 'senhaSegura123',
       })
       .expect(200)
-      .expect((res) => {
+      .expect((res: any) => {
         expect(res.body.accessToken).toBeDefined();
         expect(res.body.user.email).toEqual('vini@fortal.com');
       });
@@ -68,4 +68,24 @@ describe('Auth (e2e)', () => {
       })
       .expect(401);
   });
+
+  it('/auth/login (POST) - deve bloquear por rate limit apos sucessivas tentativas', async () => {
+    let got429 = false;
+    for (let i = 0; i < 10; i++) {
+      const res = await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({
+          email: 'vini@fortal.com',
+          senhaBruta: 'senhaErrada',
+        });
+      
+      if (res.status === 429) {
+        got429 = true;
+        break;
+      }
+    }
+    expect(got429).toBe(true);
+  });
 });
+
+

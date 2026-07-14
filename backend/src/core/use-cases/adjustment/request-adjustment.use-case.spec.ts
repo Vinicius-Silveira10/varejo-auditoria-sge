@@ -2,6 +2,7 @@ import { RequestAdjustmentUseCase } from './request-adjustment.use-case';
 import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('RequestAdjustmentUseCase', () => {
   let useCase: RequestAdjustmentUseCase;
@@ -120,6 +121,14 @@ describe('RequestAdjustmentUseCase', () => {
         motivo: '',
         solicitanteId: 2,
       }),
+    ).rejects.toBeInstanceOf(DomainException);
+    await expect(
+      useCase.execute({
+        loteId: 1,
+        quantidadeDelta: 1,
+        motivo: '',
+        solicitanteId: 2,
+      }),
     ).rejects.toThrow('RN-AJU-001: Todo ajuste deve ter motivo classificado.');
   });
 
@@ -136,6 +145,68 @@ describe('RequestAdjustmentUseCase', () => {
         motivo: 'Ajuste',
         solicitanteId: 2,
       }),
+    ).rejects.toBeInstanceOf(DomainException);
+    await expect(
+      useCase.execute({
+        loteId: 1,
+        quantidadeDelta: 1,
+        motivo: 'Ajuste',
+        solicitanteId: 2,
+      }),
     ).rejects.toThrow('RN-INV-006');
   });
+
+  it('deve rejeitar ajuste de produto perecível sem validade no lote (RN-AJU-003)', async () => {
+    mockBatchRepo.findById.mockResolvedValue({
+      id: 1,
+      produtoId: 1,
+      validade: null,
+    } as any);
+    mockProductRepo.findById.mockResolvedValue({
+      id: 1,
+      perecivel: true,
+    } as any);
+
+    await expect(
+      useCase.execute({
+        loteId: 1,
+        quantidadeDelta: 1,
+        motivo: 'Ajuste',
+        solicitanteId: 2,
+      }),
+    ).rejects.toBeInstanceOf(DomainException);
+    await expect(
+      useCase.execute({
+        loteId: 1,
+        quantidadeDelta: 1,
+        motivo: 'Ajuste',
+        solicitanteId: 2,
+      }),
+    ).rejects.toThrow('RN-AJU-003: Ajustes em produtos perecíveis exigem lote com data de validade preenchida.');
+  });
+
+  it('deve permitir ajuste de produto perecível com validade no lote (RN-AJU-003)', async () => {
+    mockBatchRepo.findById.mockResolvedValue({
+      id: 1,
+      produtoId: 1,
+      quantidade: 10,
+      validade: new Date(),
+    } as any);
+    mockProductRepo.findById.mockResolvedValue({
+      id: 1,
+      perecivel: true,
+      custoMedio: 10,
+    } as any);
+    mockAdjRepo.create.mockResolvedValue({ id: 1 } as any);
+
+    const result = await useCase.execute({
+      loteId: 1,
+      quantidadeDelta: 1,
+      motivo: 'Ajuste',
+      solicitanteId: 2,
+    });
+
+    expect(result.ajuste).toBeDefined();
+  });
 });
+

@@ -1,5 +1,6 @@
 import { GetNotaFiscalDetailsUseCase } from './get-nfe-details.use-case';
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
+import { NotFoundException } from '../../exceptions/domain.exception';
 
 describe('GetNotaFiscalDetailsUseCase', () => {
   let useCase: GetNotaFiscalDetailsUseCase;
@@ -29,6 +30,7 @@ describe('GetNotaFiscalDetailsUseCase', () => {
   it('deve lançar erro se não encontrar a nota', async () => {
     nfeRepository.findById.mockResolvedValue(null);
 
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
     await expect(useCase.execute(999)).rejects.toThrow(
       'Nota Fiscal com ID 999 não encontrada',
     );

@@ -50,12 +50,20 @@ $ npm run start:prod
 # unit tests
 $ npm run test
 
-# e2e tests
+# e2e tests (Executa testes orquestrando um banco efêmero limpo em Postgres)
 $ npm run test:e2e
 
 # test coverage
 $ npm run test:cov
 ```
+
+### Notas sobre Testes E2E (Banco Efêmero)
+Os testes E2E rodam contra um banco de dados totalmente isolado e efêmero (Postgres porta `5434`). A cada execução, um container é criado, migrado, populado, e por fim **destruído**.
+- Para desenvolvimento iterativo rápido, use a flag `E2E_KEEP_ALIVE=true`. Isso impedirá que o container seja destruído ao final, economizando tempo nas próximas execuções.
+  ```bash
+  $ env E2E_KEEP_ALIVE=true npm run test:e2e
+  ```
+  *(Obs: Lembre-se de destruir manualmente `docker-compose -f docker-compose.e2e.yml down -v` quando terminar, caso tenha usado o keep alive).*
 
 ## Deployment
 

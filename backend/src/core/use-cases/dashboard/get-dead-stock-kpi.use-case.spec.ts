@@ -15,6 +15,7 @@ describe('GetDeadStockKpiUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
+      findActiveWithBalance: jest.fn(),
       updateQuantidade: jest.fn(),
       updateQuantidadeDelta: jest.fn(),
       updateInventarioStatus: jest.fn(),

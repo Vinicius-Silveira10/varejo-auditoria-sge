@@ -1,6 +1,7 @@
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { DomainException } from '../../exceptions/domain.exception';
 
 export interface AuthenticateUserRequest {
   email: string;
@@ -29,17 +30,17 @@ export class AuthenticateUserUseCase {
     const user = await this.userRepository.findByEmail(request.email);
 
     if (!user) {
-      throw new Error('RN-USR-002: Credenciais inválidas');
+      throw new DomainException('RN-USR-002: Credenciais inválidas');
     }
 
     if (!user.ativo) {
-      throw new Error('RN-USR-003: Usuário inativo ou bloqueado');
+      throw new DomainException('RN-USR-003: Usuário inativo ou bloqueado');
     }
 
     const passwordMatch = await bcrypt.compare(request.senhaBruta, user.senha);
 
     if (!passwordMatch) {
-      throw new Error('RN-USR-002: Credenciais inválidas');
+      throw new DomainException('RN-USR-002: Credenciais inválidas');
     }
 
     const payload = { sub: user.id, email: user.email, perfil: user.perfil };

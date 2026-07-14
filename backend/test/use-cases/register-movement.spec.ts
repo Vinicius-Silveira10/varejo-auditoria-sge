@@ -1,27 +1,50 @@
 import { RegisterMovementUseCase } from '../../src/core/use-cases/movement/register-movement.use-case';
 import { IBatchRepository } from '../../src/core/interfaces/repositories/i-batch.repository';
 import { IMovementRepository } from '../../src/core/interfaces/repositories/i-movement.repository';
+import { IUnitOfWork } from '../../src/core/interfaces/repositories/i-unit-of-work';
 import { Movimentacao, Lote } from '@prisma/client';
 
 describe('RegisterMovementUseCase (@code.assure.elite)', () => {
   let useCase: RegisterMovementUseCase;
   let mockBatchRepository: jest.Mocked<IBatchRepository>;
   let mockMovementRepository: jest.Mocked<IMovementRepository>;
+  let mockAddressRepository: any;
+  let mockProductRepository: any;
+  let mockUnitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(() => {
     mockBatchRepository = {
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
-    };
+    } as any;
     mockMovementRepository = {
       create: jest.fn(),
       findByLote: jest.fn(),
+    } as any;
+    mockAddressRepository = {
+      findById: jest.fn(),
     };
+    mockProductRepository = {
+      findById: jest.fn(),
+    };
+    mockUnitOfWork = {
+      execute: jest.fn().mockImplementation(async (callback) => {
+        return await callback({
+          loteRepository: mockBatchRepository,
+          movementRepository: mockMovementRepository,
+          addressRepository: mockAddressRepository,
+          produtoRepository: mockProductRepository,
+        });
+      }),
+    } as any;
 
     useCase = new RegisterMovementUseCase(
       mockBatchRepository,
       mockMovementRepository,
+      mockAddressRepository,
+      mockProductRepository,
+      mockUnitOfWork,
     );
   });
 
@@ -33,7 +56,7 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
       quantidade: 5,
       validade: new Date('2026-12-31'),
       ativo: true,
-    };
+    } as any;
 
     const movData: Omit<Movimentacao, 'id' | 'criadoEm'> = {
       tipo: 'SAIDA',
@@ -43,7 +66,7 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
       enderecoOrigemId: 1,
       enderecoDestinoId: null,
       usuarioId: 1,
-    };
+    } as any;
 
     mockBatchRepository.findById.mockResolvedValue(mockLote);
 
@@ -60,7 +83,7 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
       quantidade: 10,
       validade: new Date('2026-12-31'),
       ativo: true,
-    };
+    } as any;
 
     const mockLoteMaisAntigo: Lote = {
       id: 1,
@@ -69,17 +92,17 @@ describe('RegisterMovementUseCase (@code.assure.elite)', () => {
       quantidade: 5,
       validade: new Date('2026-10-31'), // Mais próximo de vencer
       ativo: true,
-    };
+    } as any;
 
     const movData: Omit<Movimentacao, 'id' | 'criadoEm'> = {
-      tipo: 'SAIDA',
+      tipo: 'EXPEDICAO',
       loteId: 2,
       quantidade: 5,
       motivo: 'Venda',
       enderecoOrigemId: 1,
       enderecoDestinoId: null,
       usuarioId: 1,
-    };
+    } as any;
 
     mockBatchRepository.findById.mockResolvedValue(mockLoteSelecionado);
     mockBatchRepository.findAvailableByProduct.mockResolvedValue([

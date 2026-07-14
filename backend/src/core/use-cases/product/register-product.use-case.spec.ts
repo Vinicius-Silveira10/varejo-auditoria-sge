@@ -1,5 +1,6 @@
 import { RegisterProductUseCase } from './register-product.use-case';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { ConflictException } from '../../exceptions/domain.exception';
 
 describe('RegisterProductUseCase', () => {
   let useCase: RegisterProductUseCase;
@@ -11,6 +12,10 @@ describe('RegisterProductUseCase', () => {
       findById: jest.fn(),
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
+      updateCurvaAbc: jest.fn(),
+      disable: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
     useCase = new RegisterProductUseCase(mockRepository);
   });
@@ -21,8 +26,9 @@ describe('RegisterProductUseCase', () => {
       descricao: 'Feijao',
       categoria: 'Alimentos',
       perecivel: true,
+      tipoZonaRequerida: 'SECO',
     };
-    const mockCreated = { id: 1, custoMedio: 0, ativo: true, ...request };
+    const mockCreated = { id: 1, custoMedio: 0, curvaAbc: 'C', ativo: true, ...request } as any;
 
     mockRepository.findBySku.mockResolvedValue(null);
     mockRepository.create.mockResolvedValue(mockCreated);
@@ -40,11 +46,13 @@ describe('RegisterProductUseCase', () => {
       descricao: 'Feijao',
       categoria: 'Alimentos',
       perecivel: true,
+      tipoZonaRequerida: 'SECO',
     };
-    const existingProduct = { id: 1, custoMedio: 0, ativo: true, ...request };
+    const existingProduct = { id: 1, custoMedio: 0, curvaAbc: 'C', ativo: true, ...request } as any;
 
     mockRepository.findBySku.mockResolvedValue(existingProduct);
 
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(ConflictException);
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-PROD-001: Já existe um produto cadastrado com o SKU PROD-01',
     );
