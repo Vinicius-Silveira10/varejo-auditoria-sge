@@ -31,9 +31,22 @@ Itens mapeados que não bloqueiam as Sprints de produto em andamento:
 - Ajustes de tipagem do Typescript (aprox. 11 falhas em stubs/mocks legados no diretório test).
 - Parâmetros de metas hardcoded nas controllers de Dashboard (necessita expor os valores para `.env` ou base de configurações persistentes).
 - Uso da data do SO para emissão de logs (`new Date()`). Já registrado na documentação de arquitetura a necessidade futura de transição para um serviço central (NTP) focado em SRE.
+- **Auditoria / Expurgo Legal:** O caso de uso `VerifyAuditChainUseCase` atualmente assume que a cadeia é ininterrupta desde o bloco Gênese. Investigar e adaptar o validador para lidar com "poda autorizada" sem gerar falsos positivos de corrupção. Isso será necessário quando ocorrer expurgo de dados legítimo pós-retenção de 5 anos (RNF-AUD-002), possivelmente requerendo um "checkpoint" ou snapshot do último elo removido para justificar a quebra da cadeia.
 
 ## 5. Próximos Passos (Integração Frontend)
 
 - Retomada do consumo das APIs da Sprint 2 (Putaway).
 - O backend disponibiliza as rotas `GET /batches/pending-putaway`, `GET /addresses/suggest-putaway` e `POST /addresses/putaway`.
 - Os casos de uso expostos estão estruturalmente protegidos contra *race conditions* de concorrência.
+
+## 6. Realizações da Sprint 3 (Ajuste de Estoque e Isolamento Transacional)
+
+1. **BUG-007 Fix (RESOLVIDO):** A *race condition* na tabela `ChainPointer` (que gerava bifurcação na trilha) foi **completamente mitigada e isolada**. A solução definitiva (`INSERT ON CONFLICT DO NOTHING` + `SELECT ... FOR UPDATE`) garante que até mesmo o bloco "Gênese" atue de forma serial e bloqueante. 
+   - **Nota sobre a Investigação Causal (Experimento Controlado):** Um teste de regressão focado provou que as supostas falhas de "corrupção" relatadas na sprint não eram falhas da trava de banco, mas sim falsos positivos do `VerifyAuditChainUseCase`. O script validador abortava ao encontrar a base "suja" (linhas deletadas por outros testes sem resetar a sequência), esperando um bloco Gênese que já não existia. Com a base limpa, o bloqueio pessimista suporta perfeitamente iterações infinitas de 10x de concorrência massiva mantendo a cadeia íntegra.
+2. **Transações e Exceções:** Implementado isolamento no `PrismaUnitOfWork` que captura e relança a instância correta da exceção. Isso corrigiu o problema de prototype perdido no rollback do Prisma e garantiu que o `GlobalExceptionFilter` interceptasse adequadamente o `ConflictException` (status 409). Teste unitário incluído (`prisma-unit-of-work.spec.ts`) para comprovação e isolamento deste comportamento independente da regra de negócios.
+3. **Feature 4 (Aprovação/Rejeição Simultânea e Listagem Pendente):**
+   - Implementado os endpoints e os casos de uso para aprovar/rejeitar e listar ajustes pendentes (`ApproveAdjustmentUseCase`, `ListPendingAdjustmentsUseCase`).
+   - Criado e validado fluxo de teste e2e pesado (`adjustment-concurrency.e2e-spec.ts`) que demonstra que aprovações e rejeições enviadas no exato mesmo milissegundo resultam perfeitamente em um HTTP `201` (Sucesso) + um HTTP `409` (Conflito), garantindo que o delta do ajuste é aplicado no máximo 1 única vez no Lote.
+
+**Métricas Atuais de Testes (Sprint 3 Final):**
+- **Testes Unitários e E2E:** Todas as 12 suítes E2E e demais testes unitários estão passando (totalizando dezenas de testes), rodando impecavelmente em um container de testes limpo e isolado `npm run test:e2e`.

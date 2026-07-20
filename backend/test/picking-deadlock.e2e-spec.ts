@@ -32,9 +32,17 @@ describe('Picking Deadlock Concurrency (e2e)', () => {
       .send({ email: 'admin@fortal.com.br', senhaBruta: 'SenhaSegura123!' });
     adminToken = loginRes.body.accessToken;
 
-    const prod = await prisma.produto.findFirst();
-    produtoId = prod!.id;
-    
+    const prod = await prisma.produto.create({
+      data: {
+        sku: `DEADLOCK-SKU-${Date.now()}`,
+        descricao: 'Produto Deadlock E2E',
+        categoria: 'Teste',
+        perecivel: false,
+        custoMedio: 10.0,
+      }
+    });
+    produtoId = prod.id;
+
     const end = await prisma.endereco.findFirst();
     enderecoOrigemId = end!.id;
 

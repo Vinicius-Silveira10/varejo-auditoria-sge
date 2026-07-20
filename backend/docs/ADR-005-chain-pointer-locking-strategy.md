@@ -37,8 +37,8 @@ for (const loteId of uniqueLoteIds) {
 
 ### Mapa Exato de Lock Ordering nos Use Cases (Estado Atual)
 Todos os fluxos que tocam no `ChainPointer` (que criam Movimentação) devem obedecer este mapa validado:
-1. **`approve-adjustment`**: `Lote` → `ChainPointer`
-2. **`reject-adjustment`**: `Lote` → `ChainPointer`
+1. **`approve-adjustment`**: `AjusteEstoque` → `Lote` → `ChainPointer`
+2. **`reject-adjustment`**: `AjusteEstoque` → `Lote` → `ChainPointer`
 3. **`register-movement`**: `Lote` → `Endereco` (se presente, via update) → `ChainPointer`
 4. **`pick-order`**: `Lote` (múltiplos ordenados ASC) → `Endereco` (via update) → `ChainPointer`
 5. **`execute-putaway`**: `Lote` → `Endereco` → `ChainPointer`

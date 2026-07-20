@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma.service';
 import {
   IAdjustmentRepository,
   AjusteEstoque,
+  AjusteEstoqueWithDetails,
 } from '../../../../core/interfaces/repositories/i-adjustment.repository';
 import { StatusAprovacao } from '@prisma/client';
 
@@ -66,7 +67,30 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
     return Math.abs(result._sum.valorDelta || 0);
   }
 
+  async findPending(status?: string): Promise<AjusteEstoqueWithDetails[]> {
+    const ajustes = await this.prisma.ajusteEstoque.findMany({
+      where: { statusAprovacao: (status as StatusAprovacao) ?? 'PENDENTE' },
+      include: {
+        lote: {
+          include: {
+            produto: true,
+          },
+        },
+      },
+      orderBy: { criadoEm: 'asc' },
+    });
 
+    return ajustes.map((ajuste) => ({
+      ...this.mapToDomain(ajuste),
+      lote: {
+        numeroLote: ajuste.lote.numeroLote,
+        produto: {
+          sku: ajuste.lote.produto.sku,
+          descricao: ajuste.lote.produto.descricao,
+        },
+      },
+    }));
+  }
 
   private mapToDomain(prismaAjuste: any): AjusteEstoque {
     return {

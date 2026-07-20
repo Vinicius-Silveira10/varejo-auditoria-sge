@@ -27,9 +27,7 @@ export class ApproveAdjustmentUseCase {
       throw new NotFoundException('Ajuste não encontrado.');
     }
 
-    if (ajuste.statusAprovacao !== 'PENDENTE') {
-      throw new ConflictException('Este ajuste já foi processado.');
-    }
+    // Verificação removida daqui e movida para DENTRO da transação atômica
 
     // RN-REL-004: Segregação de Funções — quem solicita não pode aprovar
     if (ajuste.solicitanteId === dto.aprovadorId) {
@@ -40,7 +38,16 @@ export class ApproveAdjustmentUseCase {
 
     if (!dto.aprovado) {
       const ajusteRejeitado = await this.unitOfWork.execute(async (ctx) => {
-        // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
+        // FIX RACE CONDITION: Adquirir lock na linha do AjusteEstoque antes de prosseguir
+        await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
+        
+        // Re-verificar o status atômicamente
+        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+        if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
+          throw new ConflictException('Este ajuste já foi processado.');
+        }
+
+        // Ordem: AjusteEstoque -> Lote -> ChainPointer
         await ctx.lockForUpdate('Lote', ajuste.loteId);
 
         const atualizado = await ctx.adjustmentRepository.updateStatus(
@@ -104,7 +111,16 @@ export class ApproveAdjustmentUseCase {
 
     // 4. Executa a aprovação e atualização do saldo de forma ATÔMICA, incluindo a Movimentação
     const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
-      // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
+      // FIX RACE CONDITION: Adquirir lock na linha do AjusteEstoque antes de prosseguir
+      await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
+      
+      // Re-verificar o status atômicamente
+      const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+      if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
+        throw new ConflictException('Este ajuste já foi processado.');
+      }
+
+      // Ordem: AjusteEstoque -> Lote -> ChainPointer
       await ctx.lockForUpdate('Lote', lote.id);
 
       // 1. Atualiza o lote

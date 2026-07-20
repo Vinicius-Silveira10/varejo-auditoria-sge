@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AdjustmentController } from './controllers/adjustment.controller';
 import { RequestAdjustmentUseCase } from '../../core/use-cases/adjustment/request-adjustment.use-case';
 import { ApproveAdjustmentUseCase } from '../../core/use-cases/adjustment/approve-adjustment.use-case';
+import { ListPendingAdjustmentsUseCase } from '../../core/use-cases/adjustment/list-pending-adjustments.use-case';
 import { IAdjustmentRepository } from '../../core/interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
@@ -31,6 +32,13 @@ import { PrismaMovementRepository } from '../database/prisma/repositories/prisma
         'IBatchRepository',
         'IProductRepository',
       ],
+    },
+    {
+      provide: ListPendingAdjustmentsUseCase,
+      useFactory: (adjRepo: IAdjustmentRepository) => {
+        return new ListPendingAdjustmentsUseCase(adjRepo);
+      },
+      inject: ['IAdjustmentRepository'],
     },
     {
       // RN-AJU-005: Ajustes não alteram o Custo Médio Ponderado.

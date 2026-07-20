@@ -21,6 +21,26 @@ export const removeToken = () => {
   }
 };
 
+export const setUser = (user: any) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+};
+
+export const getUser = () => {
+  if (typeof window !== 'undefined') {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  }
+  return null;
+};
+
+export const removeUser = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('user');
+  }
+};
+
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
 }
@@ -47,6 +67,7 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}) {
     
     if (response.status === 401) {
       removeToken();
+      removeUser();
       // Emite evento customizado para o layout exibir o aviso antes de redirecionar
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('api-error', {

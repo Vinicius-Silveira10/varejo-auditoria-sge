@@ -21,6 +21,7 @@ describe('ApproveAdjustmentUseCase', () => {
       findById: jest.fn(),
       updateStatus: jest.fn().mockImplementation((id, status) => ({ id, statusAprovacao: status })),
       sumFinancialLosses: jest.fn(),
+      findPending: jest.fn(),
     };
     mockBatchRepo = {
       create: jest.fn(),
@@ -118,15 +119,18 @@ describe('ApproveAdjustmentUseCase', () => {
       aprovado: true,
     });
 
-    // Validação estrita da prevenção de deadlock (ADR-005): Lock de Lote no topo
+    // Validação estrita da prevenção de deadlock (ADR-005): Lock de AjusteEstoque no topo, depois Lote
+    expect(mockLockForUpdate).toHaveBeenCalledWith('AjusteEstoque', 1);
     expect(mockLockForUpdate).toHaveBeenCalledWith('Lote', 10);
 
     // Validação da ORDEM ESTRITA: O lock deve ocorrer ANTES de qualquer update ou insert no BD
-    const lockOrder = mockLockForUpdate.mock.invocationCallOrder[0];
+    const lockAjusteOrder = mockLockForUpdate.mock.invocationCallOrder[0];
+    const lockLoteOrder = mockLockForUpdate.mock.invocationCallOrder[1];
     const updateLoteOrder = mockBatchRepo.updateQuantidade.mock.invocationCallOrder[0];
     const createMovOrder = mockMovementRepo.create.mock.invocationCallOrder[0];
 
-    expect(lockOrder).toBeLessThan(updateLoteOrder);
+    expect(lockAjusteOrder).toBeLessThan(lockLoteOrder);
+    expect(lockLoteOrder).toBeLessThan(updateLoteOrder);
     expect(updateLoteOrder).toBeLessThan(createMovOrder);
 
     expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1005);

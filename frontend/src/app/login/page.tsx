@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, setToken } from '@/lib/api';
+import { apiFetch, setToken, setUser } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,6 +23,9 @@ export default function LoginPage() {
       });
       
       setToken(result.accessToken);
+      if (result.user) {
+        setUser(result.user);
+      }
       
       // Dispatch sucesso para o Toast
       window.dispatchEvent(new CustomEvent('custom-toast', {

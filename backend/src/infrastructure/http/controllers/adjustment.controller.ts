@@ -1,16 +1,20 @@
 import {
   Controller,
   Post,
+  Get,
+  Query,
   Body,
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
   ApiBody,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
@@ -18,6 +22,7 @@ import { CurrentUser } from '../../security/current-user.decorator';
 import { Roles, Role } from '../../security/roles.decorator';
 import { RequestAdjustmentUseCase } from '../../../core/use-cases/adjustment/request-adjustment.use-case';
 import { ApproveAdjustmentUseCase } from '../../../core/use-cases/adjustment/approve-adjustment.use-case';
+import { ListPendingAdjustmentsUseCase } from '../../../core/use-cases/adjustment/list-pending-adjustments.use-case';
 import { RequestAdjustmentBodyDto } from '../dtos/request-adjustment-body.dto';
 import { ApproveAdjustmentBodyDto } from '../dtos/approve-adjustment-body.dto';
 
@@ -29,6 +34,7 @@ export class AdjustmentController {
   constructor(
     private readonly requestAdjustmentUseCase: RequestAdjustmentUseCase,
     private readonly approveAdjustmentUseCase: ApproveAdjustmentUseCase,
+    private readonly listPendingAdjustmentsUseCase: ListPendingAdjustmentsUseCase,
   ) {}
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
@@ -96,5 +102,23 @@ export class AdjustmentController {
     });
 
     return result;
+  }
+
+  @Roles(Role.GESTOR, Role.ADMIN)
+  @Get('pending')
+  @ApiOperation({
+    summary: 'Listar ajustes de estoque pendentes ou por status',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: ['PENDENTE', 'APROVADO', 'REJEITADO'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de ajustes retornada com sucesso.',
+  })
+  async listPending(@Query('status') status?: string) {
+    const validStatuses = ['PENDENTE', 'APROVADO', 'REJEITADO'];
+    if (status && !validStatuses.includes(status)) {
+      throw new BadRequestException(`Status inválido. Use: ${validStatuses.join(', ')}`);
+    }
+    return this.listPendingAdjustmentsUseCase.execute(status);
   }
 }

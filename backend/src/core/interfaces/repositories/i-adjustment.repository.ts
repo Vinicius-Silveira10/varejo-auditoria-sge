@@ -11,6 +11,20 @@ export interface AjusteEstoque {
   atualizadoEm?: Date;
 }
 
+/**
+ * Versão enriquecida do AjusteEstoque com dados de Lote e Produto,
+ * usada pelo endpoint GET /adjustments/pending para evitar N+1 queries.
+ */
+export interface AjusteEstoqueWithDetails extends AjusteEstoque {
+  lote: {
+    numeroLote: string;
+    produto: {
+      sku: string;
+      descricao: string;
+    };
+  };
+}
+
 export interface IAdjustmentRepository {
   create(
     data: Omit<AjusteEstoque, 'id' | 'criadoEm' | 'atualizadoEm'>,
@@ -22,4 +36,11 @@ export interface IAdjustmentRepository {
     aprovadorId: number,
   ): Promise<AjusteEstoque>;
   sumFinancialLosses(): Promise<number>;
+
+  /**
+   * Retorna ajustes filtrados por status, ordenados por criadoEm ASC
+   * (mais antigo primeiro, relevante para SLA de 2h).
+   * Default: 'PENDENTE'.
+   */
+  findPending(status?: string): Promise<AjusteEstoqueWithDetails[]>;
 }

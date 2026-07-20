@@ -19,6 +19,8 @@ export class PrismaUnitOfWork implements IUnitOfWork {
   ) {}
 
   async execute<T>(work: (ctx: UnitOfWorkContext) => Promise<T>): Promise<T> {
+    let originalError: any = null;
+
     // Timeout estendido se necessário ou default do DB
     return this.prisma.$transaction(async (tx) => {
       // Cast the transaction context to PrismaService so repositories can use it
@@ -46,7 +48,17 @@ export class PrismaUnitOfWork implements IUnitOfWork {
         },
       };
 
-      return await work(ctx);
+      try {
+        return await work(ctx);
+      } catch (error) {
+        originalError = error;
+        throw error;
+      }
+    }).catch((error) => {
+      // Prisma's $transaction might wrap or strip the prototype of the error during rollback.
+      // If we caught an error inside the work function, we rethrow that exact original instance.
+      // NOTE: We must still throw inside the transaction to trigger the rollback, but we intercept it here.
+      throw originalError || error;
     });
   }
 }

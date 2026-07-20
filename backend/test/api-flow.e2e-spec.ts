@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 const request = require('supertest');
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
+import { GlobalExceptionFilter } from '../src/infrastructure/http/filters/http-exception.filter';
 import * as bcrypt from 'bcrypt';
 
 describe('API Flow E2E (Supertest)', () => {
@@ -25,6 +26,7 @@ describe('API Flow E2E (Supertest)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
+    app.useGlobalFilters(new GlobalExceptionFilter());
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -219,6 +221,48 @@ describe('API Flow E2E (Supertest)', () => {
       // 15.0 era o custo inicial configurado no setup (beforeAll)
       const prod = await prisma.produto.findUnique({ where: { sku: testSku } });
       expect(prod!.custoMedio).toBe(15.0); 
+    });
+
+    it('deve lidar com aprovação e rejeição simultâneas para o mesmo ajuste garantindo que apenas uma operação tenha sucesso', async () => {
+      const batch = await prisma.lote.findFirst({ where: { numeroLote: testBatch } });
+      
+      // Criar um novo ajuste para testar concorrência
+      const resCreate = await request(app.getHttpServer())
+        .post('/adjustments/request')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          loteId: batch!.id,
+          quantidadeDelta: -2,
+          motivo: 'Teste Concorrencia E2E'
+        })
+        .expect(201);
+      
+      const ajusteIdConcorrencia = resCreate.body.ajuste.id;
+
+      // Disparar aprovação e rejeição simultaneamente
+      const promiseApprove = request(app.getHttpServer())
+        .post('/adjustments/approve')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({
+          ajusteId: ajusteIdConcorrencia,
+          aprovado: true
+        });
+
+      const promiseReject = request(app.getHttpServer())
+        .post('/adjustments/approve')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({
+          ajusteId: ajusteIdConcorrencia,
+          aprovado: false
+        });
+
+      const results = await Promise.all([promiseApprove, promiseReject]);
+      const statuses = results.map(r => r.status);
+      
+      // Um deve ser 201 (Created/Success) e o outro deve ser 409 (Conflict)
+      expect(statuses).toContain(201);
+      expect(statuses).toContain(409);
+      expect(statuses.filter(s => s === 201).length).toBe(1);
     });
   });
 
