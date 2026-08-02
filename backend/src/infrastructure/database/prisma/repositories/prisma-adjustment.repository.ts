@@ -6,6 +6,7 @@ import {
   AjusteEstoqueWithDetails,
 } from '../../../../core/interfaces/repositories/i-adjustment.repository';
 import { StatusAprovacao } from '@prisma/client';
+import { calcularNivelAprovacaoExigido } from '../../../../core/domain/adjustment/adjustment.rules';
 
 @Injectable()
 export class PrismaAdjustmentRepository implements IAdjustmentRepository {
@@ -20,6 +21,7 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
         quantidadeDelta: data.quantidadeDelta,
         motivo: data.motivo,
         valorDelta: data.valorDelta,
+        saldoTeorico: data.saldoTeorico,
         statusAprovacao: data.statusAprovacao as StatusAprovacao,
         solicitanteId: data.solicitanteId,
         aprovadorId: data.aprovadorId,
@@ -80,16 +82,25 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
       orderBy: { criadoEm: 'asc' },
     });
 
-    return ajustes.map((ajuste) => ({
-      ...this.mapToDomain(ajuste),
-      lote: {
-        numeroLote: ajuste.lote.numeroLote,
-        produto: {
-          sku: ajuste.lote.produto.sku,
-          descricao: ajuste.lote.produto.descricao,
+    return ajustes.map((ajuste) => {
+      return {
+        ...this.mapToDomain(ajuste),
+        lote: {
+          numeroLote: ajuste.lote.numeroLote,
+          produto: {
+            sku: ajuste.lote.produto.sku,
+            descricao: ajuste.lote.produto.descricao,
+          },
         },
-      },
-    }));
+        // RN-AJU-004: usa valorDelta E saldoTeorico JÁ persistidos (congelados no momento da solicitação)
+        // garantindo consistência completa com o enforcement em approve-adjustment.use-case.ts
+        nivelAprovacaoExigido: calcularNivelAprovacaoExigido(
+          ajuste.quantidadeDelta,
+          ajuste.valorDelta,
+          ajuste.saldoTeorico,
+        ),
+      };
+    });
   }
 
   private mapToDomain(prismaAjuste: any): AjusteEstoque {
@@ -99,6 +110,7 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
       quantidadeDelta: prismaAjuste.quantidadeDelta,
       motivo: prismaAjuste.motivo,
       valorDelta: prismaAjuste.valorDelta,
+      saldoTeorico: prismaAjuste.saldoTeorico,
       statusAprovacao: prismaAjuste.statusAprovacao,
       solicitanteId: prismaAjuste.solicitanteId,
       aprovadorId: prismaAjuste.aprovadorId ?? undefined,

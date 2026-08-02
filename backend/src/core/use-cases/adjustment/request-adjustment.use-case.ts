@@ -2,6 +2,7 @@ import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustmen
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { calcularNivelAprovacaoExigido } from '../../domain/adjustment/adjustment.rules';
 
 export interface RequestAdjustmentDto {
   loteId: number;
@@ -45,22 +46,20 @@ export class RequestAdjustmentUseCase {
     }
 
     const saldoTeorico = lote.quantidade;
-    const custoMedio = produto.custoMedio;
+    const valorDelta = Number((dto.quantidadeDelta * produto.custoMedio).toFixed(2));
 
-    const deltaPercent =
-      saldoTeorico > 0 ? dto.quantidadeDelta / saldoTeorico : 1;
-    const valorDelta = dto.quantidadeDelta * custoMedio;
-
-    let nivelAprovacao = 'GESTOR';
-    if (Math.abs(deltaPercent) > 0.02 || Math.abs(valorDelta) > 1000) {
-      nivelAprovacao = 'GESTOR_CONTROLADORIA';
-    }
+    const nivelAprovacao = calcularNivelAprovacaoExigido(
+      dto.quantidadeDelta,
+      valorDelta,
+      saldoTeorico,
+    );
 
     const ajuste = await this.adjustmentRepository.create({
       loteId: dto.loteId,
       quantidadeDelta: dto.quantidadeDelta,
       motivo: dto.motivo,
-      valorDelta: Number(valorDelta.toFixed(2)),
+      valorDelta: valorDelta,
+      saldoTeorico: saldoTeorico,
       statusAprovacao: 'PENDENTE',
       solicitanteId: dto.solicitanteId,
     });

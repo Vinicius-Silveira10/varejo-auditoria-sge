@@ -4,6 +4,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { IUnitOfWork, UnitOfWorkContext } from '../../interfaces/repositories/i-unit-of-work';
 import { ConflictException, DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 describe('StartCountUseCase', () => {
@@ -13,6 +14,7 @@ describe('StartCountUseCase', () => {
   let mockAddressRepo: jest.Mocked<IAddressRepository>;
   let mockMovementRepo: jest.Mocked<IMovementRepository>;
   let mockProductRepo: jest.Mocked<IProductRepository>;
+  let mockUnitOfWork: jest.Mocked<IUnitOfWork>;
 
   beforeEach(() => {
     mockCountRepo = {
@@ -55,6 +57,20 @@ describe('StartCountUseCase', () => {
       disable: jest.fn(),
       getRupturesKpi: jest.fn(),
     };
+    
+    mockUnitOfWork = {
+      execute: jest.fn().mockImplementation(async (work) => {
+        const ctx: UnitOfWorkContext = {
+          produtoRepository: mockProductRepo,
+          loteRepository: mockBatchRepo,
+          addressRepository: mockAddressRepo,
+          movementRepository: mockMovementRepo,
+          inventoryCountRepository: mockCountRepo,
+          lockForUpdate: jest.fn(),
+        } as any;
+        return work(ctx);
+      }),
+    };
 
     useCase = new StartCountUseCase(
       mockCountRepo,
@@ -62,6 +78,7 @@ describe('StartCountUseCase', () => {
       mockAddressRepo,
       mockMovementRepo,
       mockProductRepo,
+      mockUnitOfWork,
     );
   });
 
@@ -95,6 +112,8 @@ describe('StartCountUseCase', () => {
       }),
     );
     expect(result.id).toBe(10);
+    // Verificar que a quantidadeTeorica não é exposta na resposta final
+    expect((result as any).quantidadeTeorica).toBeUndefined();
   });
 
   it('deve falhar se lote já estiver em inventário', async () => {

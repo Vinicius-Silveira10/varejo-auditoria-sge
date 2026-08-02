@@ -11,6 +11,7 @@ import { IAdjustmentRepository } from '../../core/interfaces/repositories/i-adju
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
+import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
 import { PrismaModule } from '../database/prisma/prisma.module';
 
 @Module({
@@ -40,6 +41,7 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         addressRepo: IAddressRepository,
         movRepo: IMovementRepository,
         productRepo: IProductRepository,
+        uow: IUnitOfWork,
       ) => {
         return new StartCountUseCase(
           countRepo,
@@ -47,6 +49,7 @@ import { PrismaModule } from '../database/prisma/prisma.module';
           addressRepo,
           movRepo,
           productRepo,
+          uow,
         );
       },
       inject: [
@@ -55,6 +58,7 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         'IAddressRepository',
         'IMovementRepository',
         'IProductRepository',
+        'IUnitOfWork',
       ],
     },
     {

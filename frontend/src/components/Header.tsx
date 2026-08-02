@@ -7,9 +7,15 @@ import { hasRole } from '@/lib/auth';
 export default function Header({ title }: { title: string }) {
   const router = useRouter();
   const [canViewApprovals, setCanViewApprovals] = useState(false);
+  const [canRequestAdjustment, setCanRequestAdjustment] = useState(false);
+  const [canViewInventory, setCanViewInventory] = useState(false);
+  const [canViewCount, setCanViewCount] = useState(false);
 
   useEffect(() => {
     setCanViewApprovals(hasRole('GESTOR', 'ADMIN'));
+    setCanRequestAdjustment(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
+    setCanViewInventory(hasRole('GESTOR', 'ADMIN'));
+    setCanViewCount(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
   }, []);
 
   const handleLogout = () => {
@@ -27,8 +33,20 @@ export default function Header({ title }: { title: string }) {
         <nav className="flex gap-4">
           <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium">Recebimento</Link>
           <Link href="/putaway" className="text-gray-600 hover:text-blue-600 font-medium">Armazenagem</Link>
+          {canRequestAdjustment && (
+            <Link href="/adjustments/request" className="text-gray-600 hover:text-blue-600 font-medium">Solicitar Ajuste</Link>
+          )}
           {canViewApprovals && (
             <Link href="/approvals" className="text-gray-600 hover:text-blue-600 font-medium">Aprovações</Link>
+          )}
+          {canViewInventory && (
+            <>
+              <Link href="/inventory" className="text-gray-600 hover:text-blue-600 font-medium">Inventário</Link>
+              <Link href="/inventory/reports" className="text-gray-600 hover:text-blue-600 font-medium">Relatórios</Link>
+            </>
+          )}
+          {canViewCount && (
+            <Link href="/inventory/register" className="text-gray-600 hover:text-blue-600 font-medium">Contagem</Link>
           )}
         </nav>
       </div>

@@ -3,6 +3,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
+import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
 import { ConflictException, DomainException, NotFoundException } from '../../exceptions/domain.exception';
 
 export interface StartCountDto {
@@ -17,6 +18,7 @@ export class StartCountUseCase {
     private readonly addressRepository: IAddressRepository,
     private readonly movementRepository: IMovementRepository,
     private readonly productRepository: IProductRepository,
+    private readonly unitOfWork: IUnitOfWork,
   ) {}
 
   async execute(dto: StartCountDto) {
@@ -60,28 +62,49 @@ export class StartCountUseCase {
         }
       }
     }
+    // A partir daqui, operações críticas que requerem lock
+    return this.unitOfWork.execute(async (ctx) => {
+      // 1. Lock pessimista — bloqueia a linha no banco
+      await ctx.lockForUpdate('Lote', lote.id);
 
-    // Identificar o endereço associado ao lote (via movimentos) e bloqueá-lo
-    const movements = await this.movementRepository.findByLote(dto.loteId);
-    const lastMov = movements.find(
-      (m) => m.enderecoDestinoId || m.enderecoOrigemId,
-    );
-    const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
-    if (enderecoId) {
-      await this.addressRepository.bloquear(enderecoId);
-    }
+      // 2. Re-ler DENTRO da transação (após o lock)
+      const loteAtual = await ctx.loteRepository.findById(lote.id);
+      if (!loteAtual) {
+        throw new NotFoundException('Lote não encontrado.');
+      }
 
-    // Bloqueia o lote logicamente (RN-INV-006)
-    await this.batchRepository.updateInventarioStatus(lote.id, true);
+      if ((loteAtual as any).emInventario) {
+        throw new ConflictException('Este lote já está sob contagem de inventário.');
+      }
 
-    // Registra a tarefa de contagem
-    const contagem = await this.inventoryCountRepository.create({
-      loteId: lote.id,
-      quantidadeTeorica: lote.quantidade,
-      status: 'PENDENTE',
-      usuarioId: dto.usuarioId,
+      // Identificar o endereço associado ao lote (via movimentos) e bloqueá-lo
+      const movements = await ctx.movementRepository.findByLote(dto.loteId);
+      const lastMov = movements.find(
+        (m) => m.enderecoDestinoId || m.enderecoOrigemId,
+      );
+      const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
+      if (enderecoId) {
+        await ctx.addressRepository.bloquear(enderecoId);
+      }
+
+      // Bloqueia o lote logicamente (RN-INV-006)
+      await ctx.loteRepository.updateInventarioStatus(lote.id, true);
+
+      // Registra a tarefa de contagem
+      const contagem = await ctx.inventoryCountRepository.create({
+        loteId: lote.id,
+        quantidadeTeorica: loteAtual.quantidade,
+        status: 'PENDENTE',
+        usuarioId: dto.usuarioId,
+      });
+
+      return {
+        id: contagem.id,
+        loteId: contagem.loteId,
+        status: contagem.status,
+        usuarioId: contagem.usuarioId,
+        criadoEm: contagem.criadoEm,
+      };
     });
-
-    return contagem;
   }
 }

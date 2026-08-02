@@ -10,30 +10,56 @@ function runCommand(command: string, cwd: string = backendDir) {
   execSync(command, { stdio: 'inherit', cwd });
 }
 
-// Verifica se o Postgres está realmente pronto
-function waitForPostgres() {
-  console.log('\n> Aguardando banco de dados ficar pronto...');
+// Fase 1: Verifica se o processo Postgres dentro do container está pronto
+function waitForPgIsReady() {
+  console.log('\n> Fase 1: Aguardando pg_isready dentro do container...');
   let isReady = false;
   let attempts = 0;
-  const maxAttempts = 15; // 15 tentativas
-  const waitMs = 2000; // 2 segundos entre tentativas
+  const maxAttempts = 20;
+  const waitMs = 2000;
 
   while (!isReady && attempts < maxAttempts) {
     try {
-      // Usa pg_isready no container para verificar
       execSync('docker exec fortal_sge_db_e2e pg_isready -U admin -d fortal_sge_e2e', { stdio: 'ignore' });
       isReady = true;
-      console.log('Banco de dados pronto para conexões!');
+      console.log('  ✓ pg_isready OK');
     } catch (e) {
       attempts++;
-      console.log(`Tentativa ${attempts}/${maxAttempts}: Banco ainda não está pronto. Aguardando ${waitMs}ms...`);
-      execSync(`node -e "setTimeout(()=>{}, ${waitMs})"`); // sleep
+      console.log(`  Tentativa ${attempts}/${maxAttempts}: pg_isready não respondeu. Aguardando ${waitMs}ms...`);
+      execSync(`node -e "setTimeout(()=>{}, ${waitMs})"`);
     }
   }
 
   if (!isReady) {
-    throw new Error('Falha ao aguardar prontidão do banco de dados.');
+    throw new Error('Falha: pg_isready não respondeu dentro do prazo.');
   }
+}
+
+// Fase 2: Verifica conexão real via Prisma (host → porta mapeada)
+// pg_isready confirma que o Postgres está de pé DENTRO do container,
+// mas no Windows o bind da porta no host pode levar segundos adicionais.
+async function waitForPrismaConnection(dbUrl: string) {
+  console.log('\n> Fase 2: Testando conexão real do Prisma (host binding)...');
+  const { PrismaClient } = await import('@prisma/client');
+  const maxAttempts = 10;
+  const baseWaitMs = 1000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const prisma = new PrismaClient({ datasources: { db: { url: dbUrl } } });
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      await prisma.$disconnect();
+      console.log(`  ✓ Conexão Prisma estabelecida na tentativa ${attempt}`);
+      return;
+    } catch (e: any) {
+      await prisma.$disconnect().catch(() => {});
+      const waitMs = baseWaitMs * attempt; // backoff linear: 1s, 2s, 3s...
+      console.log(`  Tentativa ${attempt}/${maxAttempts}: Prisma ainda não conectou (${e.code ?? e.message?.slice(0, 60)}). Aguardando ${waitMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+    }
+  }
+
+  throw new Error('Falha: Prisma não conseguiu conectar ao banco dentro do prazo.');
 }
 
 async function runE2E() {
@@ -48,14 +74,17 @@ async function runE2E() {
     console.log('\n--- PASSO 1: SUBINDO CONTAINER EFÊMERO ---');
     runCommand(`docker-compose -f "${composeFile}" up -d`, path.resolve(__dirname, '../../'));
 
-    // Passo 2: Aguardar prontidão
+    // Passo 2: Aguardar prontidão (2 fases)
     console.log('\n--- PASSO 2: VERIFICANDO PRONTIDÃO ---');
-    waitForPostgres();
 
-    // Passo 3: Injetar DATABASE_URL
+    // Fase 1: processo Postgres pronto dentro do container
+    waitForPgIsReady();
+
+    // Fase 2: port-binding do host realmente disponível (resolve P1001 no Windows)
     const dbUrl = 'postgresql://admin:fortalpassword@localhost:5434/fortal_sge_e2e?schema=public';
     process.env.DATABASE_URL = dbUrl;
     console.log(`\n> Injetando DATABASE_URL=${dbUrl}`);
+    await waitForPrismaConnection(dbUrl);
 
     // Passo 4: Executar migrations
     console.log('\n--- PASSO 4: EXECUTANDO MIGRATIONS ---');

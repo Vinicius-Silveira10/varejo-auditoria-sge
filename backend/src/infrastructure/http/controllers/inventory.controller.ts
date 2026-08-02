@@ -14,12 +14,12 @@ import { GetInventoryValueReportUseCase } from '../../../core/use-cases/inventor
 import { GetInventoryAccuracyUseCase } from '../../../core/use-cases/inventory/get-inventory-accuracy.use-case';
 import { StartCountBodyDto } from '../dtos/start-count-body.dto';
 import { RegisterCountBodyDto } from '../dtos/register-count-body.dto';
+import { StartCountResponseDto } from '../dtos/start-count-response.dto';
 
 @ApiTags('Inventory')
 @ApiBearerAuth()
 @Controller('inventory')
 @UseGuards(JwtAuthGuard)
-@Roles(Role.GESTOR, Role.ADMIN)
 export class InventoryController {
   constructor(
     private readonly startCountUseCase: StartCountUseCase,
@@ -29,6 +29,7 @@ export class InventoryController {
   ) {}
 
   @Get('report/accuracy')
+  @Roles(Role.GESTOR, Role.ADMIN)
   @ApiOperation({ summary: 'Obter acuracidade do inventário' })
   @ApiResponse({
     status: 200,
@@ -42,6 +43,7 @@ export class InventoryController {
   }
 
   @Get('report/value')
+  @Roles(Role.GESTOR, Role.ADMIN)
   @ApiOperation({ summary: 'Obter relatório de valor total do estoque' })
   @ApiResponse({ status: 200, description: 'Relatório gerado com sucesso.' })
   async getInventoryValueReport() {
@@ -52,9 +54,10 @@ export class InventoryController {
   }
 
   @Post('start')
+  @Roles(Role.GESTOR, Role.ADMIN)
   @ApiOperation({ summary: 'Iniciar contagem de inventário' })
-  @ApiResponse({ status: 201, description: 'Contagem iniciada.' })
-  async startCount(@Body() body: StartCountBodyDto, @CurrentUser('userId') usuarioId: number) {
+  @ApiResponse({ status: 201, description: 'Contagem iniciada.', type: StartCountResponseDto })
+  async startCount(@Body() body: StartCountBodyDto, @CurrentUser('userId') usuarioId: number): Promise<StartCountResponseDto> {
     const { loteId } = body;
 
     const result = await this.startCountUseCase.execute({
@@ -66,6 +69,7 @@ export class InventoryController {
   }
 
   @Post('register')
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @ApiOperation({ summary: 'Registrar contagem física' })
   @ApiResponse({
     status: 201,

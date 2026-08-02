@@ -6,6 +6,7 @@ import { IMovementRepository } from './i-movement.repository';
 import { INotaFiscalRepository } from './i-nota-fiscal.repository';
 import { IAddressRepository } from './i-address.repository';
 import { IOrderRepository } from './i-order.repository';
+import { IInventoryCountRepository } from './i-inventory-count.repository';
 
 export interface UnitOfWorkContext {
   produtoRepository: IProductRepository;
@@ -16,6 +17,7 @@ export interface UnitOfWorkContext {
   notaFiscalRepository: INotaFiscalRepository;
   addressRepository: IAddressRepository;
   orderRepository: IOrderRepository;
+  inventoryCountRepository: IInventoryCountRepository;
 
   /**
    * Executa um lock pessimista na linha da tabela especificada.

@@ -15,4 +15,5 @@ export interface IBatchRepository {
     porcentagem: number;
   }>;
   findActiveWithBalance(): Promise<Lote[]>;
+  findByNumeroLote(numeroLote: string): Promise<Lote | null>;
 }

@@ -109,7 +109,8 @@ describe('Adjustment Concurrency (e2e)', () => {
         loteId,
         quantidadeDelta: 1,
         motivo: 'Teste Concorrência',
-        valorDelta: 10.0,
+        valorDelta: 10,
+        saldoTeorico: 100,
         statusAprovacao: 'PENDENTE',
         solicitanteId: adminId,
       }
@@ -151,7 +152,8 @@ describe('Adjustment Concurrency (e2e)', () => {
         loteId,
         quantidadeDelta: 1,
         motivo: 'Teste Concorrência Aprovação vs Rejeição',
-        valorDelta: 10.0,
+        valorDelta: 10,
+        saldoTeorico: 100,
         statusAprovacao: 'PENDENTE',
         solicitanteId: adminId,
       }

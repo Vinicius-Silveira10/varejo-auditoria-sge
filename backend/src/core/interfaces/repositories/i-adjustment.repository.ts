@@ -4,6 +4,7 @@ export interface AjusteEstoque {
   quantidadeDelta: number;
   motivo: string;
   valorDelta: number;
+  saldoTeorico: number;
   statusAprovacao: string; // 'PENDENTE', 'APROVADO', 'REJEITADO'
   solicitanteId: number;
   aprovadorId?: number;
@@ -23,6 +24,7 @@ export interface AjusteEstoqueWithDetails extends AjusteEstoque {
       descricao: string;
     };
   };
+  nivelAprovacaoExigido?: string;
 }
 
 export interface IAdjustmentRepository {

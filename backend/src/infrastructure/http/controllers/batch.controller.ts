@@ -8,6 +8,7 @@ import {
   UseGuards,
   Get,
   Query,
+  Param,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -24,6 +25,7 @@ import { GetExpiryAlertsUseCase } from '../../../core/use-cases/batch/get-expiry
 import { DashboardGateway } from '../../websocket/dashboard.gateway';
 import { ReceiveBatchDto } from '../dtos/receive-batch.dto';
 import { GetPendingPutawayBatchesUseCase } from '../../../core/use-cases/batch/get-pending-putaway.use-case';
+import { GetBatchByNumberUseCase } from '../../../core/use-cases/batch/get-batch-by-number.use-case';
 
 @ApiTags('Lotes')
 @ApiBearerAuth()
@@ -36,6 +38,7 @@ export class BatchController {
     private readonly getExpiryAlertsUseCase: GetExpiryAlertsUseCase,
     private readonly dashboardGateway: DashboardGateway,
     private readonly getPendingPutawayBatchesUseCase: GetPendingPutawayBatchesUseCase,
+    private readonly getBatchByNumberUseCase: GetBatchByNumberUseCase,
   ) {}
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
@@ -44,6 +47,16 @@ export class BatchController {
   @ApiResponse({ status: 200, description: 'Lotes pendentes recuperados com sucesso.' })
   async getPendingPutawayBatches() {
     const result = await this.getPendingPutawayBatchesUseCase.execute();
+    return { data: result };
+  }
+
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
+  @Get('number/:batchNumber')
+  @ApiOperation({ summary: 'Buscar um lote pelo seu número (etiqueta física)' })
+  @ApiResponse({ status: 200, description: 'Lote encontrado com sucesso.' })
+  @ApiResponse({ status: 404, description: 'Lote não encontrado.' })
+  async getBatchByNumber(@Param('batchNumber') batchNumber: string) {
+    const result = await this.getBatchByNumberUseCase.execute(batchNumber);
     return { data: result };
   }
 

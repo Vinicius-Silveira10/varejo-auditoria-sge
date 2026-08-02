@@ -19,6 +19,12 @@ export class PrismaBatchRepository implements IBatchRepository {
     });
   }
 
+  async findByNumeroLote(numeroLote: string): Promise<Lote | null> {
+    return this.prisma.lote.findFirst({
+      where: { numeroLote },
+    });
+  }
+
   async findAvailableByProduct(produtoId: number): Promise<Lote[]> {
     return this.prisma.lote.findMany({
       where: {

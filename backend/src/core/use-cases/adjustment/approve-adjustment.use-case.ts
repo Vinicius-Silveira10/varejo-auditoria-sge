@@ -4,6 +4,7 @@ import { IMovementRepository } from '../../interfaces/repositories/i-movement.re
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
 import { DomainException, NotFoundException, ConflictException } from '../../exceptions/domain.exception';
+import { calcularNivelAprovacaoExigido } from '../../domain/adjustment/adjustment.rules';
 
 export interface ApproveAdjustmentDto {
   ajusteId: number;
@@ -88,12 +89,14 @@ export class ApproveAdjustmentUseCase {
       throw new NotFoundException('Produto não encontrado.');
     }
 
-    // Validação de Alçada (RN-AJU-004)
-    const saldoTeorico = lote.quantidade;
-    const deltaPercent =
-      saldoTeorico > 0 ? ajuste.quantidadeDelta / saldoTeorico : 1;
+    // Validação de Alçada (RN-AJU-004) — delegada à função pura do domínio
+    const nivelExigido = calcularNivelAprovacaoExigido(
+      ajuste.quantidadeDelta,
+      ajuste.valorDelta,
+      ajuste.saldoTeorico,
+    );
 
-    if (Math.abs(deltaPercent) > 0.02 || Math.abs(ajuste.valorDelta) > 1000) {
+    if (nivelExigido === 'GESTOR_CONTROLADORIA') {
       if (dto.aprovadorRole !== 'ADMIN') {
         throw new DomainException(
           'RN-AJU-004: Ajustes acima de 2% ou R$ 1000 exigem aprovação de Controladoria/ADMIN.',

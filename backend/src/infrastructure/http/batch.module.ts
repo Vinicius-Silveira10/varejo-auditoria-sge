@@ -3,6 +3,7 @@ import { BatchController } from './controllers/batch.controller';
 import { ReceiveBatchUseCase } from '../../core/use-cases/batch/receive-batch.use-case';
 import { GetExpiryAlertsUseCase } from '../../core/use-cases/batch/get-expiry-alerts.use-case';
 import { GetPendingPutawayBatchesUseCase } from '../../core/use-cases/batch/get-pending-putaway.use-case';
+import { GetBatchByNumberUseCase } from '../../core/use-cases/batch/get-batch-by-number.use-case';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
 import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
@@ -48,6 +49,13 @@ import { PrismaModule } from '../database/prisma/prisma.module';
       provide: GetPendingPutawayBatchesUseCase,
       useFactory: (batchRepo: IBatchRepository) => {
         return new GetPendingPutawayBatchesUseCase(batchRepo);
+      },
+      inject: ['IBatchRepository'],
+    },
+    {
+      provide: GetBatchByNumberUseCase,
+      useFactory: (batchRepo: IBatchRepository) => {
+        return new GetBatchByNumberUseCase(batchRepo);
       },
       inject: ['IBatchRepository'],
     },

@@ -127,6 +127,7 @@ model AjusteEstoque {
   quantidadeDelta Int
   motivo          String
   valorDelta      Float    @default(0.0)
+  saldoTeorico    Int
   statusAprovacao StatusAprovacao @default(PENDENTE) // 'PENDENTE', 'APROVADO', 'REJEITADO'
   solicitanteId   Int
   aprovadorId     Int?

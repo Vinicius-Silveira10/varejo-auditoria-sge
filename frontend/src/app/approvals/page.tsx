@@ -24,6 +24,7 @@ interface Ajuste {
   solicitanteId: number;
   criadoEm: string;
   lote: Lote;
+  nivelAprovacaoExigido?: string;
 }
 
 export default function ApprovalsPage() {
@@ -139,6 +140,7 @@ export default function ApprovalsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Motivo</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Delta Qtd</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Delta R$</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alçada Exigida</th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
@@ -163,6 +165,17 @@ export default function ApprovalsPage() {
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-medium ${ajuste.valorDelta > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         R$ {Math.abs(ajuste.valorDelta).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {ajuste.nivelAprovacaoExigido === 'GESTOR_CONTROLADORIA' ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                            ADMIN / CONTROLADORIA
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            GESTOR
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                         {ajuste.statusAprovacao === 'PENDENTE' ? (

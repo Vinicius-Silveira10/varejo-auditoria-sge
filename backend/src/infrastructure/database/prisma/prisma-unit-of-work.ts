@@ -9,6 +9,7 @@ import { PrismaMovementRepository } from './repositories/prisma-movement.reposit
 import { PrismaNotaFiscalRepository } from './repositories/prisma-nota-fiscal.repository';
 import { PrismaAddressRepository } from './repositories/prisma-address.repository';
 import { PrismaOrderRepository } from './repositories/prisma-order.repository';
+import { PrismaInventoryCountRepository } from './repositories/prisma-inventory-count.repository';
 import { HashService } from '../../security/hash.service';
 
 @Injectable()
@@ -35,6 +36,7 @@ export class PrismaUnitOfWork implements IUnitOfWork {
         notaFiscalRepository: new PrismaNotaFiscalRepository(txClient),
         addressRepository: new PrismaAddressRepository(txClient),
         orderRepository: new PrismaOrderRepository(txClient),
+        inventoryCountRepository: new PrismaInventoryCountRepository(txClient),
 
         lockForUpdate: async (entidade: string, id: number) => {
           // Whitelist de tabelas para evitar SQL Injection (já que table name não pode ser parametrizado no SQL)
