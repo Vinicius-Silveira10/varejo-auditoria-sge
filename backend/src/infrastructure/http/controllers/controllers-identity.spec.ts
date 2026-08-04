@@ -10,7 +10,7 @@ import { JwtUser } from '../../security/jwt.strategy';
 const mockExecutePutawayUseCase = { execute: jest.fn() };
 const mockRequestAdjustmentUseCase = { execute: jest.fn() };
 const mockProcessAdjustmentApprovalUseCase = { execute: jest.fn() };
-const mockRecordInventoryUseCase = { execute: jest.fn() };
+const mockRecordInventoryUseCase = { execute: jest.fn().mockResolvedValue({ contagem: {} }) };
 const mockProcessInventoryDivergenceUseCase = { execute: jest.fn() };
 const mockLogMovementUseCase = { execute: jest.fn() };
 const mockPickOrderUseCase = { execute: jest.fn().mockResolvedValue({ totalMovimentacoes: 1 }) };
