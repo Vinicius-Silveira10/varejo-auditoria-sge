@@ -10,12 +10,14 @@ export default function Header({ title }: { title: string }) {
   const [canRequestAdjustment, setCanRequestAdjustment] = useState(false);
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewCount, setCanViewCount] = useState(false);
+  const [canViewDashboard, setCanViewDashboard] = useState(false);
 
   useEffect(() => {
     setCanViewApprovals(hasRole('GESTOR', 'ADMIN'));
     setCanRequestAdjustment(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
     setCanViewInventory(hasRole('GESTOR', 'ADMIN'));
     setCanViewCount(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
+    setCanViewDashboard(hasRole('GESTOR', 'ADMIN'));
   }, []);
 
   const handleLogout = () => {
@@ -47,6 +49,9 @@ export default function Header({ title }: { title: string }) {
           )}
           {canViewCount && (
             <Link href="/inventory/register" className="text-gray-600 hover:text-blue-600 font-medium">Contagem</Link>
+          )}
+          {canViewDashboard && (
+            <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 font-medium">Dashboard</Link>
           )}
         </nav>
       </div>

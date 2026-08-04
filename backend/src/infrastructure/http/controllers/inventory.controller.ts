@@ -56,8 +56,15 @@ export class InventoryController {
   @Post('start')
   @Roles(Role.GESTOR, Role.ADMIN)
   @ApiOperation({ summary: 'Iniciar contagem de inventário' })
-  @ApiResponse({ status: 201, description: 'Contagem iniciada.', type: StartCountResponseDto })
-  async startCount(@Body() body: StartCountBodyDto, @CurrentUser('userId') usuarioId: number): Promise<StartCountResponseDto> {
+  @ApiResponse({
+    status: 201,
+    description: 'Contagem iniciada.',
+    type: StartCountResponseDto,
+  })
+  async startCount(
+    @Body() body: StartCountBodyDto,
+    @CurrentUser('userId') usuarioId: number,
+  ): Promise<StartCountResponseDto> {
     const { loteId } = body;
 
     const result = await this.startCountUseCase.execute({
@@ -75,7 +82,10 @@ export class InventoryController {
     status: 201,
     description: 'Contagem registrada e divergências processadas.',
   })
-  async registerCount(@Body() body: RegisterCountBodyDto, @CurrentUser('userId') usuarioId: number) {
+  async registerCount(
+    @Body() body: RegisterCountBodyDto,
+    @CurrentUser('userId') usuarioId: number,
+  ) {
     const { contagemId, quantidadeFisica, isRecontagem } = body;
 
     const result = await this.registerCountUseCase.execute({
@@ -85,6 +95,13 @@ export class InventoryController {
       isRecontagem,
     });
 
-    return result;
+    // Contagem Cega: Ocultar quantidade teórica da resposta da API
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { quantidadeTeorica, ...contagemSegura } = result.contagem as any;
+
+    return {
+      ...result,
+      contagem: contagemSegura,
+    };
   }
 }

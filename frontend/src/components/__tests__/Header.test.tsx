@@ -55,9 +55,10 @@ describe('Header Component', () => {
     expect(screen.queryByText('Inventário')).not.toBeInTheDocument();
     expect(screen.queryByText('Relatórios')).not.toBeInTheDocument();
     expect(screen.queryByText('Aprovações')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
   });
 
-  it('shows all links for ADMIN', () => {
+  it('shows all links for ADMIN (incluindo Dashboard)', () => {
     // ADMIN has all roles
     (auth.hasRole as jest.Mock).mockReturnValue(true);
 
@@ -67,6 +68,7 @@ describe('Header Component', () => {
     expect(screen.getByText('Relatórios')).toBeInTheDocument();
     expect(screen.getByText('Contagem')).toBeInTheDocument();
     expect(screen.getByText('Aprovações')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
   it('calls logout functions and redirects on logout button click', () => {

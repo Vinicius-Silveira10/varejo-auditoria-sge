@@ -99,7 +99,7 @@ export class StartCountUseCase {
       });
 
       return {
-        id: contagem.id,
+        id: contagem.id as number,
         loteId: contagem.loteId,
         status: contagem.status,
         usuarioId: contagem.usuarioId,

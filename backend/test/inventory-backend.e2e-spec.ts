@@ -108,6 +108,7 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
     }
     // Garantir que lote não fique travado
     await prisma.lote.updateMany({ where: { id: loteId }, data: { emInventario: false } });
+    await prisma.contagemInventario.deleteMany({ where: { loteId } });
     await prisma.ajusteEstoque.deleteMany({ where: { loteId } });
     await prisma.movimentacao.deleteMany({ where: { loteId } });
     await prisma.lote.deleteMany({ where: { id: loteId } });
@@ -158,6 +159,35 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
       await prisma.contagemInventario.update({ where: { id: contagemId }, data: { status: 'CONCLUIDO' } });
     });
 
+    it('[RED→GREEN] POST /inventory/register NÃO deve vazar a quantidadeTeorica na resposta para o OPERADOR', async () => {
+      // 1. Gestor inicia a contagem para criar um contagemId real
+      const startRes = await request(app.getHttpServer())
+        .post('/inventory/start')
+        .set('Authorization', `Bearer ${gestorToken1}`)
+        .send({ loteId });
+      
+      const contagemId = startRes.body.id;
+
+      // 2. Operador registra uma contagem divergente (que vai gerar recontagem ou ajuste)
+      const registerRes = await request(app.getHttpServer())
+        .post('/inventory/register')
+        .set('Authorization', `Bearer ${operadorToken}`)
+        .send({
+          contagemId,
+          quantidadeFisica: 9999, // errada de propósito
+          isRecontagem: false,
+        });
+
+      expect(registerRes.status).toBe(201);
+      
+      // A prova do vazamento: a API não deve devolver o campo quantidadeTeorica dentro do objeto contagem
+      expect(registerRes.body.contagem).toBeDefined();
+      expect(registerRes.body.contagem.quantidadeTeorica).toBeUndefined();
+
+      // Cleanup
+      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
+    });
+
     it('[GREEN] GESTOR pode chamar POST /inventory/start (sempre deve passar)', async () => {
       const res = await request(app.getHttpServer())
         .post('/inventory/start')
@@ -179,7 +209,7 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   describe('Feature 3 — Concorrência: TOCTOU em /inventory/start', () => {
-    it('[RED] dois POST /inventory/start simultâneos para o mesmo lote produzem duas contagens (BUG)', async () => {
+    it('dois POST /inventory/start simultâneos para o mesmo lote são filtrados (um passa e o outro retorna 409 Conflict)', async () => {
       // Garantir lote limpo
       await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
 
@@ -196,7 +226,7 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
       ]);
 
       const statuses = [res1.status, res2.status];
-      console.log(`[Feature 3 RED] statuses: ${statuses}`);
+      console.log(`[Feature 3] statuses: ${statuses}`);
 
       // Registrar IDs criados para cleanup
       if (res1.status === 201) contagemIds.push(res1.body.id);
