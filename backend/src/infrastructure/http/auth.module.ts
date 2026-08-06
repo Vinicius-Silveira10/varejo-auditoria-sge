@@ -13,8 +13,12 @@ import { JwtStrategy } from '../security/jwt.strategy';
     PrismaModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKeyForDevelopment',
-      signOptions: { expiresIn: '1d' },
+      secret: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
+        return secret;
+      })(),
+      signOptions: { expiresIn: process.env.JWT_EXPIRATION ?? '1d' },
     }),
   ],
   controllers: [AuthController],

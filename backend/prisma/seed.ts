@@ -1,17 +1,27 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { resolveSeedPassword } from '../src/config/seed-password';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Iniciando o Seed do Banco de Dados para Staging...');
+  console.log('🌱 Iniciando o Seed do Banco de Dados...');
 
   // ==========================================
-  // 1. USUÁRIOS (RBAC)
+  // 1. RESOLUÇÃO DE SENHA (ADR-0008, Decisão 3)
+  // Falha explicitamente fora de desenvolvimento se SEED_ADMIN_PASSWORD ausente.
   // ==========================================
+  const { password: senhaResolvida, isDev } = resolveSeedPassword();
   const salt = await bcrypt.genSalt(10);
-  const senhaPadrao = await bcrypt.hash('SenhaSegura123!', salt);
+  const senhaPadrao = await bcrypt.hash(senhaResolvida, salt);
 
+  if (!isDev) {
+    console.log('🔒 Ambiente não-desenvolvimento: usando SEED_ADMIN_PASSWORD do ambiente.');
+  }
+
+  // ==========================================
+  // 2. USUÁRIOS (RBAC)
+  // ==========================================
   const usuarios = [
     { nome: 'Administrador SGE', email: 'admin@fortal.com.br', perfil: 'ADMIN' as const },
     { nome: 'Gestor Operacional', email: 'gestor@fortal.com.br', perfil: 'GESTOR' as const },
@@ -34,7 +44,7 @@ async function main() {
   console.log(`✅ ${usuarios.length} Usuários inseridos (ADMIN, GESTOR, OPERADOR).`);
 
   // ==========================================
-  // 2. ENDEREÇOS E ZONAS
+  // 3. ENDEREÇOS E ZONAS
   // ==========================================
   const enderecos = [
     { codigo: 'A-01-01', zona: 'A', tipoZona: 'SECO', capacidade: 1000 },
@@ -61,7 +71,7 @@ async function main() {
   console.log(`✅ ${enderecos.length} Endereços inseridos (Zonas SECO, REFRIGERADO, CONGELADO).`);
 
   // ==========================================
-  // 3. PRODUTOS (Catálogo)
+  // 4. PRODUTOS (Catálogo)
   // ==========================================
   const produtos = [
     { sku: 'SKU-SECO-001', descricao: 'Arroz Branco 5kg', categoria: 'Alimentos', perecivel: false, tipoZonaRequerida: 'SECO', curvaAbc: 'A', custoMedio: 20.50 },
