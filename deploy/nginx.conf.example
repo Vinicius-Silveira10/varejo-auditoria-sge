@@ -1,0 +1,70 @@
+# =====================================================================
+# Exemplo de Configuração Nginx (Reverse Proxy) - SGE Fortal
+# =====================================================================
+# Este arquivo serve como referência para configuração do proxy 
+# reverso em ambiente de Staging / Produção.
+# =====================================================================
+
+server {
+    listen 80;
+    server_name sge-fortal.com www.sge-fortal.com;
+
+    # Opcional: Redirecionar HTTP para HTTPS
+    # return 301 https://$host$request_uri;
+
+    # ==========================================
+    # FRONTEND (Next.js)
+    # ==========================================
+    # Assume-se que o container do frontend roda na porta 3001
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+        # Repasse de IPs reais para log correto no Next.js
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ==========================================
+    # BACKEND (NestJS API REST)
+    # ==========================================
+    # Assume-se que o container do backend roda na porta 3000
+    location /api/ {
+        # O backend não tem o prefixo /api configurado globalmente nas rotas internas,
+        # portanto precisamos usar rewrite ou passar o prefixo caso o NestJS já responda nele.
+        # No nosso caso, o NestJS não tem app.setGlobalPrefix('api'), então redirecionamos nu.
+        # Se o backend tiver /api prefix, remova a / final no proxy_pass.
+        rewrite ^/api/(.*) /$1 break;
+        
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ==========================================
+    # WEBSOCKETS (Socket.IO / Tempo Real)
+    # ==========================================
+    # IMPORTANTE: Requer Upgrade headers para funcionar.
+    location /socket.io/ {
+        proxy_pass http://localhost:3000;
+        
+        # Headers essenciais para o handshake do WebSocket
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+
+        # Evita timeouts prematuros em conexões long-polling
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}

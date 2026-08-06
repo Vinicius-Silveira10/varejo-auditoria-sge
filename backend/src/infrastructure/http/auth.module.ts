@@ -18,7 +18,7 @@ import { JwtStrategy } from '../security/jwt.strategy';
         if (!secret) throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
         return secret;
       })(),
-      signOptions: { expiresIn: process.env.JWT_EXPIRATION ?? '1d' },
+      signOptions: { expiresIn: (process.env.JWT_EXPIRATION ?? '1d') as any },
     }),
   ],
   controllers: [AuthController],

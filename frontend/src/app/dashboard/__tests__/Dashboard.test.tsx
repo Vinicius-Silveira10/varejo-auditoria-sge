@@ -1,10 +1,11 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import DashboardPage from '../page';
-import api from '@/lib/api';
+import * as api from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({
-  get: jest.fn(),
+  apiFetch: jest.fn(),
+  getToken: jest.fn(),
 }));
 
 jest.mock('@/lib/auth', () => ({
@@ -55,22 +56,22 @@ describe('DashboardPage Component', () => {
   });
 
   it('renders loading state initially', () => {
-    (api.get as jest.Mock).mockImplementation(() => new Promise(() => {}));
+    (api.apiFetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
     render(<DashboardPage />);
     expect(screen.getByText('Carregando KPIs...')).toBeInTheDocument();
   });
 
   it('renders KPIs and Realtime data after fetch', async () => {
-    (api.get as jest.Mock).mockImplementation((url: string) => {
-      if (url === '/dashboards/kpis') return Promise.resolve({ data: mockKpis });
-      if (url === '/dashboards/realtime') return Promise.resolve({ data: mockRealtime });
-      if (url === '/dashboards/accuracy') return Promise.resolve({ data: mockAccuracy });
-      if (url === '/dashboards/otif') return Promise.resolve({ data: mockOtif });
-      if (url === '/dashboards/occupation') return Promise.resolve({ data: { totalGlobal: { percentual: 75 } } });
-      if (url === '/dashboards/kpi/ruptures') return Promise.resolve({ data: mockRuptures });
-      if (url === '/dashboards/kpi/dead-stock') return Promise.resolve({ data: mockDeadStock });
-      if (url === '/dashboards/kpi/shrinkage') return Promise.resolve({ data: mockShrinkage });
-      return Promise.resolve({ data: {} });
+    (api.apiFetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/dashboards/kpis') return Promise.resolve(mockKpis);
+      if (url === '/dashboards/realtime') return Promise.resolve(mockRealtime);
+      if (url === '/dashboards/accuracy') return Promise.resolve(mockAccuracy);
+      if (url === '/dashboards/otif') return Promise.resolve(mockOtif);
+      if (url === '/dashboards/occupation') return Promise.resolve({ totalGlobal: { percentual: 75 } });
+      if (url === '/dashboards/kpi/ruptures') return Promise.resolve(mockRuptures);
+      if (url === '/dashboards/kpi/dead-stock') return Promise.resolve(mockDeadStock);
+      if (url === '/dashboards/kpi/shrinkage') return Promise.resolve(mockShrinkage);
+      return Promise.resolve({});
     });
 
     render(<DashboardPage />);
@@ -93,15 +94,15 @@ describe('DashboardPage Component', () => {
   });
 
   it('renders positive empty states when 0 rupturas or dead stock', async () => {
-    (api.get as jest.Mock).mockImplementation((url: string) => {
-      if (url === '/dashboards/realtime') return Promise.resolve({ data: mockRealtime });
-      if (url === '/dashboards/accuracy') return Promise.resolve({ data: mockAccuracy });
-      if (url === '/dashboards/otif') return Promise.resolve({ data: mockOtif });
-      if (url === '/dashboards/occupation') return Promise.resolve({ data: { totalGlobal: { percentual: 75 } } });
-      if (url === '/dashboards/kpi/ruptures') return Promise.resolve({ data: { rupturasCurvaA: 0 } });
-      if (url === '/dashboards/kpi/dead-stock') return Promise.resolve({ data: { parados90Dias: 0 } });
-      if (url === '/dashboards/kpi/shrinkage') return Promise.resolve({ data: mockShrinkage });
-      return Promise.resolve({ data: {} });
+    (api.apiFetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/dashboards/realtime') return Promise.resolve(mockRealtime);
+      if (url === '/dashboards/accuracy') return Promise.resolve(mockAccuracy);
+      if (url === '/dashboards/otif') return Promise.resolve(mockOtif);
+      if (url === '/dashboards/occupation') return Promise.resolve({ totalGlobal: { percentual: 75 } });
+      if (url === '/dashboards/kpi/ruptures') return Promise.resolve({ rupturasCurvaA: 0 });
+      if (url === '/dashboards/kpi/dead-stock') return Promise.resolve({ parados90Dias: 0 });
+      if (url === '/dashboards/kpi/shrinkage') return Promise.resolve(mockShrinkage);
+      return Promise.resolve({});
     });
 
     render(<DashboardPage />);
@@ -146,35 +147,35 @@ describe('DashboardPage Component', () => {
       const { hasRole } = require('@/lib/auth');
       hasRole.mockReturnValue(true);
 
-      (api.get as jest.Mock).mockImplementation(() => Promise.resolve({ data: {} }));
+      (api.apiFetch as jest.Mock).mockImplementation(() => Promise.resolve({}));
 
       render(<DashboardPage />);
       
       // Wait for initial fetch (1 promise per API call)
       await waitFor(() => {
-        expect(api.get).toHaveBeenCalledTimes(8); // 8 calls total for all kpis
+        expect(api.apiFetch).toHaveBeenCalledTimes(8); // 8 calls total for all kpis
       });
 
       jest.clearAllMocks();
 
       // Fast-forward 30 seconds
       jest.advanceTimersByTime(30000);
-      expect(api.get).toHaveBeenCalledTimes(8); // polling happens again
+      expect(api.apiFetch).toHaveBeenCalledTimes(8); // polling happens again
 
       // Fast-forward another 30 seconds
       jest.advanceTimersByTime(30000);
-      expect(api.get).toHaveBeenCalledTimes(16);
+      expect(api.apiFetch).toHaveBeenCalledTimes(16);
     });
 
     it('clears interval on unmount to prevent memory leaks', async () => {
       const { hasRole } = require('@/lib/auth');
       hasRole.mockReturnValue(true);
-      (api.get as jest.Mock).mockImplementation(() => Promise.resolve({ data: {} }));
+      (api.apiFetch as jest.Mock).mockImplementation(() => Promise.resolve({}));
 
       const { unmount } = render(<DashboardPage />);
 
       await waitFor(() => {
-        expect(api.get).toHaveBeenCalledTimes(8);
+        expect(api.apiFetch).toHaveBeenCalledTimes(8);
       });
       jest.clearAllMocks();
 
@@ -184,7 +185,7 @@ describe('DashboardPage Component', () => {
       jest.advanceTimersByTime(30000);
       
       // se não houver clearInterval, vai ter feito as 8 chamadas!
-      expect(api.get).not.toHaveBeenCalled();
+      expect(api.apiFetch).not.toHaveBeenCalled();
     });
   });
 });

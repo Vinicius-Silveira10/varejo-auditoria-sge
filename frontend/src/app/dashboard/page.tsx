@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
-import api from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -40,25 +40,25 @@ export default function DashboardPage() {
           deadStockRes,
           shrinkageRes
         ] = await Promise.all([
-          api.get('/dashboards/accuracy'),
-          api.get('/dashboards/otif'),
-          api.get('/dashboards/occupation'),
-          api.get('/dashboards/kpis'),
-          api.get('/dashboards/realtime'),
-          api.get('/dashboards/kpi/ruptures'),
-          api.get('/dashboards/kpi/dead-stock'),
-          api.get('/dashboards/kpi/shrinkage'),
+          apiFetch('/dashboards/accuracy'),
+          apiFetch('/dashboards/otif'),
+          apiFetch('/dashboards/occupation'),
+          apiFetch('/dashboards/kpis'),
+          apiFetch('/dashboards/realtime'),
+          apiFetch('/dashboards/kpi/ruptures'),
+          apiFetch('/dashboards/kpi/dead-stock'),
+          apiFetch('/dashboards/kpi/shrinkage'),
         ]);
 
-        setAcuracia(accuracyRes.data.acuraciaPercentual);
-        setOtif(otifRes.data.onTimePercentual);
-        setOcupacao(occRes.data.totalGlobal?.percentual);
-        setPedidosPendentes(realtimeRes.data.pickingPendente);
-        setInventarios(kpisRes.data.totalRecontagens);
+        setAcuracia(accuracyRes.acuraciaPercentual);
+        setOtif(otifRes.onTimePercentual);
+        setOcupacao(occRes.totalGlobal?.percentual);
+        setPedidosPendentes(realtimeRes.pickingPendente);
+        setInventarios(kpisRes.totalRecontagens);
         
-        setRupturas(rupturesRes.data.rupturasCurvaA);
-        setDeadStock(deadStockRes.data.parados90Dias);
-        setShrinkage(shrinkageRes.data.perdasAjustes);
+        setRupturas(rupturesRes.rupturasCurvaA);
+        setDeadStock(deadStockRes.parados90Dias);
+        setShrinkage(shrinkageRes.perdasAjustes);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
