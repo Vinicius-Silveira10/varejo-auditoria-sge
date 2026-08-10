@@ -5,7 +5,7 @@ import * as api from '@/lib/api';
 
 jest.mock('@/lib/api', () => ({
   apiFetch: jest.fn(),
-  getToken: jest.fn(),
+  getUser: jest.fn(),
 }));
 
 jest.mock('@/lib/auth', () => ({

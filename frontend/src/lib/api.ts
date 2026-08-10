@@ -1,25 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-// TODO: Technical Debt - Migrar armazenamento de token do localStorage para cookie httpOnly
-// em sprints futuras por questões de segurança (XSS).
-export const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
-  return null;
-};
-
-export const setToken = (token: string) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('token', token);
-  }
-};
-
-export const removeToken = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('token');
-  }
-};
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
 
 export const setUser = (user: any) => {
   if (typeof window !== 'undefined') {
@@ -46,12 +25,7 @@ interface FetchOptions extends RequestInit {
 }
 
 export async function apiFetch(endpoint: string, options: FetchOptions = {}) {
-  const token = getToken();
-  
   const headers = new Headers(options.headers);
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
   if (!headers.has('Content-Type') && options.body && typeof options.body === 'string') {
     headers.set('Content-Type', 'application/json');
   }
@@ -63,10 +37,13 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}) {
   }
 
   try {
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, { 
+      ...options, 
+      headers,
+      credentials: 'include' // Envia os cookies (JWT) automaticamente
+    });
     
     if (response.status === 401) {
-      removeToken();
       removeUser();
       // Emite evento customizado para o layout exibir o aviso antes de redirecionar
       if (typeof window !== 'undefined') {

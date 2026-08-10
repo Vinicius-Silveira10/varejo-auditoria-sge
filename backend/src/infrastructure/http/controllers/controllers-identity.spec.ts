@@ -43,18 +43,22 @@ describe('Controllers Identity Extractor Regression Test', () => {
 
     adjustmentController = new AdjustmentController(
       mockRequestAdjustmentUseCase as any,
-      mockProcessAdjustmentApprovalUseCase as any
+      mockProcessAdjustmentApprovalUseCase as any,
+      genericMock as any,
+      genericMock as any
     );
 
     inventoryController = new InventoryController(
+      mockProcessInventoryDivergenceUseCase as any,
       mockRecordInventoryUseCase as any,
       genericMock as any,
-      mockProcessInventoryDivergenceUseCase as any,
+      genericMock as any,
       genericMock as any
     );
     // Replace the real registerCountUseCase with mockRecordInventoryUseCase for the test
     (inventoryController as any).registerCountUseCase = mockRecordInventoryUseCase;
     (inventoryController as any).startCountUseCase = mockProcessInventoryDivergenceUseCase;
+    (inventoryController as any).dashboardGateway = genericMock;
 
     movementController = new MovementController(
       mockLogMovementUseCase as any,
@@ -67,8 +71,10 @@ describe('Controllers Identity Extractor Regression Test', () => {
       genericMock as any, 
       genericMock as any, 
       mockPickOrderUseCase as any, 
+      genericMock as any,
       genericMock as any
     );
+    (orderController as any).dashboardGateway = genericMock;
 
     batchController = new BatchController(
       mockReceiveBatchUseCase as any,

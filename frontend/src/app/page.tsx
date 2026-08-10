@@ -2,7 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, getToken } from '@/lib/api';
+import { apiFetch, getUser } from '@/lib/api';
 import { io, Socket } from 'socket.io-client';
 import { API_URL } from '@/lib/api';
 import Header from '@/components/Header';
@@ -23,13 +23,15 @@ export default function ReceiveBatchPage() {
   // Socket
   useEffect(() => {
     // Basic Auth Check
-    const token = getToken();
-    if (!token) {
+    const user = getUser();
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    const socket: Socket = io(API_URL);
+    const socket: Socket = io(API_URL, {
+      withCredentials: true
+    });
     
     socket.on('connect', () => {
       console.log('Connected to WebSocket for real-time events');

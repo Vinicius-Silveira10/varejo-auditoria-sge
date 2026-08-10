@@ -16,6 +16,8 @@ import { StartCountBodyDto } from '../dtos/start-count-body.dto';
 import { RegisterCountBodyDto } from '../dtos/register-count-body.dto';
 import { StartCountResponseDto } from '../dtos/start-count-response.dto';
 
+import { DashboardGateway } from '../../websocket/dashboard.gateway';
+
 @ApiTags('Inventory')
 @ApiBearerAuth()
 @Controller('inventory')
@@ -26,6 +28,7 @@ export class InventoryController {
     private readonly registerCountUseCase: RegisterCountUseCase,
     private readonly getInventoryValueReportUseCase: GetInventoryValueReportUseCase,
     private readonly getInventoryAccuracyUseCase: GetInventoryAccuracyUseCase,
+    private readonly dashboardGateway: DashboardGateway,
   ) {}
 
   @Get('report/accuracy')
@@ -98,6 +101,8 @@ export class InventoryController {
     // Contagem Cega: Ocultar quantidade teórica da resposta da API
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { quantidadeTeorica, ...contagemSegura } = result.contagem as any;
+
+    this.dashboardGateway.emitDashboardUpdate('count:registered', result);
 
     return {
       ...result,

@@ -26,6 +26,8 @@ import { GetOtifDashboardUseCase } from '../../../core/use-cases/order/get-otif-
 import { VerifyOrderDto } from '../dtos/verify-order.dto';
 import { CreateOrderDto } from '../dtos/create-order.dto';
 
+import { DashboardGateway } from '../../websocket/dashboard.gateway';
+
 @ApiTags('Orders')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -37,6 +39,7 @@ export class OrderController {
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly pickOrderUseCase: PickOrderUseCase,
     private readonly getOtifDashboardUseCase: GetOtifDashboardUseCase,
+    private readonly dashboardGateway: DashboardGateway,
   ) {}
 
   @Roles(Role.GESTOR, Role.ADMIN)
@@ -68,6 +71,7 @@ export class OrderController {
   async pickOrder(@Param('id') id: string, @CurrentUser('userId') operadorId: number) {
     try {
       const result = await this.pickOrderUseCase.execute(+id, operadorId);
+      this.dashboardGateway.emitDashboardUpdate('order:picked', result);
       return {
         message: `Picking do pedido #${id} realizado com sucesso. ${result.totalMovimentacoes} movimentação(ões) gerada(s).`,
         data: result,
@@ -140,6 +144,7 @@ export class OrderController {
   async closeOrder(@Param('id') id: string) {
     try {
       const result = await this.closeOrderUseCase.execute(+id);
+      this.dashboardGateway.emitDashboardUpdate('order:closed', result);
       return {
         message: 'Pedido expedido com sucesso',
         data: result,

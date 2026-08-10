@@ -63,28 +63,37 @@ async function waitForPrismaConnection(dbUrl: string) {
 }
 
 async function runE2E() {
+  const isCI = process.env.CI === 'true';
   const keepAlive = process.env.E2E_KEEP_ALIVE === 'true';
 
   try {
-    // Passo 0: Limpar resíduos de execução anterior
-    console.log('\n--- PASSO 0: LIMPANDO AMBIENTE ---');
-    runCommand(`docker-compose -f "${composeFile}" down -v`, path.resolve(__dirname, '../../'));
+    if (!isCI) {
+      // Passo 0: Limpar resíduos de execução anterior
+      console.log('\n--- PASSO 0: LIMPANDO AMBIENTE ---');
+      runCommand(`docker-compose -f "${composeFile}" down -v`, path.resolve(__dirname, '../../'));
 
-    // Passo 1: Subir container efêmero
-    console.log('\n--- PASSO 1: SUBINDO CONTAINER EFÊMERO ---');
-    runCommand(`docker-compose -f "${composeFile}" up -d`, path.resolve(__dirname, '../../'));
+      // Passo 1: Subir container efêmero
+      console.log('\n--- PASSO 1: SUBINDO CONTAINER EFÊMERO ---');
+      runCommand(`docker-compose -f "${composeFile}" up -d`, path.resolve(__dirname, '../../'));
 
-    // Passo 2: Aguardar prontidão (2 fases)
-    console.log('\n--- PASSO 2: VERIFICANDO PRONTIDÃO ---');
+      // Passo 2: Aguardar prontidão (2 fases)
+      console.log('\n--- PASSO 2: VERIFICANDO PRONTIDÃO ---');
 
-    // Fase 1: processo Postgres pronto dentro do container
-    waitForPgIsReady();
+      // Fase 1: processo Postgres pronto dentro do container
+      waitForPgIsReady();
 
-    // Fase 2: port-binding do host realmente disponível (resolve P1001 no Windows)
-    const dbUrl = 'postgresql://admin:fortalpassword@localhost:5434/fortal_sge_e2e?schema=public';
-    process.env.DATABASE_URL = dbUrl;
-    console.log(`\n> Injetando DATABASE_URL=${dbUrl}`);
-    await waitForPrismaConnection(dbUrl);
+      // Fase 2: port-binding do host realmente disponível (resolve P1001 no Windows)
+      const dbUrl = 'postgresql://admin:fortalpassword@localhost:5434/fortal_sge_e2e?schema=public';
+      process.env.DATABASE_URL = dbUrl;
+      console.log(`\n> Injetando DATABASE_URL=${dbUrl}`);
+      await waitForPrismaConnection(dbUrl);
+    } else {
+      console.log('\n--- MODO CI DETECTADO: Usando serviços do runner ---');
+      if (!process.env.DATABASE_URL) {
+         throw new Error("DATABASE_URL must be provided in CI environment");
+      }
+      await waitForPrismaConnection(process.env.DATABASE_URL);
+    }
 
     // Passo 4: Executar migrations
     console.log('\n--- PASSO 4: EXECUTANDO MIGRATIONS ---');
@@ -103,17 +112,19 @@ async function runE2E() {
     console.error('\n❌ ERRO NA EXECUÇÃO DO E2E:', error);
     process.exit(1);
   } finally {
-    console.log('\n--- TEARDOWN ---');
-    if (keepAlive) {
-      console.log('⚠️ A flag E2E_KEEP_ALIVE está ativada. Pulando destruição do container.');
-      console.log('⚠️ Lembre-se de destruir manualmente depois: docker-compose -f docker-compose.e2e.yml down -v');
-    } else {
-      console.log('Destruindo banco de dados efêmero...');
-      try {
-        runCommand(`docker-compose -f "${composeFile}" down -v`, path.resolve(__dirname, '../../'));
-        console.log('✅ Container destruído com sucesso.');
-      } catch (e) {
-        console.error('⚠️ Erro ao tentar destruir container no finally:', e);
+    if (!isCI) {
+      console.log('\n--- TEARDOWN ---');
+      if (keepAlive) {
+        console.log('⚠️ A flag E2E_KEEP_ALIVE está ativada. Pulando destruição do container.');
+        console.log('⚠️ Lembre-se de destruir manualmente depois: docker-compose -f docker-compose.e2e.yml down -v');
+      } else {
+        console.log('Destruindo banco de dados efêmero...');
+        try {
+          runCommand(`docker-compose -f "${composeFile}" down -v`, path.resolve(__dirname, '../../'));
+          console.log('✅ Container destruído com sucesso.');
+        } catch (e) {
+          console.error('⚠️ Erro ao tentar destruir container no finally:', e);
+        }
       }
     }
   }

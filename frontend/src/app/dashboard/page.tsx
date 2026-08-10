@@ -71,7 +71,23 @@ export default function DashboardPage() {
     // Documentação (ADR-DASH-002): O intervalo de 30s foi escolhido pois não onera o backend com
     // chamadas excessivas, mas garante um tempo de resposta aceitável para painéis gerenciais.
     const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    
+    // WebSocket Listening for real-time immediate updates
+    const { io } = require('socket.io-client');
+    const { API_URL } = require('@/lib/api');
+    const socket = io(API_URL, {
+      withCredentials: true
+    });
+    
+    socket.on('dashboard:update', (data: any) => {
+      console.log('Real-time event received:', data);
+      fetchData();
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, []);
 
   if (loading) {
@@ -97,49 +113,52 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col">
       <Header title="Dashboard Gerencial" />
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Visão Geral</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <DashboardCard title="Acurácia" value={`${acuracia ?? 0}%`} color="border-blue-500" />
-          <DashboardCard title="OTIF" value={`${otif ?? 0}%`} color="border-green-500" />
-          <DashboardCard title="Ocupação Global" value={`${ocupacao ?? 0}%`} color="border-orange-500" />
-          <DashboardCard title="Pedidos Pendentes" value={pedidosPendentes ?? 0} color="border-purple-500" />
-          <DashboardCard title="Recontagens" value={inventarios ?? 0} color="border-teal-500" />
-        </div>
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/40 via-white/20 to-slate-50/40 pointer-events-none" />
+        <div className="relative z-10">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-6">Visão Geral</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <DashboardCard title="Acurácia" value={`${acuracia ?? 0}%`} glowColor="bg-indigo-500" />
+            <DashboardCard title="OTIF" value={`${otif ?? 0}%`} glowColor="bg-emerald-500" />
+            <DashboardCard title="Ocupação Global" value={`${ocupacao ?? 0}%`} glowColor="bg-amber-500" />
+            <DashboardCard title="Pedidos Pendentes" value={pedidosPendentes ?? 0} glowColor="bg-violet-500" />
+            <DashboardCard title="Recontagens" value={inventarios ?? 0} glowColor="bg-teal-500" />
+          </div>
 
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 mt-8">Saúde do Estoque (Auditoria)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* TODO(UX): Trocar title nativo HTML por tooltip acessível ou ícone (ⓘ) interativo no futuro para melhor legibilidade em touch screens */}
-          <DashboardCard 
-            title="Rupturas (Curva A)" 
-            value={rupturas === 0 ? "Nenhuma ruptura de Curva A no momento" : rupturas ?? 0} 
-            color="border-red-500" 
-            subtext="Baseado em saldo contábil — não reflete disponibilidade física imediata"
-            isPositiveEmpty={rupturas === 0}
-          />
-          <DashboardCard 
-            title="Dead Stock (>90 dias)" 
-            value={deadStock === 0 ? "Estoque circulando de forma saudável" : deadStock ?? 0} 
-            color="border-yellow-500" 
-            isPositiveEmpty={deadStock === 0}
-          />
-          <DashboardCard title="Perdas Financeiras (Shrinkage)" value={formatCurrency(shrinkage)} color="border-red-700" />
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-6 mt-8">Saúde do Estoque (Auditoria)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <DashboardCard 
+              title="Rupturas (Curva A)" 
+              value={rupturas === 0 ? "Nenhuma ruptura de Curva A no momento" : rupturas ?? 0} 
+              glowColor="bg-rose-500" 
+              subtext="Baseado em saldo contábil — não reflete disponibilidade física imediata"
+              isPositiveEmpty={rupturas === 0}
+            />
+            <DashboardCard 
+              title="Dead Stock (>90 dias)" 
+              value={deadStock === 0 ? "Estoque circulando de forma saudável" : deadStock ?? 0} 
+              glowColor="bg-amber-500" 
+              isPositiveEmpty={deadStock === 0}
+            />
+            <DashboardCard title="Perdas Financeiras (Shrinkage)" value={formatCurrency(shrinkage)} glowColor="bg-rose-700" />
+          </div>
         </div>
       </main>
     </div>
   );
 }
 
-function DashboardCard({ title, value, color, subtext, isPositiveEmpty }: { title: string, value: string | number, color: string, subtext?: string, isPositiveEmpty?: boolean }) {
+function DashboardCard({ title, value, glowColor, subtext, isPositiveEmpty }: { title: string, value: string | number, glowColor: string, subtext?: string, isPositiveEmpty?: boolean }) {
   return (
-    <div className={`bg-white rounded-lg shadow p-6 border-l-4 ${color}`}>
-      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider" title={subtext}>{title}</h3>
-      <p className={`mt-2 ${isPositiveEmpty ? 'text-lg font-medium text-green-600' : 'text-3xl font-bold text-gray-900'}`}>
+    <div className="group relative overflow-hidden bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+      <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-10 ${glowColor} group-hover:scale-150 transition-transform duration-500`} />
+      <h3 className="relative z-10 text-sm font-semibold text-slate-500 uppercase tracking-wider" title={subtext}>{title}</h3>
+      <p className={`relative z-10 mt-3 ${isPositiveEmpty ? 'text-lg font-medium text-emerald-600' : 'text-3xl font-bold text-slate-900 tracking-tight'}`}>
         {value}
       </p>
-      {subtext && <p className="mt-2 text-xs text-gray-400 italic">{subtext}</p>}
+      {subtext && <p className="relative z-10 mt-2 text-xs text-slate-400 italic">{subtext}</p>}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { validateEnv } from './config/env.validation';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './infrastructure/http/filters/http-exception.filter';
 
@@ -16,6 +17,7 @@ async function bootstrap() {
 
   // CORS: origens explícitas lidas de ALLOWED_ORIGINS (separadas por vírgula).
   // NUNCA usar wildcard com credentials: true — browsers rejeitam por spec.
+  app.use(cookieParser());
   app.enableCors({
     origin: env.ALLOWED_ORIGINS,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

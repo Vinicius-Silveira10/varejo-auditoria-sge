@@ -49,8 +49,8 @@ export function validateEnv(): ValidatedEnv {
   const REDIS_PORT = Number(process.env.REDIS_PORT ?? 6379);
   const PORT = Number(process.env.PORT ?? 3000);
 
-  // ALLOWED_ORIGINS: lista separada por vírgulas. Ex.: "http://localhost:3001,https://staging.meuapp.com"
-  const originsRaw = process.env.ALLOWED_ORIGINS ?? 'http://localhost:3001';
+  // ALLOWED_ORIGINS: lista separada por vírgulas. Ex.: "http://localhost:3000,https://staging.meuapp.com"
+  const originsRaw = process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000';
   const ALLOWED_ORIGINS = originsRaw.split(',').map((o) => o.trim()).filter(Boolean);
 
   return {

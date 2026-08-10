@@ -42,17 +42,18 @@ export default function RegisterCountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/40 via-white/20 to-slate-50/40 pointer-events-none" />
       <Header title="Registrar Contagem" />
-      <main className="flex-1 p-6 md:p-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Registrar Contagem Física</h2>
+      <main className="flex-1 p-4 md:p-12 relative z-10">
+        <div className="max-w-xl mx-auto">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-slate-100 p-6 md:p-10">
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-8">Registrar Contagem Física</h2>
             
             <form onSubmit={handleRegisterCount} className="space-y-6">
               <div>
-                <label htmlFor="contagemId" className="block text-sm font-medium text-gray-700 mb-2">
-                  ID da Contagem (fornecido pelo Gestor)
+                <label htmlFor="contagemId" className="block text-sm font-semibold text-slate-700 mb-2">
+                  ID da Contagem <span className="font-normal text-slate-500">(fornecido pelo Gestor)</span>
                 </label>
                 <input
                   id="contagemId"
@@ -61,13 +62,13 @@ export default function RegisterCountPage() {
                   required
                   value={contagemId}
                   onChange={(e) => setContagemId(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
+                  className="w-full px-4 py-4 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-slate-900 bg-white/50 backdrop-blur-sm text-lg"
                   placeholder="Ex: 5"
                 />
               </div>
 
               <div>
-                <label htmlFor="quantidadeFisica" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="quantidadeFisica" className="block text-sm font-semibold text-slate-700 mb-2">
                   Quantidade Física Encontrada
                 </label>
                 <input
@@ -77,28 +78,30 @@ export default function RegisterCountPage() {
                   required
                   value={quantidadeFisica}
                   onChange={(e) => setQuantidadeFisica(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-gray-900"
+                  className="w-full px-4 py-4 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all text-slate-900 bg-white/50 backdrop-blur-sm text-lg"
                   placeholder="Ex: 495"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Registrando...
-                  </>
-                ) : (
-                  'Registrar Contagem'
-                )}
-              </button>
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Registrando...
+                    </>
+                  ) : (
+                    'Registrar Contagem'
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>

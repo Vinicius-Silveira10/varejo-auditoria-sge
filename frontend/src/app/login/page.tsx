@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiFetch, setToken, setUser } from '@/lib/api';
+import { apiFetch, setUser } from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -21,8 +21,6 @@ export default function LoginPage() {
         method: 'POST',
         body: JSON.stringify({ email, senhaBruta }),
       });
-      
-      setToken(result.accessToken);
       if (result.user) {
         setUser(result.user);
       }

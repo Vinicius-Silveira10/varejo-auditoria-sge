@@ -26,6 +26,8 @@ import { ListPendingAdjustmentsUseCase } from '../../../core/use-cases/adjustmen
 import { RequestAdjustmentBodyDto } from '../dtos/request-adjustment-body.dto';
 import { ApproveAdjustmentBodyDto } from '../dtos/approve-adjustment-body.dto';
 
+import { DashboardGateway } from '../../websocket/dashboard.gateway';
+
 @ApiTags('Ajustes de Estoque')
 @ApiBearerAuth()
 @Controller('adjustments')
@@ -35,6 +37,7 @@ export class AdjustmentController {
     private readonly requestAdjustmentUseCase: RequestAdjustmentUseCase,
     private readonly approveAdjustmentUseCase: ApproveAdjustmentUseCase,
     private readonly listPendingAdjustmentsUseCase: ListPendingAdjustmentsUseCase,
+    private readonly dashboardGateway: DashboardGateway,
   ) {}
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)

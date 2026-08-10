@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { removeToken, removeUser } from '@/lib/api';
+import { removeUser, apiFetch } from '@/lib/api';
 import { hasRole } from '@/lib/auth';
 
 export default function Header({ title }: { title: string }) {
@@ -20,42 +20,46 @@ export default function Header({ title }: { title: string }) {
     setCanViewDashboard(hasRole('GESTOR', 'ADMIN'));
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (typeof window !== 'undefined') {
-      removeToken();
+      try {
+        await apiFetch('/auth/logout', { method: 'POST' });
+      } catch (e) {
+        console.error('Logout error', e);
+      }
       removeUser();
       router.push('/login');
     }
   };
 
   return (
-    <header className="bg-white shadow-sm px-6 py-4 flex flex-col sm:flex-row justify-between items-center">
-      <div className="flex items-center gap-6">
-        <h1 className="text-xl font-bold text-gray-800">{title}</h1>
-        <nav className="flex gap-4">
-          <Link href="/" className="text-gray-600 hover:text-blue-600 font-medium">Recebimento</Link>
-          <Link href="/putaway" className="text-gray-600 hover:text-blue-600 font-medium">Armazenagem</Link>
+    <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200/50 shadow-sm px-6 py-4 flex flex-col sm:flex-row justify-between items-center transition-all duration-300">
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        <h1 className="text-xl font-bold text-slate-800 tracking-tight">{title}</h1>
+        <nav className="flex flex-wrap justify-center sm:justify-start gap-4">
+          <Link href="/" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Recebimento</Link>
+          <Link href="/putaway" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Armazenagem</Link>
           {canRequestAdjustment && (
-            <Link href="/adjustments/request" className="text-gray-600 hover:text-blue-600 font-medium">Solicitar Ajuste</Link>
+            <Link href="/adjustments/request" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Solicitar Ajuste</Link>
           )}
           {canViewApprovals && (
-            <Link href="/approvals" className="text-gray-600 hover:text-blue-600 font-medium">Aprovações</Link>
+            <Link href="/approvals" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Aprovações</Link>
           )}
           {canViewInventory && (
             <>
-              <Link href="/inventory" className="text-gray-600 hover:text-blue-600 font-medium">Inventário</Link>
-              <Link href="/inventory/reports" className="text-gray-600 hover:text-blue-600 font-medium">Relatórios</Link>
+              <Link href="/inventory" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Inventário</Link>
+              <Link href="/inventory/reports" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Relatórios</Link>
             </>
           )}
           {canViewCount && (
-            <Link href="/inventory/register" className="text-gray-600 hover:text-blue-600 font-medium">Contagem</Link>
+            <Link href="/inventory/register" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Contagem</Link>
           )}
           {canViewDashboard && (
-            <Link href="/dashboard" className="text-gray-600 hover:text-blue-600 font-medium">Dashboard</Link>
+            <Link href="/dashboard" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Dashboard</Link>
           )}
         </nav>
       </div>
-      <button onClick={handleLogout} className="text-sm text-red-600 hover:text-red-800 font-medium mt-4 sm:mt-0">Sair</button>
+      <button onClick={handleLogout} className="text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-4 py-2 rounded-lg font-medium transition-colors mt-4 sm:mt-0 shadow-sm border border-rose-100">Sair</button>
     </header>
   );
 }
