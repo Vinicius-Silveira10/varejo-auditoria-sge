@@ -39,6 +39,9 @@ jobs:
   backend-e2e:
     name: Backend E2E Tests
     runs-on: ubuntu-latest
+    # NOTA (ADR-0008/0009): O CI usa o mecanismo nativo de 'services' do GitHub Actions
+    # para subir o banco de dados efêmero, em vez de usar o docker-compose.e2e.yml (usado localmente pelo script run-e2e.ts).
+    # Esta divergência é intencional e aceitável, pois evita overhead de Docker-in-Docker e é o padrão recomendado para CI.
     services:
       postgres:
         image: postgres:15-alpine
