@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import Header from '../Header';
 import * as auth from '@/lib/auth';
 import * as api from '@/lib/api';
@@ -17,10 +17,11 @@ jest.mock('@/lib/auth', () => ({
   hasRole: jest.fn(),
 }));
 
-// Mock api module
+// Mock api module — removeToken was removed when auth migrated to httpOnly cookies (ADR-0009)
+// Logout now: apiFetch('/auth/logout', POST) + removeUser() + router.push('/login')
 jest.mock('@/lib/api', () => ({
-  removeToken: jest.fn(),
   removeUser: jest.fn(),
+  apiFetch: jest.fn().mockResolvedValue({}),
 }));
 
 describe('Header Component', () => {
@@ -71,14 +72,17 @@ describe('Header Component', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
-  it('calls logout functions and redirects on logout button click', () => {
+  it('calls logout functions and redirects on logout button click', async () => {
     (auth.hasRole as jest.Mock).mockReturnValue(true);
     render(<Header title="Test Title" />);
     
     const logoutBtn = screen.getByText('Sair');
-    fireEvent.click(logoutBtn);
+    
+    await act(async () => {
+      fireEvent.click(logoutBtn);
+    });
 
-    expect(api.removeToken).toHaveBeenCalled();
+    expect(api.apiFetch).toHaveBeenCalledWith('/auth/logout', { method: 'POST' });
     expect(api.removeUser).toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/login');
   });
