@@ -88,7 +88,7 @@ describe('validateEnv()', () => {
     expect(result.REDIS_HOST).toBe('localhost');
     expect(result.REDIS_PORT).toBe(6379);
     expect(result.PORT).toBe(3000);
-    expect(result.ALLOWED_ORIGINS).toEqual(['http://localhost:3001']);
+    expect(result.ALLOWED_ORIGINS).toEqual(['http://localhost:3000']);
   });
 
   // ============================================================

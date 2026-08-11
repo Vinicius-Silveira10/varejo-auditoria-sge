@@ -70,7 +70,7 @@ export class AuthController {
         path: '/',
       });
       
-      return { user: result.user, message: 'Login realizado com sucesso' };
+      return { user: result.user, message: 'Login realizado com sucesso', accessToken: result.accessToken };
     } catch (error: any) {
       if (
         error.message.includes('RN-USR-002') ||
