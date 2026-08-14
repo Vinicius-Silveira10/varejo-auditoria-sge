@@ -29,7 +29,7 @@ describe('Picking Deadlock Concurrency (e2e)', () => {
 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@fortal.com.br', senhaBruta: 'SenhaSegura123!' });
+      .send({ email: 'admin@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
     adminToken = loginRes.body.accessToken;
 
     const prod = await prisma.produto.create({

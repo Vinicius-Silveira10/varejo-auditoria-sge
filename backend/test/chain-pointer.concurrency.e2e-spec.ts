@@ -27,13 +27,13 @@ describe('ChainPointer Concurrency (e2e)', () => {
     // Login as ADMIN 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@fortal.com.br', senhaBruta: 'SenhaSegura123!' });
+      .send({ email: 'admin@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
     adminToken = loginRes.body.accessToken;
     
     // Login as GESTOR
     const gestorRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'gestor@fortal.com.br', senhaBruta: 'SenhaSegura123!' });
+      .send({ email: 'gestor@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
     gestorToken = gestorRes.body.accessToken;
 
     // Obter produto
