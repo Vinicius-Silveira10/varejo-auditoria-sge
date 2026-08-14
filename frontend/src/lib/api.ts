@@ -68,7 +68,16 @@ export async function apiFetch(endpoint: string, options: FetchOptions = {}) {
       throw new Error(errorData?.message || `Erro HTTP ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    
+    // Mitigação (Risco 4): Impede que o frontend armazene acidentalmente o token (Supply Chain / XSS risk)
+    // O token vaza via Payload por causa de coletores Zebra (ADR-0009). 
+    // Na Web, o tráfego é autenticado exclusivamente via cookie httpOnly.
+    if (data && typeof data === 'object' && 'accessToken' in data) {
+      delete data.accessToken;
+    }
+    
+    return data;
   } catch (error: any) {
     throw error;
   }

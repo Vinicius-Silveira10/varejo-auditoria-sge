@@ -50,6 +50,8 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
   let gateway: DashboardGateway;
   let jwtService: JwtService;
 
+  let middleware: (socket: any, next: (err?: any) => void) => void;
+
   beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret';
 
@@ -65,6 +67,12 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
 
     gateway = module.get<DashboardGateway>(DashboardGateway);
     jwtService = module.get<JwtService>(JwtService);
+
+    // Arranjo do Middleware
+    const mockServer = { use: jest.fn(), emit: jest.fn() };
+    (gateway as any).server = mockServer;
+    gateway.afterInit(mockServer as any);
+    middleware = mockServer.use.mock.calls[0]?.[0];
   });
 
   afterEach(() => {
@@ -77,29 +85,32 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
   // ──────────────────────────────────────────────────────────────────────────
 
   describe('Rejeição por ausência de token', () => {
-    it('deve desconectar cliente sem cookie, sem auth.token, sem Authorization header', () => {
+    it('deve rejeitar cliente sem cookie, sem auth.token, sem Authorization header', () => {
       const client = makeSocket({});
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
       expect(client.data.user).toBeUndefined();
     });
 
-    it('deve desconectar cliente com cookie que não contém campo "token="', () => {
+    it('deve rejeitar cliente com cookie que não contém campo "token="', () => {
       const client = makeSocket({ cookie: 'session=xyz; other=abc' });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
 
-    it('deve desconectar cliente com cookie vazio', () => {
+    it('deve rejeitar cliente com cookie vazio', () => {
       const client = makeSocket({ cookie: '' });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 
@@ -108,49 +119,50 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
   // ──────────────────────────────────────────────────────────────────────────
 
   describe('Rejeição por token inválido', () => {
-    it('deve desconectar cliente com token JWT malformado no cookie', () => {
+    it('deve rejeitar cliente com token JWT malformado no cookie', () => {
       const client = makeSocket({ cookie: 'token=isto.nao.e.um.jwt' });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
       expect(client.data.user).toBeUndefined();
     });
 
-    it('deve desconectar cliente com token JWT assinado com secret DIFERENTE (forjado)', () => {
-      // Gera token com um secret que não é o configurado
+    it('deve rejeitar cliente com token JWT assinado com secret DIFERENTE (forjado)', () => {
       const forgedToken = jwtService.sign(
         { sub: 99, email: 'hacker@evil.com', perfil: 'ADMIN' },
         { secret: 'wrong-secret' },
       );
       const client = makeSocket({ authToken: forgedToken });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
 
-    it('deve desconectar cliente com token JWT expirado', () => {
-      // Gera token com expiração no passado
+    it('deve rejeitar cliente com token JWT expirado', () => {
       const expiredToken = jwtService.sign(
         { sub: 1, email: 'test@sge.com', perfil: 'ADMIN' },
-        { secret: 'test-secret', expiresIn: '-1s' }, // já expirado
+        { secret: 'test-secret', expiresIn: '-1s' },
       );
       const client = makeSocket({ authToken: expiredToken });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
 
-    it('deve desconectar cliente com token vazio no campo auth', () => {
-      // auth.token presente mas vazio — deve cair no fluxo "sem token"
+    it('deve rejeitar cliente com token vazio no campo auth', () => {
       const client = makeSocket({});
       client.handshake.auth = { token: '' };
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(next).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 
@@ -162,10 +174,11 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
     it('deve aceitar conexão com JWT válido no cookie httpOnly', () => {
       const token = makeValidToken(jwtService);
       const client = makeSocket({ cookie: `token=${token}` });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(); // next sem erro
       expect(client.data.user).toBeDefined();
       expect(client.data.user.email).toBe('test@sge.com');
     });
@@ -173,10 +186,11 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
     it('deve aceitar conexão com JWT válido em handshake.auth.token', () => {
       const token = makeValidToken(jwtService);
       const client = makeSocket({ authToken: token });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(client.data.user).toBeDefined();
       expect(client.data.user.perfil).toBe('ADMIN');
     });
@@ -184,10 +198,11 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
     it('deve aceitar conexão com JWT válido em Authorization header', () => {
       const token = makeValidToken(jwtService);
       const client = makeSocket({ authorizationHeader: `Bearer ${token}` });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(client.data.user).toBeDefined();
     });
 
@@ -199,11 +214,11 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
         cookie: `token=${validToken}`,
         authToken: otherToken,
       });
+      const next = jest.fn();
 
-      gateway.handleConnection(client);
+      middleware(client, next);
 
-      expect(client.disconnect).not.toHaveBeenCalled();
-      // Cookie tem prioridade — deve ser o usuário do cookie
+      expect(next).toHaveBeenCalledWith();
       expect(client.data.user.email).toBe('cookie@sge.com');
     });
   });

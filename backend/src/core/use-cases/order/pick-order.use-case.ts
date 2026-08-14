@@ -165,7 +165,12 @@ export class PickOrderUseCase {
 
       for (const source of pickSources) {
         // Debitar saldo contábil do lote
-        await ctx.loteRepository.updateQuantidadeDelta(source.loteId, -source.quantidadePegar);
+        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(source.loteId, -source.quantidadePegar);
+        
+        // Mitigação Risco 1 (TOCTOU): Validação de negócio DENTRO da seção crítica (lock)
+        if (loteDb.quantidade < 0) {
+          throw new DomainException(`RN-TRV-002: Saldo insuficiente no lote ${source.loteId} (Oversell evitado no commit).`);
+        }
 
         // Registrar movimentação de EXPEDICAO com enderecoOrigemId quando aplicável
         await ctx.movementRepository.create({

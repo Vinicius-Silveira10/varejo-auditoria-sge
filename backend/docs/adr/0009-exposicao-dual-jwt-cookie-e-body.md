@@ -136,6 +136,7 @@ Set-Cookie: token=eyJ...; HttpOnly; Secure; SameSite=Strict; Path=/
 ## Consequências
 
 - **Imediatas:** Os 39 testes E2E e 267 testes unitários passam com exit code 0. O fluxo do browser continua usando exclusivamente cookie.
+- **Invalidação de Sessões Existentes:** A migração de `localStorage` para cookies `httpOnly` invalida silenciosamente quaisquer sessões ativas previamente baseadas em localStorage. **Decisão:** Isso é aceitável para o ambiente de staging, visto que não há usuários finais reais impactados.
 - **Futuras:** Integrações Android/Zebra podem usar `Authorization: Bearer <token>` extraído do body do login sem nenhuma configuração adicional no cliente.
 - **Revisão obrigatória:** Se em algum momento o frontend passar a ler `accessToken` do body de login (mesmo que para "logar no console" ou "exibir no UI"), isso deve ser tratado como violação de segurança e revertido imediatamente.
 
