@@ -40,8 +40,10 @@ jobs:
     name: Backend E2E Tests
     runs-on: ubuntu-latest
     # NOTA (ADR-0008/0009): O CI usa o mecanismo nativo de 'services' do GitHub Actions
-    # para subir o banco de dados efêmero, em vez de usar o docker-compose.e2e.yml (usado localmente pelo script run-e2e.ts).
-    # Esta divergência é intencional e aceitável, pois evita overhead de Docker-in-Docker e é o padrão recomendado para CI.
+    # para subir o banco efemero, em vez de docker-compose.e2e.yml (exclusivo do fluxo local).
+    # Esta divergencia eh intencional: evita Docker-in-Docker implicito.
+    # O script run-e2e.ts NAO eh chamado aqui — ele orquestra docker-compose e e incompativel
+    # com runners padrao do GitHub Actions que nao tem daemon Docker disponivel dessa forma.
     services:
       postgres:
         image: postgres:15-alpine
@@ -68,9 +70,14 @@ jobs:
       - name: Run Prisma Migrations
         working-directory: backend
         run: npx prisma migrate deploy
-      - name: Run E2E Tests
+      - name: Run Prisma Seed
         working-directory: backend
-        run: npm run test:e2e
+        run: npx prisma db seed
+      - name: Run E2E Tests (Jest direto, sem Docker-in-Docker)
+        working-directory: backend
+        # Invoca Jest diretamente com a config E2E — NAO usa npm run test:e2e
+        # pois aquele script chama run-e2e.ts que orquestra docker-compose internamente.
+        run: npx jest --config ./test/jest-e2e.json --runInBand --forceExit
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/sge_e2e?schema=public
       JWT_SECRET: ci-test-secret
