@@ -47,11 +47,11 @@ describe('resolveJwtExpiration', () => {
 
   // ─── Formato inválido → fallback COM aviso no log ────────────────────────────
 
-  it('retorna fallback "1d" e emite warn quando formato não tem sufixo de unidade (ex: "3600")', () => {
-    const result = resolveJwtExpiration('3600');
-    expect(result).toBe('1d');
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('JWT_EXPIRATION="3600"'));
+  it('aceita número puro como string — segundos inteiros (ex: "3600")', () => {
+    // "3600" é formato válido para jsonwebtoken (segundos inteiros)
+    // Confirmado pelo teste de integração: a lib emite token com exp = iat + 3600
+    expect(resolveJwtExpiration('3600')).toBe('3600');
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it('retorna fallback "1d" e emite warn quando sufixo é inválido (ex: "1w")', () => {

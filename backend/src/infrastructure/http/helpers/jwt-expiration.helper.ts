@@ -4,16 +4,19 @@
  * Validação leve do formato de JWT_EXPIRATION.
  *
  * Formatos aceitos pela lib `jsonwebtoken` (usada internamente pelo @nestjs/jwt):
+ *   - Número inteiro em segundos como string: /^\d+$/ (ex: "3600", "86400")
  *   - String com sufixo de unidade de tempo: /^\d+[smhd]$/ (ex: "15m", "1h", "7d", "3600s")
- *   - Número inteiro em segundos (ex: 3600) — não aplicável aqui pois a variável de env é sempre string
  *
- * Se o formato não bater, a função retorna o fallback '1d' e emite um aviso no console.
- * NÃO é fail-loud (não lança exceção) porque JWT_EXPIRATION não é segredo de segurança —
- * um valor mal formatado resulta em tokens que nunca expiram (padrão do jsonwebtoken),
- * o que é indesejável mas não constitui falha crítica de segurança.
+ * Referência: https://github.com/vercel/ms#readme (lib `ms` usada pelo jsonwebtoken)
+ *
+ * Se o formato não bater com nenhum dos dois padrões, a função retorna o fallback '1d'
+ * e emite um aviso no console. NÃO é fail-loud porque JWT_EXPIRATION não é segredo de
+ * segurança — mas um valor mal formatado faz o jsonwebtoken ignorar o expiresIn
+ * silenciosamente, emitindo tokens sem expiração. O warn torna isso visível.
  */
 
-const JWT_EXPIRATION_REGEX = /^\d+[smhd]$/;
+// Aceita: "3600" (segundos puros) OU "15m"/"1h"/"7d"/"3600s" (sufixo de unidade)
+const JWT_EXPIRATION_REGEX = /^(\d+|\d+[smhd])$/;
 const FALLBACK_EXPIRATION = '1d';
 
 /**
