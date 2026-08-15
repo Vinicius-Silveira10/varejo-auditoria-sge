@@ -50,14 +50,21 @@ COPY --from=builder --chown=nestjs:nodejs /app/package.json ./
 
 # Gerar entrypoint sem dependencia de line endings do Windows (inline via printf).
 #
-# RUNBOOK DE STAGING:
+# RUNBOOK DE STAGING / PRODUÇÃO:
 #   1. prisma migrate deploy  -- aplica migrations pendentes (idempotente, seguro re-executar)
 #   2. node dist/src/main     -- inicia o servidor NestJS
 #
-# SEED: nao roda no boot do container pois ts-node e devDependency nao disponivel
-# na imagem de producao. Para seed inicial de staging, execute UMA VEZ:
-#   docker exec -it sge_backend_staging sh
-#   => npx ts-node prisma/seed.ts   (disponivel apenas na imagem de dev, nao aqui)
+# Atenção — o fail-loud protege contra boot inseguro da API, mas NÃO impede 
+# migrations de rodarem contra qualquer banco apontado por DATABASE_URL, mesmo que
+# outras variáveis críticas estejam ausentes. Sempre confirme o DATABASE_URL antes 
+# de subir qualquer ambiente.
+#
+# SEED (Execução Segura pós-boot):
+# O seed.ts já é compilado nativamente pelo processo de build do NestJS.
+# Em produção, como o ts-node é removido, o script de seed PODE e DEVE ser 
+# executado invocando o arquivo JavaScript compilado no dist.
+# Para injetar o administrador inicial após subir o Staging, execute UMA VEZ:
+#   docker exec -it sge_backend_staging node dist/prisma/seed.js
 # Alternativa recomendada: criar uma migration SQL com os dados iniciais.
 RUN printf '#!/bin/sh\nset -e\necho "[entrypoint] Aplicando migrations..."\nnpx prisma migrate deploy\necho "[entrypoint] Iniciando NestJS..."\nexec node dist/src/main\n' > ./entrypoint.sh && chmod +x ./entrypoint.sh
 
