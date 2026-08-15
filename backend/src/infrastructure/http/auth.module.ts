@@ -7,6 +7,7 @@ import { AuthenticateUserUseCase } from '../../core/use-cases/auth/authenticate-
 import { IUserRepository } from '../../core/interfaces/repositories/i-user.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 import { JwtStrategy } from '../security/jwt.strategy';
+import { resolveJwtExpiration } from './helpers/jwt-expiration.helper';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { JwtStrategy } from '../security/jwt.strategy';
         if (!secret) throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
         return {
           secret,
-          signOptions: { expiresIn: (process.env.JWT_EXPIRATION ?? '1d') as any },
+          signOptions: { expiresIn: resolveJwtExpiration(process.env.JWT_EXPIRATION) },
         };
       },
     }),
