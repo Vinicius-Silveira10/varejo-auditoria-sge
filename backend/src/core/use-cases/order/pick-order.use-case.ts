@@ -83,6 +83,18 @@ export class PickOrderUseCase {
       for (const lote of lotesOrdenados) {
         if (quantidadeRestante <= 0) break;
 
+        // RN-EXP-007 (Parte A — segunda linha de defesa):
+        // O repositório já filtra lotes vencidos na query (Parte B),
+        // mas esta validação protege contra race conditions (TOCTOU)
+        // onde o lote pode ter vencido entre a leitura e o processamento.
+        if (lote.validade && lote.validade < new Date()) {
+          throw new DomainException(
+            `RN-EXP-007: Lote "${lote.numeroLote}" (ID ${lote.id}) está vencido ` +
+            `(validade: ${lote.validade.toISOString().split('T')[0]}). ` +
+            `Expedição de itens vencidos é proibida.`,
+          );
+        }
+
         const qtdDoLote = Math.min(lote.quantidade, quantidadeRestante);
 
         sugestoes.push({
@@ -170,6 +182,10 @@ export class PickOrderUseCase {
         // Mitigação Risco 1 (TOCTOU): Validação de negócio DENTRO da seção crítica (lock)
         if (loteDb.quantidade < 0) {
           throw new DomainException(`RN-TRV-002: Saldo insuficiente no lote ${source.loteId} (Oversell evitado no commit).`);
+        }
+
+        if (loteDb.validade && loteDb.validade < new Date()) {
+          throw new DomainException(`RN-EXP-007: Lote "${loteDb.numeroLote}" (ID ${loteDb.id}) venceu durante a operação (TOCTOU interceptado no lock). Expedição bloqueada.`);
         }
 
         // Registrar movimentação de EXPEDICAO com enderecoOrigemId quando aplicável

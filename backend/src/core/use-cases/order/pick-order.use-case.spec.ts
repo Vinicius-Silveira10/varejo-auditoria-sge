@@ -446,13 +446,115 @@ describe('PickOrderUseCase', () => {
       itens: [{ id: 12, produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
     } as any);
 
+    // RN-EXP-001: lotes COM validade devem ser priorizados antes de lotes SEM validade.
+    // Usamos datas futuras relativas (não hardcoded) para evitar que o teste quebre com o tempo.
+    const validadeMaisProxima = new Date(); validadeMaisProxima.setMonth(validadeMaisProxima.getMonth() + 1); // daqui 1 mês
+    const validadeMaisDistante = new Date(); validadeMaisDistante.setMonth(validadeMaisDistante.getMonth() + 6); // daqui 6 meses
+
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
       { id: 201, numeroLote: 'SEM-VAL', produtoId: 1, quantidade: 10, validade: null },
-      { id: 202, numeroLote: 'COM-VAL', produtoId: 1, quantidade: 10, validade: new Date('2026-08-01') },
+      { id: 202, numeroLote: 'COM-VAL-PROXIMO', produtoId: 1, quantidade: 10, validade: validadeMaisProxima },
+      { id: 203, numeroLote: 'COM-VAL-DISTANTE', produtoId: 1, quantidade: 10, validade: validadeMaisDistante },
     ] as any);
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
     const result = await buildUseCase().execute(3, 99);
-    expect(result.pickingList[0].sugestoes[0].loteId).toBe(202); // com validade primeiro
+    // O lote com validade mais próxima (ID 202) deve ser o primeiro da sugestão
+    expect(result.pickingList[0].sugestoes[0].loteId).toBe(202);
   });
+
+  // =========================================================================
+  // RN-EXP-007 — Bloqueio de picking de lote vencido
+  // Segunda linha de defesa (A) no use-case — a primeira (B) está no repositório
+  // =========================================================================
+  it('RN-EXP-007: deve rejeitar picking se o repositorio retornar um lote vencido (segunda linha de defesa)', async () => {
+    // Simula o cenário de race condition: o repositório retornou o lote antes de vencer,
+    // mas quando o use-case processa, já está vencido (validade < new Date())
+    const vencidoHa1Dia = new Date();
+    vencidoHa1Dia.setDate(vencidoHa1Dia.getDate() - 1); // ontem
+
+    mockOrderRepo.findById.mockResolvedValue({
+      id: 10,
+      status: 'PENDENTE',
+      itens: [{ id: 100, produtoId: 99, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+    } as any);
+
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      {
+        id: 999,
+        numeroLote: 'LOTE-VENCIDO',
+        produtoId: 99,
+        quantidade: 50,
+        validade: vencidoHa1Dia, // lote vencido há 1 dia
+      },
+    ] as any);
+    mockMovRepo.findAllocationByLote.mockResolvedValue([]);
+
+    await expect(buildUseCase().execute(10, 99)).rejects.toThrow('RN-EXP-007');
+  });
+
+  it('RN-EXP-007: deve permitir picking de lote SEM validade (nao perecivel)', async () => {
+    mockOrderRepo.findById.mockResolvedValue({
+      id: 11,
+      status: 'PENDENTE',
+      itens: [{ id: 101, produtoId: 98, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+    } as any);
+
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      { id: 888, numeroLote: 'LOTE-SEM-VAL', produtoId: 98, quantidade: 50, validade: null },
+    ] as any);
+    mockMovRepo.findAllocationByLote.mockResolvedValue([]);
+
+    // Lote sem validade (não perecível) NÃO deve ser bloqueado
+    await expect(buildUseCase().execute(11, 99)).resolves.toBeDefined();
+  });
+
+    it('RN-EXP-007: deve permitir picking de lote com validade futura', async () => {
+      const validadeFutura = new Date();
+      validadeFutura.setFullYear(validadeFutura.getFullYear() + 1); // daqui 1 ano
+
+      mockOrderRepo.findById.mockResolvedValue({
+        id: 12,
+        status: 'PENDENTE',
+        itens: [{ id: 102, produtoId: 97, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+      } as any);
+
+      mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+        { id: 777, numeroLote: 'LOTE-VALIDO', produtoId: 97, quantidade: 50, validade: validadeFutura },
+      ] as any);
+      mockMovRepo.findAllocationByLote.mockResolvedValue([]);
+
+      await expect(buildUseCase().execute(12, 99)).resolves.toBeDefined();
+    });
+
+    it('RN-EXP-007: TOCTOU gap - deve rejeitar picking se a validade expirar entre a leitura (find) e o lock (update)', async () => {
+      const loteAparentementeValido = new Date();
+      loteAparentementeValido.setFullYear(loteAparentementeValido.getFullYear() + 1);
+
+      mockOrderRepo.findById.mockResolvedValue({
+        id: 13,
+        status: 'PENDENTE',
+        itens: [{ id: 103, produtoId: 96, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+      } as any);
+
+      // O Repositório (leitura fora do lock) retorna o lote como válido!
+      mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+        { id: 888, numeroLote: 'LOTE-TOCTOU', produtoId: 96, quantidade: 50, validade: loteAparentementeValido },
+      ] as any);
+      mockMovRepo.findAllocationByLote.mockResolvedValue([]);
+
+      // O mock da transação (leitura atômica com o lock) simula que o tempo virou, e ele retorna o lote vencido.
+      const loteVencidoReal = new Date();
+      loteVencidoReal.setDate(loteVencidoReal.getDate() - 1); // Venceu!
+
+      mockBatchRepo.updateQuantidadeDelta.mockResolvedValue({
+        id: 888,
+        numeroLote: 'LOTE-TOCTOU',
+        quantidade: 45, // saldo positivo
+        validade: loteVencidoReal, // VENCIDO!
+      } as any);
+
+      // O UseCase deve processar a array do find normalmente, mas arremessar RN-EXP-007 de dentro do bloco do UoW
+      await expect(buildUseCase().execute(13, 99)).rejects.toThrow('venceu durante a operação (TOCTOU interceptado no lock)');
+    });
 });

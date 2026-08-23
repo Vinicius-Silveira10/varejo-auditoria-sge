@@ -8,7 +8,7 @@ export class PrismaUserRepository implements IUserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm' | 'ultimoAcesso'>,
+    data: Omit<Usuario, 'id' | 'ativo' | 'criadoEm' | 'ultimoAcesso' | 'tokenVersion'>,
   ): Promise<Usuario> {
     return this.prisma.usuario.create({
       data,
@@ -37,7 +37,20 @@ export class PrismaUserRepository implements IUserRepository {
   async disable(id: number): Promise<Usuario> {
     return this.prisma.usuario.update({
       where: { id },
-      data: { ativo: false },
+      data: { 
+        ativo: false,
+        tokenVersion: { increment: 1 }
+      },
+    });
+  }
+
+  async updatePassword(id: number, novaSenhaHash: string): Promise<Usuario> {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: {
+        senha: novaSenhaHash,
+        tokenVersion: { increment: 1 }
+      }
     });
   }
 }

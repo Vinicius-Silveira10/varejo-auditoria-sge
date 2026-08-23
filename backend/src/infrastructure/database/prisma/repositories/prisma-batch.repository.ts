@@ -32,6 +32,12 @@ export class PrismaBatchRepository implements IBatchRepository {
         quantidade: { gt: 0 },
         ativo: true,
         emInventario: false,
+        // RN-EXP-007 (Parte B): exclui lotes com validade passada na origem.
+        // Lotes sem validade (null) são não-perecíveis — sempre permitidos.
+        OR: [
+          { validade: null },
+          { validade: { gte: new Date() } },
+        ],
       },
       orderBy: { validade: 'asc' }, // FEFO base ordering
     });

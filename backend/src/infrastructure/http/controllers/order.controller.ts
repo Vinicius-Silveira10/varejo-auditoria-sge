@@ -7,6 +7,7 @@ import {
   UseGuards,
   Post,
   Get,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../security/jwt-auth.guard';
 import { CurrentUser } from '../../security/current-user.decorator';
@@ -23,6 +25,7 @@ import { VerifyOrderUseCase } from '../../../core/use-cases/order/verify-order.u
 import { CreateOrderUseCase } from '../../../core/use-cases/order/create-order.use-case';
 import { PickOrderUseCase } from '../../../core/use-cases/order/pick-order.use-case';
 import { GetOtifDashboardUseCase } from '../../../core/use-cases/order/get-otif-dashboard.use-case';
+import { ListPendingOrdersUseCase } from '../../../core/use-cases/order/list-pending-orders.use-case';
 import { VerifyOrderDto } from '../dtos/verify-order.dto';
 import { CreateOrderDto } from '../dtos/create-order.dto';
 
@@ -39,8 +42,36 @@ export class OrderController {
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly pickOrderUseCase: PickOrderUseCase,
     private readonly getOtifDashboardUseCase: GetOtifDashboardUseCase,
+    private readonly listPendingOrdersUseCase: ListPendingOrdersUseCase,
     private readonly dashboardGateway: DashboardGateway,
   ) {}
+
+  @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
+  @Get()
+  @ApiOperation({ summary: 'Listar pedidos de expedição por status (padrão: PENDENTE)' })
+  @ApiQuery({ name: 'status', required: false, enum: ['PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'], description: 'Filtro de status (default: PENDENTE)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Itens por página (default: 20)' })
+  @ApiResponse({ status: 200, description: 'Lista de pedidos retornada com sucesso.' })
+  @ApiResponse({ status: 400, description: 'Status inválido.' })
+  async listOrders(
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      return await this.listPendingOrdersUseCase.execute({
+        status,
+        page: page ? parseInt(page, 10) : undefined,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
+    } catch (error: any) {
+      if (error.message.includes('Status invalido')) {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
+  }
 
   @Roles(Role.GESTOR, Role.ADMIN)
   @Get('dashboard/otif')
@@ -53,6 +84,7 @@ export class OrderController {
     const result = await this.getOtifDashboardUseCase.execute();
     return { data: result };
   }
+
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Post(':id/pick')
@@ -79,7 +111,8 @@ export class OrderController {
     } catch (error: any) {
       if (
         error.message.includes('RN-EXP-004') ||
-        error.message.includes('RN-EXP-002')
+        error.message.includes('RN-EXP-002') ||
+        error.message.includes('RN-EXP-007')
       ) {
         throw new BadRequestException(error.message);
       }

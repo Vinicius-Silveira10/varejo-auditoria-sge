@@ -76,6 +76,27 @@ export class PrismaOrderRepository implements IOrderRepository {
     });
   }
 
+  async findByStatus(
+    status: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: PedidoExpedicaoWithItems[]; total: number }> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.pedidoExpedicao.findMany({
+        where: { status: status as any },
+        include: { itens: true },
+        orderBy: { criadoEm: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.pedidoExpedicao.count({
+        where: { status: status as any },
+      }),
+    ]);
+    return { data, total };
+  }
+
   async updateItemSeparado(
     itemPedidoId: number,
     quantidadeSeparada: number,

@@ -21,12 +21,11 @@ describe('RegisterUserUseCase', () => {
     jest.clearAllMocks();
   });
 
-  it('deve registrar um novo usuario criptografando a senha', async () => {
+  it('deve registrar um novo usuario ignorando o perfil e forçando OPERADOR', async () => {
     const request = {
       nome: 'Admin',
       email: 'admin@test.com',
       senhaBruta: '123456',
-      perfil: 'ADMIN',
     };
     const mockHashedPassword = 'hashed-password-123';
     const mockCreated = {
@@ -34,7 +33,7 @@ describe('RegisterUserUseCase', () => {
       nome: request.nome,
       email: request.email,
       senha: mockHashedPassword,
-      perfil: request.perfil as any,
+      perfil: 'OPERADOR',
       ativo: true,
       criadoEm: new Date(),
       ultimoAcesso: null,
@@ -42,7 +41,7 @@ describe('RegisterUserUseCase', () => {
 
     mockRepository.findByEmail.mockResolvedValue(null);
     (bcrypt.hash as jest.Mock).mockResolvedValue(mockHashedPassword);
-    mockRepository.create.mockResolvedValue(mockCreated);
+    mockRepository.create.mockResolvedValue(mockCreated as any);
 
     const result = await useCase.execute(request);
 
@@ -52,11 +51,12 @@ describe('RegisterUserUseCase', () => {
       nome: request.nome,
       email: request.email,
       senha: mockHashedPassword,
-      perfil: request.perfil,
+      perfil: 'OPERADOR',
     });
 
     expect((result as any).senha).toBeUndefined(); // Senha nao deve ser retornada
     expect(result.email).toBe(request.email);
+    expect((result as any).perfil).toBe('OPERADOR');
   });
 
   it('deve falhar se o email ja estiver em uso (RN-USR-001)', async () => {
@@ -64,7 +64,6 @@ describe('RegisterUserUseCase', () => {
       nome: 'Admin',
       email: 'admin@test.com',
       senhaBruta: '123456',
-      perfil: 'ADMIN',
     };
     mockRepository.findByEmail.mockResolvedValue({ id: 1 } as any);
 

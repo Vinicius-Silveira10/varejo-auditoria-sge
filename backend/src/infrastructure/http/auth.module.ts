@@ -19,7 +19,7 @@ import { resolveJwtExpiration } from './helpers/jwt-expiration.helper';
         if (!secret) throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
         return {
           secret,
-          signOptions: { expiresIn: resolveJwtExpiration(process.env.JWT_EXPIRATION) },
+          signOptions: { expiresIn: resolveJwtExpiration(process.env.JWT_EXPIRATION) as any },
         };
       },
     }),

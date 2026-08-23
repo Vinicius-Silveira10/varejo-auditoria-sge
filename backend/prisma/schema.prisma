@@ -15,6 +15,7 @@ model Usuario {
   senha    String
   perfil   Perfil // RBAC: 'ADMIN', 'GESTOR', 'OPERADOR'
   ativo    Boolean  @default(true)
+  tokenVersion Int  @default(0)
   criadoEm DateTime @default(now())
   ultimoAcesso DateTime? // Controle LGPD / Segurança: data do último login bem-sucedido (RN-REL-003)
 

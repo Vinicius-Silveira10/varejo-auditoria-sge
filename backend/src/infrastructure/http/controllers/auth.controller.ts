@@ -7,6 +7,7 @@ import {
   HttpStatus,
   UnauthorizedException,
   Res,
+  Req,
 } from '@nestjs/common';
 import * as express from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
@@ -15,6 +16,7 @@ import { AuthenticateUserUseCase } from '../../../core/use-cases/auth/authentica
 import { RegisterUserDto } from '../dtos/register-user.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { Public } from '../../security/public.decorator';
+import { Roles, Role } from '../../security/roles.decorator';
 import { Throttle } from '@nestjs/throttler';
 
 @ApiTags('Autenticação')
@@ -25,15 +27,22 @@ export class AuthController {
     private readonly authenticateUserUseCase: AuthenticateUserUseCase,
   ) {}
 
-  @Public()
+  @Roles(Role.ADMIN, Role.GESTOR)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registrar novo usuário' })
+  @ApiOperation({ summary: 'Registrar novo usuário (Apenas Admin/Gestor)' })
   @ApiBody({ type: RegisterUserDto })
   @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
   @ApiResponse({ status: 400, description: 'E-mail já cadastrado (RN-USR-001)' })
-  async register(@Body() dto: RegisterUserDto) {
+  async register(@Body() dto: RegisterUserDto, @Req() req: any) {
     try {
+      const user = req.user;
+      
+      // Se não for ADMIN, ignora o perfil enviado e força OPERADOR
+      if (user.perfil !== 'ADMIN') {
+        dto.perfil = 'OPERADOR';
+      }
+
       const result = await this.registerUserUseCase.execute(dto);
       return {
         message: 'Usuário registrado com sucesso',

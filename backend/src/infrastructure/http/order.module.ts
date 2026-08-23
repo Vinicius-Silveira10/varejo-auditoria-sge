@@ -5,6 +5,7 @@ import { VerifyOrderUseCase } from '../../core/use-cases/order/verify-order.use-
 import { CreateOrderUseCase } from '../../core/use-cases/order/create-order.use-case';
 import { PickOrderUseCase } from '../../core/use-cases/order/pick-order.use-case';
 import { GetOtifDashboardUseCase } from '../../core/use-cases/order/get-otif-dashboard.use-case';
+import { ListPendingOrdersUseCase } from '../../core/use-cases/order/list-pending-orders.use-case';
 import { IOrderRepository } from '../../core/interfaces/repositories/i-order.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
@@ -68,6 +69,13 @@ import { PrismaMovementRepository } from '../database/prisma/repositories/prisma
       provide: GetOtifDashboardUseCase,
       useFactory: (orderRepo: IOrderRepository) => {
         return new GetOtifDashboardUseCase(orderRepo);
+      },
+      inject: ['IOrderRepository'],
+    },
+    {
+      provide: ListPendingOrdersUseCase,
+      useFactory: (orderRepo: IOrderRepository) => {
+        return new ListPendingOrdersUseCase(orderRepo);
       },
       inject: ['IOrderRepository'],
     },

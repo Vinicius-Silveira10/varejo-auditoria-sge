@@ -7,7 +7,7 @@ export interface RegisterUserRequest {
   nome: string;
   email: string;
   senhaBruta: string;
-  perfil: string;
+  perfil?: string;
 }
 
 export class RegisterUserUseCase {
@@ -23,11 +23,13 @@ export class RegisterUserUseCase {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(request.senhaBruta, saltRounds);
 
+    const perfilFinal = request.perfil || 'OPERADOR';
+
     const createdUser = await this.userRepository.create({
       nome: request.nome,
       email: request.email,
       senha: hashedPassword,
-      perfil: request.perfil as Perfil,
+      perfil: perfilFinal as Perfil,
     });
 
     // Remove a senha antes de retornar para evitar vazamento

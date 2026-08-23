@@ -8,6 +8,7 @@ import { PrismaService } from './../src/infrastructure/database/prisma/prisma.se
 describe('Auth (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let adminToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -21,6 +22,14 @@ describe('Auth (e2e)', () => {
 
     // Limpar tabela de usuarios antes dos testes (apenas o que vamos usar)
     await prisma.usuario.deleteMany({ where: { email: 'vini@fortal.com' } });
+
+    const adminLoginRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'admin@fortal.com.br',
+        senhaBruta: 'SenhaSegura123!',
+      });
+    adminToken = adminLoginRes.body.accessToken;
   });
 
   afterAll(async () => {
@@ -31,11 +40,12 @@ describe('Auth (e2e)', () => {
   it('/auth/register (POST) - deve registrar um usuario', () => {
     return request(app.getHttpServer())
       .post('/auth/register')
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({
         nome: 'Vinicius SGE',
         email: 'vini@fortal.com',
         senhaBruta: 'senhaSegura123',
-        perfil: 'ADMIN',
+        perfil: 'GESTOR',
       })
       .expect(201)
       .expect((res: any) => {

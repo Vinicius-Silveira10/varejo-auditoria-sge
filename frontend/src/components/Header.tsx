@@ -11,6 +11,7 @@ export default function Header({ title }: { title: string }) {
   const [canViewInventory, setCanViewInventory] = useState(false);
   const [canViewCount, setCanViewCount] = useState(false);
   const [canViewDashboard, setCanViewDashboard] = useState(false);
+  const [canViewPicking, setCanViewPicking] = useState(false);
 
   useEffect(() => {
     setCanViewApprovals(hasRole('GESTOR', 'ADMIN'));
@@ -18,6 +19,7 @@ export default function Header({ title }: { title: string }) {
     setCanViewInventory(hasRole('GESTOR', 'ADMIN'));
     setCanViewCount(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
     setCanViewDashboard(hasRole('GESTOR', 'ADMIN'));
+    setCanViewPicking(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
   }, []);
 
   const handleLogout = async () => {
@@ -41,6 +43,9 @@ export default function Header({ title }: { title: string }) {
           <Link href="/putaway" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Armazenagem</Link>
           {canRequestAdjustment && (
             <Link href="/adjustments/request" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Solicitar Ajuste</Link>
+          )}
+          {canViewPicking && (
+            <Link href="/picking" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Picking</Link>
           )}
           {canViewApprovals && (
             <Link href="/approvals" className="text-sm text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-2 py-1 rounded-md transition-colors font-medium">Aprovações</Link>

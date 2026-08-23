@@ -27,6 +27,13 @@ export interface IOrderRepository {
 
   findAll(): Promise<PedidoExpedicaoWithItems[]>;
 
+  /** Lista pedidos por status com suporte a paginação offset (Feature Picking) */
+  findByStatus(
+    status: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: PedidoExpedicaoWithItems[]; total: number }>;
+
   /** Atualiza a quantidade separada de um item específico do pedido (GAP-002) */
   updateItemSeparado(
     itemPedidoId: number,

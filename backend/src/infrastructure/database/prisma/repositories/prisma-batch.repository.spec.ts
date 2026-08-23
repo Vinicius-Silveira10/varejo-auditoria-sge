@@ -86,6 +86,11 @@ describe('PrismaBatchRepository', () => {
         quantidade: { gt: 0 },
         ativo: true,
         emInventario: false,
+        // RN-EXP-007: exclui lotes vencidos
+        OR: [
+          { validade: null },
+          { validade: { gte: expect.any(Date) } },
+        ],
       },
       orderBy: { validade: 'asc' },
     });

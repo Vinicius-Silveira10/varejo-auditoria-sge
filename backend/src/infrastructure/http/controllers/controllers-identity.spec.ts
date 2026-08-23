@@ -67,14 +67,14 @@ describe('Controllers Identity Extractor Regression Test', () => {
     (movementController as any).dashboardGateway = genericMock;
 
     orderController = new OrderController(
-      genericMock as any, 
-      genericMock as any, 
-      genericMock as any, 
-      mockPickOrderUseCase as any, 
-      genericMock as any,
-      genericMock as any
+      genericMock as any, // CloseOrderUseCase
+      genericMock as any, // VerifyOrderUseCase
+      genericMock as any, // CreateOrderUseCase
+      mockPickOrderUseCase as any, // PickOrderUseCase
+      genericMock as any, // GetOtifDashboardUseCase
+      genericMock as any, // ListPendingOrdersUseCase (Feature 1)
+      genericMock as any  // DashboardGateway
     );
-    (orderController as any).dashboardGateway = genericMock;
 
     batchController = new BatchController(
       mockReceiveBatchUseCase as any,
