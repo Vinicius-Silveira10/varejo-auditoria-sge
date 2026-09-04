@@ -27,7 +27,7 @@ describe('Auth (e2e)', () => {
       .post('/auth/login')
       .send({
         email: 'admin@fortal.com.br',
-        senhaBruta: 'SenhaSegura123!',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
       });
     adminToken = adminLoginRes.body.accessToken;
   });

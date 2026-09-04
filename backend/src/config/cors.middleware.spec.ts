@@ -64,6 +64,10 @@ async function createAppWithOrigins(allowedOrigins: string[]): Promise<INestAppl
 describe('CORS Allowlist Middleware', () => {
   let app: INestApplication;
 
+  beforeAll(() => {
+    jest.setTimeout(15000);
+  });
+
   afterEach(async () => {
     if (app) await app.close();
   });

@@ -74,7 +74,7 @@ describe('Picking RN-EXP-007 (e2e)', () => {
     orderId = pedido.id;
 
     const email = `operador@fortal.com.br`;
-    const senhaBruta = 'SenhaSegura123!';
+    const senhaBruta = process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!';
 
     const authRes = await request(app.getHttpServer())
       .post('/auth/login')
