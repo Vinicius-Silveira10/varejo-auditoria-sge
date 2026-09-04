@@ -148,10 +148,7 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
       .set('Authorization', `Bearer ${gestorToken}`)
       .send({ loteId, quantidadeDelta: -2, motivo: 'Solicitação indevida' });
     expect(solRes.status).toBe(201);
-    
-    console.log('PASSO 4 solRes body:', solRes.body);
     const ajusteId = solRes.body.ajuste.id;
-    console.log('PASSO 4 ajusteId:', ajusteId);
 
     const rejRes = await request(app.getHttpServer())
       .post('/adjustments/approve')
@@ -160,8 +157,7 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     expect(rejRes.status).toBe(201);
 
     const ajuste = await prisma.ajusteEstoque.findUnique({ where: { id: ajusteId } });
-    console.log('PASSO 4 ajuste encontrado:', ajuste);
-    expect(ajuste?.status).toBe('REJEITADO');
+    expect(ajuste?.statusAprovacao).toBe('REJEITADO');
   });
 
   // --- PASSO 6: PICKING / EXPEDIÇÃO ---
