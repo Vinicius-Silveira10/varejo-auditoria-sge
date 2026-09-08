@@ -15,7 +15,7 @@ export default function ToastProvider({ children }: { children: React.ReactNode 
   const pathname = usePathname();
 
   const addToast = useCallback((type: 'error' | 'success' | 'info', message: string) => {
-    const id = Math.random().toString(36).substring(2, 9);
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.floor(Date.now() * 0.001)}`;
     setToasts((prev) => [...prev, { id, type, message }]);
     
     setTimeout(() => {

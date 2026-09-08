@@ -15,6 +15,7 @@ describe('VerifyOrderUseCase', () => {
       findAll: jest.fn(),
       updateItemSeparado: jest.fn(),
       countPendingPicking: jest.fn(),
+      findByStatus: jest.fn(),
     };
 
     useCase = new VerifyOrderUseCase(mockOrderRepo);

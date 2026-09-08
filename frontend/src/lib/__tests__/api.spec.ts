@@ -11,7 +11,7 @@ describe('apiFetch', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ user: { id: 1, email: 'admin@fortal.com.br' }, accessToken: 'secret-token-that-should-be-deleted' }),
+      json: async () => ({ user: { id: 1, email: 'admin@fortal.com.br' }, accessToken: process.env.TEST_ACCESS_TOKEN || 'dummy-token' }),
     }) as any;
 
     const result = await apiFetch('/auth/login', { method: 'POST' });

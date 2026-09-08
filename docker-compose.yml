@@ -6,12 +6,18 @@ services:
     container_name: fortal_sge_db
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: fortalpassword
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: fortal_sge
     ports:
       - "5433:5432"
     volumes:
       - fortal_sge_data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
     restart: unless-stopped
 
   redis:
@@ -21,6 +27,11 @@ services:
       - "6379:6379"
     volumes:
       - fortal_sge_redis:/data
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     restart: unless-stopped
 
 volumes:

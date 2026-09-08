@@ -13,6 +13,11 @@ describe('RegisterAddressUseCase', () => {
       findByCodigo: jest.fn(),
       disable: jest.fn(),
       updateOcupacao: jest.fn(),
+      findAvailableByZona: jest.fn(),
+      findAll: jest.fn(),
+      bloquear: jest.fn(),
+      desbloquear: jest.fn(),
+      aggregateOccupationByZone: jest.fn(),
     };
     useCase = new RegisterAddressUseCase(mockRepository);
   });
@@ -22,7 +27,7 @@ describe('RegisterAddressUseCase', () => {
     const mockCreated = { id: 1, ocupado: 0, ativo: true, ...request };
 
     mockRepository.findByCodigo.mockResolvedValue(null);
-    mockRepository.create.mockResolvedValue(mockCreated);
+    mockRepository.create.mockResolvedValue(mockCreated as any);
 
     const result = await useCase.execute(request);
 
@@ -41,7 +46,7 @@ describe('RegisterAddressUseCase', () => {
       ocupado: 0,
       ativo: true,
       ...request,
-    });
+    } as any);
 
     await expect(useCase.execute(request)).rejects.toBeInstanceOf(ConflictException);
     await expect(useCase.execute(request)).rejects.toThrow(

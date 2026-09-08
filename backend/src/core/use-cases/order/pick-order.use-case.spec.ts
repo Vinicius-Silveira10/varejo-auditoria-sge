@@ -432,7 +432,7 @@ describe('PickOrderUseCase', () => {
       itens: [{ id: 11, produtoId: 1, quantidadeSolicitada: 100, quantidadeSeparada: 0 }],
     } as any);
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 101, numeroLote: 'L-1', quantidade: 40, validade: new Date() },
+      { id: 101, numeroLote: 'L-1', quantidade: 40, validade: new Date(Date.now() + 86400000) },
     ] as any);
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 

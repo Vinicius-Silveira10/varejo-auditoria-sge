@@ -1,7 +1,8 @@
 const axios = require('axios');
 const io = require('socket.io-client');
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.TEST_API_URL || 'https://localhost:3000';
+const TEST_PASSWORD = process.env.TEST_PASSWORD || 'SenhaSegura123!';
 
 async function runTests() {
   console.log('--- TESTANDO SPRINT 1 ---');
@@ -11,7 +12,7 @@ async function runTests() {
   try {
     const res = await axios.post(`${BASE_URL}/auth/login`, {
       email: 'admin@fortal.com.br',
-      senhaBruta: 'SenhaSegura123!'
+      senhaBruta: TEST_PASSWORD
     });
     console.log('1. Login: OK', res.status);
     token = res.data.accessToken;
@@ -55,7 +56,7 @@ async function runTests() {
     for (let i = 0; i < 10; i++) {
       promises.push(axios.post(`${BASE_URL}/auth/login`, {
         email: 'admin@fortal.com.br',
-        senhaBruta: 'SenhaSegura123!'
+        senhaBruta: TEST_PASSWORD
       }).catch(e => e));
     }
     const results = await Promise.all(promises);

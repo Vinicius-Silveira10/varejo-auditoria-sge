@@ -18,6 +18,7 @@ describe('AuthenticateUserUseCase', () => {
       findById: jest.fn(),
       updateUltimoAcesso: jest.fn().mockResolvedValue({} as any),
       disable: jest.fn(),
+      updatePassword: jest.fn(),
     };
     mockJwtService = {
       sign: jest.fn().mockReturnValue('mocked-jwt-token'),
@@ -38,9 +39,10 @@ describe('AuthenticateUserUseCase', () => {
       ativo: true,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     };
 
-    mockRepository.findByEmail.mockResolvedValue(mockUser);
+    mockRepository.findByEmail.mockResolvedValue(mockUser as any);
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
     const result = await useCase.execute(request);
@@ -54,6 +56,7 @@ describe('AuthenticateUserUseCase', () => {
       sub: mockUser.id,
       email: mockUser.email,
       perfil: mockUser.perfil,
+      tokenVersion: mockUser.tokenVersion,
     });
     expect(result.accessToken).toBe('mocked-jwt-token');
     expect(result.user.email).toBe(request.email);
@@ -80,9 +83,10 @@ describe('AuthenticateUserUseCase', () => {
       ativo: true,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     };
 
-    mockRepository.findByEmail.mockResolvedValue(mockUser);
+    mockRepository.findByEmail.mockResolvedValue(mockUser as any);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
     await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
@@ -102,9 +106,10 @@ describe('AuthenticateUserUseCase', () => {
       ativo: false,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     };
 
-    mockRepository.findByEmail.mockResolvedValue(mockUser);
+    mockRepository.findByEmail.mockResolvedValue(mockUser as any);
 
     await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
     await expect(useCase.execute(request)).rejects.toThrow(

@@ -14,9 +14,9 @@ describe('GetRealtimeDashboardUseCase', () => {
       findByLote: jest.fn(),
       findAllOrdered: jest.fn(),
       findPaginatedOrdered: jest.fn(),
-      executeMovementTransaction: jest.fn(),
       getMovementQuantitiesByProduct: jest.fn(),
       purgeBefore: jest.fn(),
+      findAllocationByLote: jest.fn(),
     };
 
     mockOrderRepo = {
@@ -27,6 +27,7 @@ describe('GetRealtimeDashboardUseCase', () => {
       updateConferentes: jest.fn(),
       findAll: jest.fn(),
       updateItemSeparado: jest.fn(),
+      findByStatus: jest.fn(),
     };
 
     useCase = new GetRealtimeDashboardUseCase(mockMovementRepo, mockOrderRepo);

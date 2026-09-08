@@ -8,6 +8,12 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - staging_db:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 5s
@@ -18,6 +24,11 @@ services:
   redis:
     image: redis:7.2-alpine
     container_name: sge_redis_staging
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -47,6 +58,8 @@ services:
       PORT: ${PORT:-3000}
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       # Testa o endpoint /health do NestJS antes de liberar o frontend
       test: ["CMD-SHELL", "wget -qO- http://localhost:${PORT:-3000}/health || exit 1"]
@@ -64,6 +77,8 @@ services:
     container_name: sge_frontend_staging
     ports:
       - "3001:3000"
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       backend:
         # Sobe somente apos o backend passar o healthcheck GET /health

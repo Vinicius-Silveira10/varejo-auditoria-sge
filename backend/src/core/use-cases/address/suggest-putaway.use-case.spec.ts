@@ -16,6 +16,10 @@ describe('SuggestPutawayUseCase', () => {
       findAvailableByZona: jest.fn(),
       disable: jest.fn(),
       updateOcupacao: jest.fn(),
+      findAll: jest.fn(),
+      bloquear: jest.fn(),
+      desbloquear: jest.fn(),
+      aggregateOccupationByZone: jest.fn(),
     };
 
     mockProductRepo = {
@@ -23,7 +27,10 @@ describe('SuggestPutawayUseCase', () => {
       findById: jest.fn(),
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
+      updateCurvaAbc: jest.fn(),
       disable: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
 
     useCase = new SuggestPutawayUseCase(mockAddressRepo, mockProductRepo);

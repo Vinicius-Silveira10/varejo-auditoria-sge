@@ -21,6 +21,7 @@ describe('GetDeadStockKpiUseCase', () => {
       updateInventarioStatus: jest.fn(),
       countByNotaFiscal: jest.fn(),
       findExpiring: jest.fn(),
+      findByNumeroLote: jest.fn(),
     };
 
     useCase = new GetDeadStockKpiUseCase(mockBatchRepo);

@@ -12,6 +12,12 @@ describe('DisableAddressUseCase', () => {
       findById: jest.fn(),
       findByCodigo: jest.fn(),
       disable: jest.fn(),
+      updateOcupacao: jest.fn(),
+      findAvailableByZona: jest.fn(),
+      findAll: jest.fn(),
+      bloquear: jest.fn(),
+      desbloquear: jest.fn(),
+      aggregateOccupationByZone: jest.fn(),
     };
     useCase = new DisableAddressUseCase(mockRepository);
   });
@@ -21,9 +27,11 @@ describe('DisableAddressUseCase', () => {
       id: 1,
       codigo: 'A-01',
       zona: 'Seca',
+      tipoZona: 'SECO',
       capacidade: 100,
       ocupado: 0,
       ativo: true,
+      bloqueado: false,
     };
     const mockDisabled = { ...mockAddress, ativo: false };
 
@@ -50,9 +58,11 @@ describe('DisableAddressUseCase', () => {
       id: 1,
       codigo: 'A-01',
       zona: 'Seca',
+      tipoZona: 'SECO',
       capacidade: 100,
       ocupado: 0,
       ativo: false,
+      bloqueado: false,
     };
     mockRepository.findById.mockResolvedValue(mockAddress);
 
@@ -62,3 +72,4 @@ describe('DisableAddressUseCase', () => {
     );
   });
 });
+

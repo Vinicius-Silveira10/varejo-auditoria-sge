@@ -13,6 +13,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       findById: jest.fn(),
       disable: jest.fn(),
       updateUltimoAcesso: jest.fn(),
+      updatePassword: jest.fn(),
     };
     useCase = new DisableUserUseCase(mockUserRepo);
   });
@@ -27,6 +28,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       ativo: true,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     });
     mockUserRepo.disable.mockResolvedValue({
       id: 1,
@@ -37,6 +39,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       ativo: false,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     });
 
     const result = await useCase.execute(1);
@@ -64,6 +67,7 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
       ativo: false,
       criadoEm: new Date(),
       ultimoAcesso: null,
+      tokenVersion: 0,
     });
 
     await expect(useCase.execute(1)).rejects.toBeInstanceOf(DomainException);
@@ -72,3 +76,4 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
     );
   });
 });
+

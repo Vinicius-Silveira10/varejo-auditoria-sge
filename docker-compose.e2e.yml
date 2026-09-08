@@ -6,8 +6,14 @@ services:
     container_name: fortal_sge_db_e2e
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: fortalpassword
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       POSTGRES_DB: fortal_sge_e2e
     ports:
       - "5434:5432"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
     # Sem volumes montados para garantir um banco efêmero e limpo a cada execução

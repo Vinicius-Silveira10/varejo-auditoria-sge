@@ -26,6 +26,7 @@ describe('ReceiveBatchUseCase', () => {
       updateQuantidadeDelta: jest.fn(),
       getDeadStockKpi: jest.fn(),
       findExpiring: jest.fn(),
+      findByNumeroLote: jest.fn(),
     };
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([]);
     mockProductRepo = {

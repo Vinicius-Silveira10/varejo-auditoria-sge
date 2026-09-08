@@ -11,6 +11,7 @@ describe('GetShrinkageKpiUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       updateStatus: jest.fn(),
+      findPending: jest.fn(),
     };
 
     useCase = new GetShrinkageKpiUseCase(mockAdjustmentRepo);

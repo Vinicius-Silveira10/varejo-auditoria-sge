@@ -28,19 +28,33 @@ describe('ApproveAdjustmentUseCase', () => {
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
+      updateQuantidadeDelta: jest.fn(),
+      updateInventarioStatus: jest.fn(),
+      countByNotaFiscal: jest.fn(),
+      getDeadStockKpi: jest.fn(),
+      findExpiring: jest.fn(),
+      findActiveWithBalance: jest.fn(),
+      findByNumeroLote: jest.fn(),
     };
     mockProductRepo = {
       create: jest.fn(),
       findById: jest.fn(),
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
+      updateCurvaAbc: jest.fn(),
       disable: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
     mockMovementRepo = {
       create: jest.fn(),
-      findMovementsByBatch: jest.fn(),
-      findMovementsByAddress: jest.fn(),
-      findMovementsByType: jest.fn(),
+      findByLote: jest.fn(),
+      findAllOrdered: jest.fn(),
+      findPaginatedOrdered: jest.fn(),
+      countAll: jest.fn(),
+      getMovementQuantitiesByProduct: jest.fn(),
+      purgeBefore: jest.fn(),
+      findAllocationByLote: jest.fn(),
     };
     mockLockForUpdate = jest.fn();
     mockUnitOfWork = {
@@ -157,6 +171,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidadeDelta: 30,
       valorDelta: 300,
       motivo: 'Avaria',
+        saldoTeorico: 0,
     });
     mockBatchRepo.findById.mockResolvedValue({
       id: 10,
@@ -195,6 +210,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidadeDelta: 1,
       valorDelta: 2000,
       motivo: 'Roubo',
+        saldoTeorico: 0,
     });
     mockBatchRepo.findById.mockResolvedValue({
       id: 10,
@@ -225,6 +241,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidadeDelta: 2,
       valorDelta: 20,
       motivo: 'Sobra',
+        saldoTeorico: 0,
     });
 
     await expect(
@@ -290,6 +307,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidadeDelta: 50, // Ajuste positivo
       valorDelta: 500,
       motivo: 'Sobra encontrada na contagem',
+        saldoTeorico: 0,
     });
     mockBatchRepo.findById.mockResolvedValue({
       id: 10,
@@ -326,6 +344,7 @@ describe('ApproveAdjustmentUseCase', () => {
       quantidadeDelta: -20, // Ajuste negativo
       valorDelta: -200,
       motivo: 'Perda por avaria',
+        saldoTeorico: 0,
     });
     mockBatchRepo.findById.mockResolvedValue({
       id: 10,

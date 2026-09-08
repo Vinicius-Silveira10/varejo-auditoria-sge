@@ -27,9 +27,9 @@ describe('ExportAuditCsvUseCase (LGPD & Security)', () => {
       findByLote: jest.fn(),
       findPaginatedOrdered: jest.fn(),
       countAll: jest.fn(),
-      executeMovementTransaction: jest.fn(),
       getMovementQuantitiesByProduct: jest.fn(),
       purgeBefore: jest.fn(),
+      findAllocationByLote: jest.fn(),
     };
 
     mockLogCustoRepo = {

@@ -30,6 +30,7 @@ describe('GetKpisDashboardUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       updateStatus: jest.fn(),
+      findPending: jest.fn(),
     };
 
     useCase = new GetKpisDashboardUseCase(mockCountRepo, mockAdjustmentRepo);

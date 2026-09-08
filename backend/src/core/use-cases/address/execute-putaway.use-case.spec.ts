@@ -196,7 +196,7 @@ describe('ExecutePutawayUseCase', () => {
         },
         lockForUpdate: jest.fn(),
       };
-      return callback(ctx);
+      return callback(ctx as any);
     });
 
     await expect(

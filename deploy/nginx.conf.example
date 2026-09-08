@@ -10,7 +10,7 @@ server {
     server_name sge-fortal.com www.sge-fortal.com;
 
     # Opcional: Redirecionar HTTP para HTTPS
-    # return 301 https://$host$request_uri;
+    # return 301 https://$server_name$request_uri;
 
     # ==========================================
     # FRONTEND (Next.js)
@@ -21,7 +21,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
+        proxy_set_header Host $server_name;
         proxy_cache_bypass $http_upgrade;
 
         # Repasse de IPs reais para log correto no Next.js
@@ -43,7 +43,7 @@ server {
         
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_set_header Host $server_name;
 
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -61,7 +61,7 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
+        proxy_set_header Host $server_name;
 
         # Evita timeouts prematuros em conexões long-polling
         proxy_read_timeout 86400s;

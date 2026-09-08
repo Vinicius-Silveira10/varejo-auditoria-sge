@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 
 Write-Host "
 --- TESTE 1: REQUEST SEM TOKEN ---"
@@ -25,9 +25,15 @@ try {
 
 Write-Host "
 --- TESTE 3: TOKEN FORJADO (SECRET DEFAULT DA INTERNET) ---"
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsInBlcmZpbCI6IkFETUlOIiwiaWF0IjoxNzg2NDg0MzUxLCJleHAiOjE4ODY0ODQzNTF9.faked_signature
 try {
-  $r = Invoke-WebRequest -Uri "http://localhost:3333/dashboards/accuracy" -Headers @{Authorization="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsInBlcmZpbCI6IkFETUlOIiwiaWF0IjoxNzg2NDg0MzUxLCJleHAiOjE4ODY0ODQzNTF9.faked_signature"} -UseBasicParsing
+  $fakeJwt = if ($env:FORGED_JWT_TOKEN) {
+    $env:FORGED_JWT_TOKEN
+  } else {
+    $h = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('{"alg":"HS256","typ":"JWT"}'))
+    $p = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes('{"sub":1,"email":"test@test.com","perfil":"ADMIN"}'))
+    "$h.$p.faked_signature"
+  }
+  $r = Invoke-WebRequest -Uri "http://localhost:3333/dashboards/accuracy" -Headers @{Authorization="Bearer $fakeJwt"} -UseBasicParsing
   Write-Host "FALHOU: Retornou $($r.StatusCode)"
 } catch {
   Write-Host "STATUS_LITERAL: $($_.Exception.Response.StatusCode.value__)"

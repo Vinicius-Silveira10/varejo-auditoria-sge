@@ -15,19 +15,31 @@ describe('RequestAdjustmentUseCase', () => {
       create: jest.fn(),
       findById: jest.fn(),
       updateStatus: jest.fn(),
+      sumFinancialLosses: jest.fn(),
+      findPending: jest.fn(),
     };
     mockBatchRepo = {
       create: jest.fn(),
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
+      updateQuantidadeDelta: jest.fn(),
+      updateInventarioStatus: jest.fn(),
+      countByNotaFiscal: jest.fn(),
+      getDeadStockKpi: jest.fn(),
+      findExpiring: jest.fn(),
+      findActiveWithBalance: jest.fn(),
+      findByNumeroLote: jest.fn(),
     };
     mockProductRepo = {
       create: jest.fn(),
       findById: jest.fn(),
       findBySku: jest.fn(),
       updateCustoMedio: jest.fn(),
+      updateCurvaAbc: jest.fn(),
       disable: jest.fn(),
+      findAll: jest.fn(),
+      getRupturesKpi: jest.fn(),
     };
     useCase = new RequestAdjustmentUseCase(
       mockAdjRepo,

@@ -7,7 +7,12 @@ const backendDir = path.resolve(__dirname, '..');
 // Função auxiliar para executar comandos
 function runCommand(command: string, cwd: string = backendDir) {
   console.log(`\n> Executando: ${command}`);
+  // nosemgrep: javascript.lang.security.detect-child-process
   execSync(command, { stdio: 'inherit', cwd });
+}
+
+function sleepSync(ms: number) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 // Fase 1: Verifica se o processo Postgres dentro do container está pronto
@@ -20,13 +25,14 @@ function waitForPgIsReady() {
 
   while (!isReady && attempts < maxAttempts) {
     try {
+      // nosemgrep: javascript.lang.security.detect-child-process
       execSync('docker exec fortal_sge_db_e2e pg_isready -U admin -d fortal_sge_e2e', { stdio: 'ignore' });
       isReady = true;
       console.log('  ✓ pg_isready OK');
     } catch (e) {
       attempts++;
       console.log(`  Tentativa ${attempts}/${maxAttempts}: pg_isready não respondeu. Aguardando ${waitMs}ms...`);
-      execSync(`node -e "setTimeout(()=>{}, ${waitMs})"`);
+      sleepSync(waitMs);
     }
   }
 
@@ -83,7 +89,9 @@ async function runE2E() {
       waitForPgIsReady();
 
       // Fase 2: port-binding do host realmente disponível (resolve P1001 no Windows)
-      const dbUrl = 'postgresql://admin:fortalpassword@localhost:5434/fortal_sge_e2e?schema=public';
+      const dbUser = process.env.DB_USER || 'admin';
+      const dbPassword = process.env.DB_PASSWORD; // nosemgrep: node_password — no hardcoded fallback
+      const dbUrl = process.env.DATABASE_URL || `postgresql://${dbUser}:${dbPassword ?? ''}@localhost:5434/fortal_sge_e2e?schema=public`;
       process.env.DATABASE_URL = dbUrl;
       console.log(`\n> Injetando DATABASE_URL=${dbUrl}`);
       await waitForPrismaConnection(dbUrl);

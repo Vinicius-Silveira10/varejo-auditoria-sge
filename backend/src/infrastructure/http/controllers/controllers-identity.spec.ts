@@ -80,6 +80,7 @@ describe('Controllers Identity Extractor Regression Test', () => {
       mockReceiveBatchUseCase as any,
       genericMock as any,
       genericMock as any,
+      genericMock as any,
       genericMock as any
     );
   });

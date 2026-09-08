@@ -19,6 +19,15 @@ export interface AuthenticateUserResponse {
 }
 
 export class AuthenticateUserUseCase {
+  private static cachedDummyHash: string | null = null;
+
+  private static getFallbackDummyHash(): string {
+    if (!this.cachedDummyHash) {
+      this.cachedDummyHash = bcrypt.hashSync('dummy_timing_salt', 10);
+    }
+    return this.cachedDummyHash;
+  }
+
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly jwtService: JwtService,
@@ -29,11 +38,11 @@ export class AuthenticateUserUseCase {
   ): Promise<AuthenticateUserResponse> {
     const user = await this.userRepository.findByEmail(request.email);
 
-    // Hash fixo pré-computado com cost=10 para igualar o tempo de resposta (Timing Attack protection)
-    const HASH_DUMMY_FIXO = '$2b$10$qN0q.xa3mDImA5HSgWrEwO5ZczrJfT.wGCutr7jGgUwf3Y8VZChhG';
+    // Hash dummy para proteção de Timing Attack sem expor hash hardcoded no código
+    const dummyHash = process.env.AUTH_DUMMY_HASH || AuthenticateUserUseCase.getFallbackDummyHash();
 
     if (!user) {
-      await bcrypt.compare(request.senhaBruta, HASH_DUMMY_FIXO);
+      await bcrypt.compare(request.senhaBruta, dummyHash);
       throw new DomainException('RN-USR-002: Credenciais inválidas');
     }
 
