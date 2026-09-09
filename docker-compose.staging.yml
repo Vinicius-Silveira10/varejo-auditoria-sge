@@ -60,6 +60,9 @@ services:
       - "${PORT:-3000}:${PORT:-3000}"
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     healthcheck:
       # Testa o endpoint /health do NestJS antes de liberar o frontend
       test: ["CMD-SHELL", "wget -qO- http://localhost:${PORT:-3000}/health || exit 1"]
@@ -79,6 +82,10 @@ services:
       - "3001:3000"
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
     depends_on:
       backend:
         # Sobe somente apos o backend passar o healthcheck GET /health
