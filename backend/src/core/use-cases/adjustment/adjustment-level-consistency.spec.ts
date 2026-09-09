@@ -117,7 +117,7 @@ function buildUseCase() {
   const mockAdjRepo: jest.Mocked<IAdjustmentRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
-    updateStatus: jest.fn().mockImplementation((id, status) => ({ id, statusAprovacao: status })),
+    updateStatus: jest.fn().mockImplementation((id, status, aprovadorId) => ({ id, statusAprovacao: status, aprovadorId })),
     sumFinancialLosses: jest.fn(),
     findPending: jest.fn(),
   };

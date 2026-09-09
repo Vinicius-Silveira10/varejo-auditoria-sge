@@ -127,7 +127,7 @@ describe('RegisterMovementUseCase', () => {
         tipo: 'ENTRADA',
       }),
     );
-    expect(result.id).toBeDefined();
+    expect(result.id).toBe(100);
   });
 
   it('deve registrar uma SAIDA e decrementar a quantidade do lote', async () => {

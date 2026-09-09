@@ -70,16 +70,14 @@ describe('ExecutePutawayUseCase', () => {
       tipoZonaRequerida: 'SECO',
     } as any);
 
-    await expect(
-      useCase.execute({
-        loteId: 1,
-        enderecoDestinoId: 5,
-        quantidade: 40,
-        usuarioId: 99,
-      }),
-    ).resolves.toBeDefined();
+    const result = await useCase.execute({
+      loteId: 1,
+      enderecoDestinoId: 5,
+      quantidade: 40,
+      usuarioId: 99,
+    });
 
-    // Verifica chamada do unit of work
+    expect(result).toEqual({ id: 999, tipo: 'ARMAZENAGEM' });
     expect(unitOfWork.execute).toHaveBeenCalled();
     expect(addressRepo.updateOcupacao).toHaveBeenCalledWith(5, 50); // 10 + 40
   });

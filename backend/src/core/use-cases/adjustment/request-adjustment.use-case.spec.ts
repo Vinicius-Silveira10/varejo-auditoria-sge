@@ -218,7 +218,17 @@ describe('RequestAdjustmentUseCase', () => {
       solicitanteId: 2,
     });
 
-    expect(result.ajuste).toBeDefined();
+    expect(mockAdjRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        loteId: 1,
+        quantidadeDelta: 1,
+        motivo: 'Ajuste',
+        solicitanteId: 2,
+        statusAprovacao: 'PENDENTE',
+      }),
+    );
+    expect(result.ajuste).toEqual({ id: 1 });
+    expect(result.nivelAprovacaoExigido).toBe('GESTOR_CONTROLADORIA'); // 1/10 = 10% > 2% (RN-AJU-004)
   });
 });
 
