@@ -506,7 +506,12 @@ describe('PickOrderUseCase', () => {
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
     // Lote sem validade (não perecível) NÃO deve ser bloqueado
-    await expect(buildUseCase().execute(11, 99)).resolves.toBeDefined();
+    // Verificar também que o picking efetivamente registrou a movimentação de SAIDA
+    const result = await buildUseCase().execute(11, 99);
+    expect(result).toBeDefined();
+    expect(mockMovRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'EXPEDICAO', loteId: 888 }),
+    );
   });
 
     it('RN-EXP-007: deve permitir picking de lote com validade futura', async () => {
@@ -524,7 +529,12 @@ describe('PickOrderUseCase', () => {
       ] as any);
       mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
-      await expect(buildUseCase().execute(12, 99)).resolves.toBeDefined();
+      // Verificar também que o picking efetivamente registrou a movimentação de SAIDA
+      const result = await buildUseCase().execute(12, 99);
+      expect(result).toBeDefined();
+      expect(mockMovRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ tipo: 'EXPEDICAO', loteId: 777 }),
+      );
     });
 
     it('RN-EXP-007: TOCTOU gap - deve rejeitar picking se a validade expirar entre a leitura (find) e o lock (update)', async () => {

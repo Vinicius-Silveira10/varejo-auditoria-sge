@@ -220,9 +220,10 @@ describe('TAREFA 4.3 — Consistência Display vs. Enforcement por cenários', (
           ).rejects.toThrow(DomainException);
         } else {
           // nivelEsperado === 'GESTOR' — um GESTOR pode aprovar sem bloqueio
-          await expect(
-            useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true }),
-          ).resolves.toBeDefined();
+          // Não basta não lançar: verificar que updateStatus foi chamado com APROVADO
+          const result = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
+          expect(result).toBeDefined();
+          expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1);
         }
       });
 
@@ -315,8 +316,9 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
     } as any);
 
     // Com a função retornando GESTOR, GESTOR DEVE conseguir aprovar
-    await expect(
-      useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true }),
-    ).resolves.toBeDefined();
+    // Não basta não lançar: verificar que updateStatus foi chamado com APROVADO
+    const result = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
+    expect(result).toBeDefined();
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1);
   });
 });

@@ -400,15 +400,16 @@ describe('ApproveAdjustmentUseCase', () => {
       } as any);
 
       // c. Aprovar o ajuste com um aprovador GESTOR comum.
-      // d. Confirmar que a aprovação é BEM-SUCEDIDA.
-      await expect(
-        useCase.execute({
-          ajusteId: 1,
-          aprovadorId: 3,
-          aprovadorRole: 'GESTOR',
-          aprovado: true,
-        }),
-      ).resolves.toBeDefined();
+      // d. Confirmar que a aprovação é BEM-SUCEDIDA e que o repositório foi
+      //    chamado com o status correto (não apenas que "não lançou erro").
+      const result = await useCase.execute({
+        ajusteId: 1,
+        aprovadorId: 3,
+        aprovadorRole: 'GESTOR',
+        aprovado: true,
+      });
+      expect(result).toBeDefined();
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3);
     });
 
     it('Cenário inverso: deve EXIGIR ADMIN mesmo que o lote atual tenha sido reabastecido para saldo alto', async () => {
