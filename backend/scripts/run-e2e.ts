@@ -1,8 +1,13 @@
 import { execSync } from 'child_process';
 import * as path from 'path';
+import * as crypto from 'crypto';
+import * as dotenv from 'dotenv';
 
 const composeFile = path.resolve(__dirname, '../../docker-compose.e2e.yml');
 const backendDir = path.resolve(__dirname, '..');
+
+// Carrega variáveis do backend/.env (se existir)
+dotenv.config({ path: path.resolve(backendDir, '.env') });
 
 // Função auxiliar para executar comandos
 function runCommand(command: string, cwd: string = backendDir) {
@@ -74,6 +79,11 @@ async function runE2E() {
 
   try {
     if (!isCI) {
+      // Garante que DB_PASSWORD esteja definido no ambiente antes da interpolação do docker-compose
+      if (!process.env.DB_PASSWORD) {
+        process.env.DB_PASSWORD = crypto.randomBytes(16).toString('hex');
+      }
+
       // Passo 0: Limpar resíduos de execução anterior
       console.log('\n--- PASSO 0: LIMPANDO AMBIENTE ---');
       runCommand(`docker-compose -f "${composeFile}" down -v`, path.resolve(__dirname, '../../'));
@@ -90,8 +100,9 @@ async function runE2E() {
 
       // Fase 2: port-binding do host realmente disponível (resolve P1001 no Windows)
       const dbUser = process.env.DB_USER || 'admin';
-      const dbPassword = process.env.DB_PASSWORD; // nosemgrep: node_password — no hardcoded fallback
-      const dbUrl = process.env.DATABASE_URL || `postgresql://${dbUser}:${dbPassword ?? ''}@localhost:5434/fortal_sge_e2e?schema=public`;
+      const dbPassword = process.env.DB_PASSWORD;
+      // ADR 0005: Localmente sempre usa o banco efêmero na porta 5434 isolado do banco de desenvolvimento (5433)
+      const dbUrl = `postgresql://${dbUser}:${dbPassword}@localhost:5434/fortal_sge_e2e?schema=public`;
       process.env.DATABASE_URL = dbUrl;
       console.log(`\n> Injetando DATABASE_URL=${dbUrl}`);
       await waitForPrismaConnection(dbUrl);
