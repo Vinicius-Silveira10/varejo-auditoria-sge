@@ -29,9 +29,6 @@ Thumbs.db
 Escopo_Projeto/
 
 # Agentes e IAs
-.agents/
-*.md
-skills-lock.json
 .claude/
 
 # Worktrees
