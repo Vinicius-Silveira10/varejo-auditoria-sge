@@ -14,8 +14,8 @@
 interface ValidatedEnv {
   DATABASE_URL: string;
   JWT_SECRET: string;
-  REDIS_HOST: string;
-  REDIS_PORT: number;
+  REDIS_HOST?: string;
+  REDIS_PORT?: number;
   PORT: number;
   ALLOWED_ORIGINS: string[];
 }
