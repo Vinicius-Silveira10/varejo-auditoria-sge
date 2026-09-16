@@ -31,6 +31,9 @@ Escopo_Projeto/
 # Agentes e IAs
 .agents/
 *.md
-.agents/
 skills-lock.json
 .claude/
+
+# Worktrees
+.worktrees/
+worktrees/
