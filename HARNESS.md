@@ -1,4 +1,4 @@
-# HARNESS.md — Engenharia de harness do time Supermercado
+# HARNESS.md — Engenharia de harness do time de agentes
 
 `Agente = Modelo + Harness`. O modelo (Gemini 3.x, no seu caso) fornece
 raciocínio. O harness é tudo que transforma esse raciocínio em comportamento
