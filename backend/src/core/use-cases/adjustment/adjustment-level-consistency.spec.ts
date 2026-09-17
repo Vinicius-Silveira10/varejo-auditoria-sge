@@ -117,7 +117,13 @@ function buildUseCase() {
   const mockAdjRepo: jest.Mocked<IAdjustmentRepository> = {
     create: jest.fn(),
     findById: jest.fn(),
-    updateStatus: jest.fn().mockImplementation((id, status, aprovadorId) => ({ id, statusAprovacao: status, aprovadorId })),
+    updateStatus: jest.fn().mockImplementation((id, status, aprovadorId, fase) => ({
+      id,
+      statusAprovacao: status,
+      aprovadorId,
+      aprovadorGestorId: fase === 'GESTOR' ? aprovadorId : undefined,
+      aprovadorControladoriaId: fase === 'CONTROLADORIA' ? aprovadorId : undefined,
+    })),
     sumFinancialLosses: jest.fn(),
     findPending: jest.fn(),
   };
@@ -176,7 +182,6 @@ describe('TAREFA 4.3 — Consistência Display vs. Enforcement por cenários', (
       const { quantidadeDelta, valorDelta, saldoTeorico, nivelEsperado } = cenario;
 
       it('Display (calcularNivelAprovacaoExigido) retorna o nível esperado', () => {
-        // Este é o cálculo usado pelo findPending (Display)
         const nivelDisplay = calcularNivelAprovacaoExigido(
           quantidadeDelta,
           valorDelta,
@@ -185,10 +190,9 @@ describe('TAREFA 4.3 — Consistência Display vs. Enforcement por cenários', (
         expect(nivelDisplay).toBe(nivelEsperado);
       });
 
-      it('Enforcement (ApproveAdjustmentUseCase) bloqueia GESTOR se nível for GESTOR_CONTROLADORIA, aprova se GESTOR', async () => {
+      it('Enforcement (ApproveAdjustmentUseCase) aplica enforcement correto conforme nível exigido', async () => {
         const { useCase, mockAdjRepo, mockBatchRepo, mockProductRepo } = buildUseCase();
 
-        // Monta o ajuste persistido com os dados do cenário
         mockAdjRepo.findById.mockResolvedValue({
           id: 1,
           statusAprovacao: 'PENDENTE',
@@ -214,28 +218,49 @@ describe('TAREFA 4.3 — Consistência Display vs. Enforcement por cenários', (
         } as any);
 
         if (nivelEsperado === 'GESTOR_CONTROLADORIA') {
-          // Um GESTOR comum NÃO pode aprovar — o enforcement deve lançar DomainException
+          // Na Fase 1 (PENDENTE), CONTROLADORIA não pode fazer a primeira aprovação
           await expect(
-            useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true }),
-          ).rejects.toThrow(DomainException);
+            useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'CONTROLADORIA', aprovado: true }),
+          ).rejects.toThrow('RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.');
+
+          // GESTOR pode aprovar Fase 1 -> PENDENTE_CONTROLADORIA sem alterar lote
+          const resFase1 = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
+          expect(resFase1.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
+          expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'PENDENTE_CONTROLADORIA', 1, 'GESTOR');
+          expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
+
+          // Na Fase 2 (PENDENTE_CONTROLADORIA), GESTOR é bloqueado pelo enforcement
+          mockAdjRepo.findById.mockResolvedValue({
+            id: 1,
+            statusAprovacao: 'PENDENTE_CONTROLADORIA',
+            solicitanteId: 99,
+            loteId: 10,
+            quantidadeDelta,
+            valorDelta,
+            saldoTeorico,
+            motivo: 'Teste de consistência',
+            aprovadorGestorId: 1,
+          } as any);
+
+          await expect(
+            useCase.execute({ ajusteId: 1, aprovadorId: 2, aprovadorRole: 'GESTOR', aprovado: true }),
+          ).rejects.toThrow('RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.');
         } else {
-          // nivelEsperado === 'GESTOR' — um GESTOR pode aprovar sem bloqueio
-          // Não basta não lançar: verificar que updateStatus foi chamado com APROVADO
+          // nivelEsperado === 'GESTOR' — um GESTOR pode aprovar sem bloqueio diretamente para APROVADO
           const result = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
           expect(result).toBeDefined();
-          expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1);
+          expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1, 'GESTOR');
+          expect(mockBatchRepo.updateQuantidade).toHaveBeenCalled();
         }
       });
 
       it('Display e Enforcement concordam (ambos usam a mesma função)', () => {
-        // Prova matemática: se a função diz X, ambas as camadas dizem X
         const nivelDisplay = calcularNivelAprovacaoExigido(
           quantidadeDelta, valorDelta, saldoTeorico,
         );
         const nivelEnforcement = calcularNivelAprovacaoExigido(
           quantidadeDelta, valorDelta, saldoTeorico,
         );
-        // São literalmente a mesma função — nunca podem divergir
         expect(nivelDisplay).toBe(nivelEnforcement);
         expect(nivelDisplay).toBe(nivelEsperado);
       });
@@ -250,13 +275,7 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
     jest.restoreAllMocks();
   });
 
-  it('quando a função retorna GESTOR_CONTROLADORIA, GESTOR é bloqueado — mesmo com dados que normalmente passariam', async () => {
-    // Cenário: delta 1% e valor R$10 → normalmente GESTOR passaria.
-    // Mas invertemos a função para sempre retornar GESTOR_CONTROLADORIA.
-    // Se o UseCase tivesse qualquer `if` residual comparando percentual/valor,
-    // ele deixaria o GESTOR aprovar (porque os dados são "pequenos").
-    // O comportamento SÓ muda se o UseCase delegar 100% à função.
-
+  it('quando a função retorna GESTOR_CONTROLADORIA, dupla aprovação é exigida — mesmo com dados pequenos', async () => {
     jest.spyOn(AdjustmentRules, 'calcularNivelAprovacaoExigido')
       .mockReturnValue('GESTOR_CONTROLADORIA');
 
@@ -270,6 +289,7 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
       quantidadeDelta: 1,     // apenas 1% de 100
       valorDelta: 10,          // apenas R$10
       motivo: 'Ajuste pequeno',
+      saldoTeorico: 100,
     } as any);
 
     mockBatchRepo.findById.mockResolvedValue({
@@ -280,18 +300,18 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
       id: 20, custoMedio: 10, perecivel: false,
     } as any);
 
-    // Com a função retornando GESTOR_CONTROLADORIA, GESTOR DEVE ser bloqueado
+    // Com a função retornando GESTOR_CONTROLADORIA, na Fase 1 papel CONTROLADORIA deve ser bloqueado
     await expect(
-      useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true }),
-    ).rejects.toThrow('RN-AJU-004');
+      useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'CONTROLADORIA', aprovado: true }),
+    ).rejects.toThrow('RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.');
+
+    // E GESTOR na Fase 1 não aprova direto, transiciona para PENDENTE_CONTROLADORIA
+    const res = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
+    expect(res.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
+    expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
   });
 
-  it('quando a função retorna GESTOR, GESTOR é liberado — mesmo com dados que normalmente exigiriam ADMIN', async () => {
-    // Cenário: delta 50% e valor R$5000 → normalmente bloquearia GESTOR.
-    // Mas invertemos a função para sempre retornar GESTOR.
-    // Se houvesse `if residual`, GESTOR ainda seria bloqueado pelos dados brutos.
-    // Comportamento correto: GESTOR aprovado porque a função disse GESTOR.
-
+  it('quando a função retorna GESTOR, GESTOR aprova direto — mesmo com dados que normalmente exigiriam dupla aprovação', async () => {
     jest.spyOn(AdjustmentRules, 'calcularNivelAprovacaoExigido')
       .mockReturnValue('GESTOR');
 
@@ -305,6 +325,7 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
       quantidadeDelta: 50,     // 50% do saldo
       valorDelta: 5000,         // R$5000 >> R$1000
       motivo: 'Ajuste grande',
+      saldoTeorico: 100,
     } as any);
 
     mockBatchRepo.findById.mockResolvedValue({
@@ -315,10 +336,10 @@ describe('TAREFA 4.4 — Prova estrutural: UseCase DELEGA para a função (sem i
       id: 20, custoMedio: 100, perecivel: false,
     } as any);
 
-    // Com a função retornando GESTOR, GESTOR DEVE conseguir aprovar
-    // Não basta não lançar: verificar que updateStatus foi chamado com APROVADO
+    // Com a função retornando GESTOR, GESTOR aprova direto
     const result = await useCase.execute({ ajusteId: 1, aprovadorId: 1, aprovadorRole: 'GESTOR', aprovado: true });
     expect(result).toBeDefined();
-    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1);
+    expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 1, 'GESTOR');
+    expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 150);
   });
 });
