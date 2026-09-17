@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { HealthController } from './infrastructure/http/controllers/health.controller';
 import { AppService } from './app.service';
@@ -40,12 +39,6 @@ import { CustomThrottlerGuard } from './infrastructure/security/custom-throttler
     CostModule,
     DashboardModule, // GAP-001 / ARQT-001 FIX: DashboardModule registrado
     WebsocketModule,
-    BullModule.forRoot({
-      redis: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: Number(process.env.REDIS_PORT) || 6379,
-      },
-    }),
     ThrottlerModule.forRoot([
       {
         name: 'default',

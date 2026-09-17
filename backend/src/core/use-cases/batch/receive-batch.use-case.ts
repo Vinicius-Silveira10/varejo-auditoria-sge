@@ -5,6 +5,7 @@ import { ProcessNfeUseCase } from '../nfe/process-nfe.use-case';
 import { Lote } from '@prisma/client';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
 import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { calcularNovoCustoMedio } from '../../domain/cost/cost.rules';
 
 export interface ReceiveBatchRequest {
   numeroLote: string;
@@ -105,7 +106,7 @@ export class ReceiveBatchUseCase {
       }
     }
 
-    // As verificações preliminares passaram. 
+    // As verificações preliminares passaram.
     // Inicia a transação síncrona com Lock Pessimista para garantir o cálculo correto do CMP (GAP-009).
     return await this.unitOfWork.execute(async (ctx) => {
       // LOCK EXCLUSIVO no Produto
@@ -142,13 +143,13 @@ export class ReceiveBatchUseCase {
       const quantidadeAnterior = Math.max(0, quantidadeNova - request.quantidade);
       const custoAnterior = lockedProduto.custoMedio;
 
-      let novoCusto = custoAnterior;
-      if (quantidadeAnterior === 0) {
-        novoCusto = request.custoAquisicao;
-      } else {
-        novoCusto = (custoAnterior * quantidadeAnterior + request.custoAquisicao * request.quantidade) / quantidadeNova;
-      }
-      novoCusto = Number(novoCusto.toFixed(6));
+      // RN-CST-001: Delegado à função de domínio pura (cost.rules.ts) — testável isoladamente
+      const novoCusto = calcularNovoCustoMedio(
+        custoAnterior,
+        quantidadeAnterior,
+        request.custoAquisicao,
+        request.quantidade,
+      );
 
       await ctx.produtoRepository.updateCustoMedio(produto.id, novoCusto);
 

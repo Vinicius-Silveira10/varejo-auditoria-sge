@@ -27,3 +27,10 @@ Thumbs.db
 
 # Documentation
 Escopo_Projeto/
+
+# Agentes e IAs
+.claude/
+
+# Worktrees
+.worktrees/
+worktrees/
