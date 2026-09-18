@@ -12,8 +12,10 @@ describe('Adjustment Pending (e2e)', () => {
 
   let adminToken: string;
   let operadorToken: string;
+  let controladoriaToken: string;
   let adminId: number;
   let operadorId: number;
+  let controladoriaId: number;
   const testSku = `E2E-PENDING-${Date.now()}`;
   const testBatch = `E2E-BATCH-${Date.now()}`;
   let loteId: number;
@@ -53,6 +55,16 @@ describe('Adjustment Pending (e2e)', () => {
     });
     operadorId = userOperador.id;
 
+    const userControladoria = await prisma.usuario.create({
+      data: {
+        nome: 'Controladoria E2E Test',
+        email: `controladoria-pending-${Date.now()}@test.com`,
+        senha,
+        perfil: 'CONTROLADORIA',
+      },
+    });
+    controladoriaId = userControladoria.id;
+
     const loginAdmin = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: userAdmin.email, senhaBruta: 'SenhaE2E123' });
@@ -62,6 +74,11 @@ describe('Adjustment Pending (e2e)', () => {
       .post('/auth/login')
       .send({ email: userOperador.email, senhaBruta: 'SenhaE2E123' });
     operadorToken = loginOperador.body.accessToken;
+
+    const loginControladoria = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: userControladoria.email, senhaBruta: 'SenhaE2E123' });
+    controladoriaToken = loginControladoria.body.accessToken;
 
     // Setup de Produto e Lote
     const prod = await prisma.produto.create({
@@ -92,7 +109,7 @@ describe('Adjustment Pending (e2e)', () => {
     await prisma.lote.deleteMany({ where: { id: loteId } });
     await prisma.produto.deleteMany({ where: { sku: testSku } });
     await prisma.usuario.deleteMany({
-      where: { id: { in: [adminId, operadorId] } },
+      where: { id: { in: [adminId, operadorId, controladoriaId] } },
     });
     await app.close();
   });
@@ -106,6 +123,13 @@ describe('Adjustment Pending (e2e)', () => {
       .get('/adjustments/pending')
       .set('Authorization', `Bearer ${operadorToken}`)
       .expect(403);
+  });
+
+  it('GET /adjustments/pending com CONTROLADORIA retorna 200', async () => {
+    await request(app.getHttpServer())
+      .get('/adjustments/pending')
+      .set('Authorization', `Bearer ${controladoriaToken}`)
+      .expect(200);
   });
 
   it('GET /adjustments/pending?status=INVALIDO retorna 400', async () => {

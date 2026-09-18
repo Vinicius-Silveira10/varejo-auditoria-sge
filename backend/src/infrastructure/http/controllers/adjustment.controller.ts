@@ -72,7 +72,7 @@ export class AdjustmentController {
     return result;
   }
 
-  @Roles(Role.GESTOR, Role.ADMIN)
+  @Roles(Role.GESTOR, Role.ADMIN, Role.CONTROLADORIA)
   @Post('approve')
   @ApiOperation({
     summary: 'Aprovar ou rejeitar uma solicitação de ajuste de estoque',
@@ -107,7 +107,7 @@ export class AdjustmentController {
     return result;
   }
 
-  @Roles(Role.GESTOR, Role.ADMIN)
+  @Roles(Role.GESTOR, Role.ADMIN, Role.CONTROLADORIA)
   @Get('pending')
   @ApiOperation({
     summary: 'Listar ajustes de estoque pendentes ou por status',

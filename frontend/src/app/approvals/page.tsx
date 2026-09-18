@@ -85,12 +85,12 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     // Client-side RBAC Guard (UX Only)
-    if (!hasRole('GESTOR', 'ADMIN')) {
+    if (!hasRole('GESTOR', 'ADMIN', 'CONTROLADORIA')) {
       window.dispatchEvent(
         new CustomEvent('custom-toast', {
           detail: {
             type: 'error',
-            message: 'Acesso negado. Apenas gestores e administradores podem acessar esta página.',
+            message: 'Acesso negado. Apenas gestores, administradores e controladoria podem acessar esta página.',
           },
         }),
       );

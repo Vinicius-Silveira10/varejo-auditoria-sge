@@ -5,7 +5,7 @@ import { hasRole } from '@/lib/auth';
 
 export default function Header({ title }: { title: string }) {
   const router = useRouter();
-  const canViewApprovals = hasRole('GESTOR', 'ADMIN');
+  const canViewApprovals = hasRole('GESTOR', 'ADMIN', 'CONTROLADORIA');
   const canRequestAdjustment = hasRole('OPERADOR', 'GESTOR', 'ADMIN');
   const canViewInventory = hasRole('GESTOR', 'ADMIN');
   const canViewCount = hasRole('OPERADOR', 'GESTOR', 'ADMIN');

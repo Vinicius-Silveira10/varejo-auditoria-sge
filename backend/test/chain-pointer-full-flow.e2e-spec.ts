@@ -4,6 +4,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 /**
  * ChainPointer Full-Flow E2E
@@ -20,6 +21,7 @@ describe('ChainPointer Full-Flow E2E', () => {
 
   let adminToken: string;
   let gestorToken: string;
+  let controladoriaToken: string;
 
   let produtoId: number;
   let loteId: number;
@@ -38,7 +40,7 @@ describe('ChainPointer Full-Flow E2E', () => {
     prisma = app.get(PrismaService);
     await app.init();
 
-    // Login ADMIN (seed)
+    // Setup e Login ADMIN (seed)
     const adminRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -55,6 +57,32 @@ describe('ChainPointer Full-Flow E2E', () => {
         senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
       });
     gestorToken = gestorRes.body.accessToken;
+
+    // Garante que o usuário CONTROLADORIA exista mesmo sem re-seed
+    const salt = await bcrypt.genSalt(10);
+    const senha = await bcrypt.hash(
+      process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      salt,
+    );
+    await prisma.usuario.upsert({
+      where: { email: 'controladoria@fortal.com.br' },
+      update: {},
+      create: {
+        nome: 'Controladoria SGE',
+        email: 'controladoria@fortal.com.br',
+        senha,
+        perfil: 'CONTROLADORIA',
+        ativo: true,
+      },
+    });
+
+    const ctrlRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'controladoria@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
+    controladoriaToken = ctrlRes.body.accessToken;
 
     // Limpeza defensiva inicial para garantir bloco gênese íntegro
     await prisma.logCusto.deleteMany({});
@@ -151,20 +179,38 @@ describe('ChainPointer Full-Flow E2E', () => {
   });
 
   // --- PASSO 4: AJUSTE APROVADO ---
-  it('PASSO 3 - AJUSTE APROVADO: deve solicitar e aprovar ajuste de estoque', async () => {
+  it('PASSO 3 - AJUSTE APROVADO: deve solicitar e aprovar ajuste de estoque com alçada dupla (GESTOR + CONTROLADORIA)', async () => {
+    // RN-AJU-004: quantidadeDelta = -5 sobre lote de 100 -> delta de 5% > 2% exige aprovação GESTOR_CONTROLADORIA
     const solRes = await request(app.getHttpServer())
       .post('/adjustments/request')
       .set('Authorization', `Bearer ${gestorToken}`)
-      .send({ loteId, quantidadeDelta: -1, motivo: 'Dano no transporte' });
+      .send({ loteId, quantidadeDelta: -5, motivo: 'Dano no transporte' });
     expect(solRes.status).toBe(201);
     const ajusteId = solRes.body.ajuste.id;
 
-    const aprRes = await request(app.getHttpServer())
+    // Fase 1: Gestor (ou Admin) aprova -> transiciona para PENDENTE_CONTROLADORIA (sem movimentação ainda)
+    const apr1Res = await request(app.getHttpServer())
       .post('/adjustments/approve')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ ajusteId, aprovado: true });
+    expect(apr1Res.status).toBe(201);
 
-    expect(aprRes.status).toBe(201);
+    const ajustePendenteCtrl = await prisma.ajusteEstoque.findUnique({
+      where: { id: ajusteId },
+    });
+    expect(ajustePendenteCtrl?.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
+
+    // Fase 2: Controladoria aprova -> transiciona para APROVADO e gera Movimentação AJUSTE
+    const apr2Res = await request(app.getHttpServer())
+      .post('/adjustments/approve')
+      .set('Authorization', `Bearer ${controladoriaToken}`)
+      .send({ ajusteId, aprovado: true });
+    expect(apr2Res.status).toBe(201);
+
+    const ajusteAprovado = await prisma.ajusteEstoque.findUnique({
+      where: { id: ajusteId },
+    });
+    expect(ajusteAprovado?.statusAprovacao).toBe('APROVADO');
 
     const movs = await prisma.movimentacao.findMany({ where: { loteId } });
     expect(movs.some((m) => m.tipo === 'AJUSTE')).toBe(true);
