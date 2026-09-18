@@ -115,14 +115,19 @@ export class AdjustmentController {
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: ['PENDENTE', 'APROVADO', 'REJEITADO'],
+    enum: ['PENDENTE', 'PENDENTE_CONTROLADORIA', 'APROVADO', 'REJEITADO'],
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de ajustes retornada com sucesso.',
   })
   async listPending(@Query('status') status?: string) {
-    const validStatuses = ['PENDENTE', 'APROVADO', 'REJEITADO'];
+    const validStatuses = [
+      'PENDENTE',
+      'PENDENTE_CONTROLADORIA',
+      'APROVADO',
+      'REJEITADO',
+    ];
     if (status && !validStatuses.includes(status)) {
       throw new BadRequestException(
         `Status inválido. Use: ${validStatuses.join(', ')}`,

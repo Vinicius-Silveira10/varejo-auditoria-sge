@@ -63,12 +63,10 @@ async function createAppWithOrigins(
 // Testes
 // ---------------------------------------------------------------------------
 
+jest.setTimeout(15000);
+
 describe('CORS Allowlist Middleware', () => {
   let app: INestApplication;
-
-  beforeAll(() => {
-    jest.setTimeout(15000);
-  });
 
   afterEach(async () => {
     if (app) await app.close();

@@ -55,6 +55,11 @@ describe('ChainPointer Full-Flow E2E', () => {
         senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
       });
     gestorToken = gestorRes.body.accessToken;
+
+    // Limpeza defensiva inicial para garantir bloco gênese íntegro
+    await prisma.logCusto.deleteMany({});
+    await prisma.movimentacao.deleteMany({});
+    await prisma.chainPointer.deleteMany({});
   });
 
   afterAll(async () => {
@@ -66,6 +71,7 @@ describe('ChainPointer Full-Flow E2E', () => {
       }
       await prisma.ajusteEstoque.deleteMany({ where: { loteId } });
       await prisma.contagemInventario.deleteMany({ where: { loteId } });
+      await prisma.chainPointer.deleteMany({});
       await prisma.movimentacao.deleteMany({ where: { loteId } });
       if (loteId)
         await prisma.lote.delete({ where: { id: loteId } }).catch(() => {});
@@ -149,7 +155,7 @@ describe('ChainPointer Full-Flow E2E', () => {
     const solRes = await request(app.getHttpServer())
       .post('/adjustments/request')
       .set('Authorization', `Bearer ${gestorToken}`)
-      .send({ loteId, quantidadeDelta: -5, motivo: 'Dano no transporte' });
+      .send({ loteId, quantidadeDelta: -1, motivo: 'Dano no transporte' });
     expect(solRes.status).toBe(201);
     const ajusteId = solRes.body.ajuste.id;
 

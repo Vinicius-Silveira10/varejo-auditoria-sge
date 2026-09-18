@@ -2,6 +2,14 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+beforeAll(async () => {
+  // 🧹 GLOBAL E2E SETUP
+  // Garante que toda suíte inicie com a cadeia de auditoria no bloco gênese
+  await prisma.logCusto.deleteMany({});
+  await prisma.movimentacao.deleteMany({});
+  await prisma.chainPointer.deleteMany({});
+});
+
 afterAll(async () => {
   // 🧹 GLOBAL E2E CLEANUP
   // Isso roda após o final de *cada* arquivo de teste (suíte).

@@ -1,4 +1,4 @@
-﻿import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaAdjustmentRepository } from './prisma-adjustment.repository';
 import { PrismaService } from '../prisma.service';
 
@@ -246,7 +246,11 @@ describe('PrismaAdjustmentRepository', () => {
     const result = await repository.findPending();
 
     expect(prismaService.ajusteEstoque.findMany).toHaveBeenCalledWith({
-      where: { statusAprovacao: 'PENDENTE' },
+      where: {
+        statusAprovacao: {
+          in: ['PENDENTE', 'PENDENTE_CONTROLADORIA'],
+        },
+      },
       include: {
         lote: {
           include: {
@@ -266,5 +270,23 @@ describe('PrismaAdjustmentRepository', () => {
     // 50% e R$1500 -> GESTOR_CONTROLADORIA
     expect(result[1].nivelAprovacaoExigido).toBe('GESTOR_CONTROLADORIA');
     expect(result[1].lote.numeroLote).toBe('L-002');
+  });
+
+  it('deve listar ajustes filtrando por status quando especificado', async () => {
+    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue([]);
+
+    await repository.findPending('APROVADO');
+
+    expect(prismaService.ajusteEstoque.findMany).toHaveBeenCalledWith({
+      where: { statusAprovacao: 'APROVADO' },
+      include: {
+        lote: {
+          include: {
+            produto: true,
+          },
+        },
+      },
+      orderBy: { criadoEm: 'asc' },
+    });
   });
 });

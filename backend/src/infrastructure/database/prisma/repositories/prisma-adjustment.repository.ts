@@ -81,8 +81,16 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
   }
 
   async findPending(status?: string): Promise<AjusteEstoqueWithDetails[]> {
+    const whereClause = status
+      ? { statusAprovacao: status as StatusAprovacao }
+      : {
+          statusAprovacao: {
+            in: ['PENDENTE', 'PENDENTE_CONTROLADORIA'] as StatusAprovacao[],
+          },
+        };
+
     const ajustes = await this.prisma.ajusteEstoque.findMany({
-      where: { statusAprovacao: (status as StatusAprovacao) ?? 'PENDENTE' },
+      where: whereClause,
       include: {
         lote: {
           include: {

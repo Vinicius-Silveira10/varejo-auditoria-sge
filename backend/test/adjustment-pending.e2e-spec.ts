@@ -82,11 +82,12 @@ describe('Adjustment Pending (e2e)', () => {
       },
     });
     loteId = lote.id;
+    await prisma.chainPointer.deleteMany({});
   });
 
   afterAll(async () => {
     await prisma.ajusteEstoque.deleteMany({ where: { loteId } });
-    await prisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
+    await prisma.chainPointer.deleteMany({});
     await prisma.movimentacao.deleteMany({ where: { loteId } });
     await prisma.lote.deleteMany({ where: { id: loteId } });
     await prisma.produto.deleteMany({ where: { sku: testSku } });
@@ -120,7 +121,7 @@ describe('Adjustment Pending (e2e)', () => {
       .set('Authorization', `Bearer ${operadorToken}`)
       .send({
         loteId,
-        quantidadeDelta: 5,
+        quantidadeDelta: 1,
         motivo: 'Sobra',
       })
       .expect(201);
