@@ -24,17 +24,33 @@ describe('JwtStrategy', () => {
       email: 'test@fortal.com',
     });
 
-    const payload = { sub: 1, email: 'test@fortal.com', perfil: 'OPERADOR', tokenVersion: 1 };
+    const payload = {
+      sub: 1,
+      email: 'test@fortal.com',
+      perfil: 'OPERADOR',
+      tokenVersion: 1,
+    };
     const result = await strategy.validate(payload);
 
-    expect(result).toEqual({ userId: 1, email: 'test@fortal.com', perfil: 'OPERADOR' });
+    expect(result).toEqual({
+      userId: 1,
+      email: 'test@fortal.com',
+      perfil: 'OPERADOR',
+    });
   });
 
   it('deve rejeitar se usuario não existir', async () => {
     mockPrisma.usuario.findUnique.mockResolvedValue(null);
 
-    const payload = { sub: 1, email: 'test@fortal.com', perfil: 'OPERADOR', tokenVersion: 1 };
-    await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
+    const payload = {
+      sub: 1,
+      email: 'test@fortal.com',
+      perfil: 'OPERADOR',
+      tokenVersion: 1,
+    };
+    await expect(strategy.validate(payload)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('deve rejeitar se usuario estiver inativo', async () => {
@@ -45,8 +61,15 @@ describe('JwtStrategy', () => {
       email: 'test@fortal.com',
     });
 
-    const payload = { sub: 1, email: 'test@fortal.com', perfil: 'OPERADOR', tokenVersion: 1 };
-    await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
+    const payload = {
+      sub: 1,
+      email: 'test@fortal.com',
+      perfil: 'OPERADOR',
+      tokenVersion: 1,
+    };
+    await expect(strategy.validate(payload)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 
   it('deve rejeitar se a versao do token não bater (Sessao invalidada)', async () => {
@@ -57,7 +80,14 @@ describe('JwtStrategy', () => {
       email: 'test@fortal.com',
     });
 
-    const payload = { sub: 1, email: 'test@fortal.com', perfil: 'OPERADOR', tokenVersion: 1 };
-    await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
+    const payload = {
+      sub: 1,
+      email: 'test@fortal.com',
+      perfil: 'OPERADOR',
+      tokenVersion: 1,
+    };
+    await expect(strategy.validate(payload)).rejects.toThrow(
+      UnauthorizedException,
+    );
   });
 });

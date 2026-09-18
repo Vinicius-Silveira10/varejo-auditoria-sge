@@ -16,10 +16,15 @@ import { resolveJwtExpiration } from './helpers/jwt-expiration.helper';
     JwtModule.registerAsync({
       useFactory: () => {
         const secret = process.env.JWT_SECRET;
-        if (!secret) throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
+        if (!secret)
+          throw new Error(
+            'JWT_SECRET não configurado — variável de ambiente obrigatória',
+          );
         return {
           secret,
-          signOptions: { expiresIn: resolveJwtExpiration(process.env.JWT_EXPIRATION) as any },
+          signOptions: {
+            expiresIn: resolveJwtExpiration(process.env.JWT_EXPIRATION) as any,
+          },
         };
       },
     }),

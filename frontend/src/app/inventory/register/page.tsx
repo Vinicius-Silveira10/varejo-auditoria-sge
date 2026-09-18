@@ -32,9 +32,9 @@ export default function RegisterCountPage() {
       }));
       setContagemId('');
       setQuantidadeFisica('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       window.dispatchEvent(new CustomEvent('custom-toast', {
-        detail: { type: 'error', message: error.message || 'Erro ao registrar contagem' }
+        detail: { type: 'error', message: error instanceof Error ? error.message : 'Erro ao registrar contagem' }
       }));
     } finally {
       setLoading(false);

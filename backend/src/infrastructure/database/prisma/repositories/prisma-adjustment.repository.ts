@@ -126,7 +126,8 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
       solicitanteId: prismaAjuste.solicitanteId,
       aprovadorId: prismaAjuste.aprovadorId ?? undefined,
       aprovadorGestorId: prismaAjuste.aprovadorGestorId ?? undefined,
-      aprovadorControladoriaId: prismaAjuste.aprovadorControladoriaId ?? undefined,
+      aprovadorControladoriaId:
+        prismaAjuste.aprovadorControladoriaId ?? undefined,
       criadoEm: prismaAjuste.criadoEm,
       atualizadoEm: prismaAjuste.atualizadoEm,
     };

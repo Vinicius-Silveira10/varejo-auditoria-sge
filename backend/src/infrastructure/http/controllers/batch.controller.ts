@@ -44,7 +44,10 @@ export class BatchController {
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Get('pending-putaway')
   @ApiOperation({ summary: 'Listar lotes pendentes de armazenagem (putaway)' })
-  @ApiResponse({ status: 200, description: 'Lotes pendentes recuperados com sucesso.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lotes pendentes recuperados com sucesso.',
+  })
   async getPendingPutawayBatches() {
     const result = await this.getPendingPutawayBatchesUseCase.execute();
     return { data: result };
@@ -88,7 +91,10 @@ export class BatchController {
     status: 400,
     description: 'Produto não encontrado ou dados inválidos.',
   })
-  async receiveBatch(@Body() dto: ReceiveBatchDto, @CurrentUser('userId') usuarioId: number) {
+  async receiveBatch(
+    @Body() dto: ReceiveBatchDto,
+    @CurrentUser('userId') usuarioId: number,
+  ) {
     try {
       const validadeDate = dto.validade ? new Date(dto.validade) : undefined;
       const result = await this.receiveBatchUseCase.execute({

@@ -33,7 +33,9 @@ describe('PrismaMovementRepository', () => {
           chainPointer: chainPointerMock,
           lote: { update: jest.fn().mockResolvedValue({ quantidade: 0 }) },
           endereco: { update: jest.fn() },
-          $queryRawUnsafe: jest.fn().mockResolvedValue([{ lastHash: 'hashAnterior' }]),
+          $queryRawUnsafe: jest
+            .fn()
+            .mockResolvedValue([{ lastHash: 'hashAnterior' }]),
         };
         return cb(txMock);
       }),

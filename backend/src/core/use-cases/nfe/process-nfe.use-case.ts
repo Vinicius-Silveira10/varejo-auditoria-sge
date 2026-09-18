@@ -1,10 +1,6 @@
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import {
-  ParseNfeXmlService,
-  ParsedNfe,
-  ParsedNfeItem,
-} from './parse-nfe-xml.service';
+import { ParseNfeXmlService, ParsedNfe } from './parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../batch/receive-batch.use-case';
 import { NotaFiscal, ItemNfe } from '@prisma/client';
 import { ConflictException } from '../../exceptions/domain.exception';
@@ -16,9 +12,7 @@ export interface NfeDivergencia {
   sku: string;
   descricaoNfe: string;
   tipo:
-    | 'SKU_NAO_ENCONTRADO'
-    | 'QUANTIDADE_DIVERGENTE'
-    | 'PERECIVEL_SEM_VALIDADE';
+    'SKU_NAO_ENCONTRADO' | 'QUANTIDADE_DIVERGENTE' | 'PERECIVEL_SEM_VALIDADE';
   detalhe: string;
   quantidadeNfe: number;
   deltaPercent?: number;
@@ -39,7 +33,10 @@ export class ProcessNfeUseCase {
     private readonly receiveBatchUseCase: ReceiveBatchUseCase,
   ) {}
 
-  async execute(xmlContent: string, usuarioId: number): Promise<ProcessNfeResult> {
+  async execute(
+    xmlContent: string,
+    usuarioId: number,
+  ): Promise<ProcessNfeResult> {
     // 1. Parse do XML
     const parsedNfe: ParsedNfe = this.parseNfeXmlService.parse(xmlContent);
 
@@ -129,16 +126,16 @@ export class ProcessNfeUseCase {
         const produto = await this.productRepository.findBySku(item.sku);
 
         if (produto && produto.ativo) {
-            await this.receiveBatchUseCase.execute({
-              numeroLote: `NF-${parsedNfe.numero}-${item.sku}`,
-              produtoId: produto.id,
-              quantidade: item.quantidade,
-              custoAquisicao: item.valorUnitario,
-              notaFiscalId: notaFiscal.id, // BUG-001: vínculo fiscal obrigatório
-              validade: item.validade, // BUG-001: data de validade do XML
-              usuarioId: usuarioId, // Passado adiante para registro de auditoria
-              // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
-            });
+          await this.receiveBatchUseCase.execute({
+            numeroLote: `NF-${parsedNfe.numero}-${item.sku}`,
+            produtoId: produto.id,
+            quantidade: item.quantidade,
+            custoAquisicao: item.valorUnitario,
+            notaFiscalId: notaFiscal.id, // BUG-001: vínculo fiscal obrigatório
+            validade: item.validade, // BUG-001: data de validade do XML
+            usuarioId: usuarioId, // Passado adiante para registro de auditoria
+            // evidenciaUrl: coletada pelo coletor físico no putaway — não disponível no XML
+          });
           lotesGerados++;
         }
       }

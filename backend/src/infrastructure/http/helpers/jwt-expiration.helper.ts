@@ -33,9 +33,9 @@ export function resolveJwtExpiration(raw: string | undefined): string {
   if (!JWT_EXPIRATION_REGEX.test(raw)) {
     console.warn(
       `[AuthModule] JWT_EXPIRATION="${raw}" não bate com o formato esperado ` +
-      `(/^\\d+[smhd]$/ — ex: 15m, 1h, 7d, 3600s). ` +
-      `Usando fallback seguro: "${FALLBACK_EXPIRATION}". ` +
-      `Corrija JWT_EXPIRATION no seu .env para silenciar este aviso.`,
+        `(/^\\d+[smhd]$/ — ex: 15m, 1h, 7d, 3600s). ` +
+        `Usando fallback seguro: "${FALLBACK_EXPIRATION}". ` +
+        `Corrija JWT_EXPIRATION no seu .env para silenciar este aviso.`,
     );
     return FALLBACK_EXPIRATION;
   }

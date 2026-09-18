@@ -1,7 +1,9 @@
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { Endereco } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export interface SuggestPutawayRequest {
   produtoId: number;

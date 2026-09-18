@@ -2,7 +2,7 @@ import { RequestAdjustmentUseCase } from './request-adjustment.use-case';
 import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { DomainException } from '../../exceptions/domain.exception';
 
 describe('RequestAdjustmentUseCase', () => {
   let useCase: RequestAdjustmentUseCase;
@@ -194,7 +194,9 @@ describe('RequestAdjustmentUseCase', () => {
         motivo: 'Ajuste',
         solicitanteId: 2,
       }),
-    ).rejects.toThrow('RN-AJU-003: Ajustes em produtos perecíveis exigem lote com data de validade preenchida.');
+    ).rejects.toThrow(
+      'RN-AJU-003: Ajustes em produtos perecíveis exigem lote com data de validade preenchida.',
+    );
   });
 
   it('deve permitir ajuste de produto perecível com validade no lote (RN-AJU-003)', async () => {
@@ -231,4 +233,3 @@ describe('RequestAdjustmentUseCase', () => {
     expect(result.nivelAprovacaoExigido).toBe('GESTOR_CONTROLADORIA'); // 1/10 = 10% > 2% (RN-AJU-004)
   });
 });
-

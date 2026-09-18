@@ -35,7 +35,9 @@ describe('GetBatchMovementsUseCase', () => {
   it('deve lançar erro se o lote não existir', async () => {
     batchRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(useCase.execute(999)).rejects.toThrow(
       'Lote com ID 999 não encontrado',
     );

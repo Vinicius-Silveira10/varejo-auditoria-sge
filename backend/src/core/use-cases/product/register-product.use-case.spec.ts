@@ -28,7 +28,13 @@ describe('RegisterProductUseCase', () => {
       perecivel: true,
       tipoZonaRequerida: 'SECO',
     };
-    const mockCreated = { id: 1, custoMedio: 0, curvaAbc: 'C', ativo: true, ...request } as any;
+    const mockCreated = {
+      id: 1,
+      custoMedio: 0,
+      curvaAbc: 'C',
+      ativo: true,
+      ...request,
+    } as any;
 
     mockRepository.findBySku.mockResolvedValue(null);
     mockRepository.create.mockResolvedValue(mockCreated);
@@ -48,11 +54,19 @@ describe('RegisterProductUseCase', () => {
       perecivel: true,
       tipoZonaRequerida: 'SECO',
     };
-    const existingProduct = { id: 1, custoMedio: 0, curvaAbc: 'C', ativo: true, ...request } as any;
+    const existingProduct = {
+      id: 1,
+      custoMedio: 0,
+      curvaAbc: 'C',
+      ativo: true,
+      ...request,
+    } as any;
 
     mockRepository.findBySku.mockResolvedValue(existingProduct);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(ConflictException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-PROD-001: Já existe um produto cadastrado com o SKU PROD-01',
     );

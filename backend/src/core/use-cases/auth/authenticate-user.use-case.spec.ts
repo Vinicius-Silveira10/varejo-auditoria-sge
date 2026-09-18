@@ -66,7 +66,9 @@ describe('AuthenticateUserUseCase', () => {
     const request = { email: 'wrong@test.com', senhaBruta: '123456' };
     mockRepository.findByEmail.mockResolvedValue(null);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-002: Credenciais inválidas',
     );
@@ -89,7 +91,9 @@ describe('AuthenticateUserUseCase', () => {
     mockRepository.findByEmail.mockResolvedValue(mockUser as any);
     (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-002: Credenciais inválidas',
     );
@@ -111,7 +115,9 @@ describe('AuthenticateUserUseCase', () => {
 
     mockRepository.findByEmail.mockResolvedValue(mockUser as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-003: Usuário inativo ou bloqueado',
     );

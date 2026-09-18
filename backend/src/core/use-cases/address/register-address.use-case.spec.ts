@@ -48,7 +48,9 @@ describe('RegisterAddressUseCase', () => {
       ...request,
     } as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(ConflictException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-ARM-001: Já existe um endereço cadastrado com o código A-01',
     );

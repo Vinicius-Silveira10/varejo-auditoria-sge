@@ -6,7 +6,6 @@ import { ListPendingAdjustmentsUseCase } from '../../core/use-cases/adjustment/l
 import { IAdjustmentRepository } from '../../core/interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
-import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
 import { PrismaAdjustmentRepository } from '../database/prisma/repositories/prisma-adjustment.repository';

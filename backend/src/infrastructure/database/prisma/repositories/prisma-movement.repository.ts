@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IMovementRepository, LoteAddressAllocation } from '../../../../core/interfaces/repositories/i-movement.repository';
+import {
+  IMovementRepository,
+  LoteAddressAllocation,
+} from '../../../../core/interfaces/repositories/i-movement.repository';
 import { Movimentacao } from '@prisma/client';
 
 import { HashService } from '../../../security/hash.service';
@@ -36,7 +39,7 @@ export class PrismaMovementRepository implements IMovementRepository {
     );
 
     let previousHash: string | null = null;
-    
+
     if (rows && rows.length > 0) {
       previousHash = rows[0].lastHash;
       // Como a linha já existe e está lockada, podemos apenas atualizar via prisma
@@ -45,7 +48,7 @@ export class PrismaMovementRepository implements IMovementRepository {
         data: { lastHash: newHash },
       });
     } else {
-      // Cenário do "Bloco Gênese" (primeiro registro). 
+      // Cenário do "Bloco Gênese" (primeiro registro).
       // Se duas transações chegarem aqui no início, o upsert resolve eventuais concorrências
       // forçando um retry interno no Prisma ou falhando por constraint, mas a cadeia não bifurca.
       await (tx as any).chainPointer.upsert({
@@ -69,18 +72,19 @@ export class PrismaMovementRepository implements IMovementRepository {
       const hash = this.hashService.generateHash(data, previousHash);
 
       // Atualiza o ChainPointer com o hash real
-      await (tx as any).chainPointer.update({
+      await tx.chainPointer.update({
         where: { tabela: CHAIN_KEY },
         data: { lastHash: hash },
       });
 
-      return (tx as any).movimentacao.create({
+      return tx.movimentacao.create({
         data: { ...data, hash, previousHash },
       });
     };
 
     if (existingTx) return execute(existingTx);
-    if (typeof this.prisma.$transaction !== 'function') return execute(this.prisma);
+    if (typeof this.prisma.$transaction !== 'function')
+      return execute(this.prisma);
     return this.prisma.$transaction(execute);
   }
 
@@ -111,8 +115,6 @@ export class PrismaMovementRepository implements IMovementRepository {
   async countAll(): Promise<number> {
     return this.prisma.movimentacao.count();
   }
-
-
 
   async getMovementQuantitiesByProduct(
     dias: number,

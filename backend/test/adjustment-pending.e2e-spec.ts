@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
 import { GlobalExceptionFilter } from '../src/infrastructure/http/filters/http-exception.filter';
@@ -9,13 +9,13 @@ import * as bcrypt from 'bcrypt';
 describe('Adjustment Pending (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  
+
   let adminToken: string;
   let operadorToken: string;
   let adminId: number;
   let operadorId: number;
-  let testSku = `E2E-PENDING-${Date.now()}`;
-  let testBatch = `E2E-BATCH-${Date.now()}`;
+  const testSku = `E2E-PENDING-${Date.now()}`;
+  const testBatch = `E2E-BATCH-${Date.now()}`;
   let loteId: number;
 
   beforeAll(async () => {
@@ -32,7 +32,7 @@ describe('Adjustment Pending (e2e)', () => {
     // Setup de usuários
     const salt = await bcrypt.genSalt(10);
     const senha = await bcrypt.hash('SenhaE2E123', salt);
-    
+
     const userAdmin = await prisma.usuario.create({
       data: {
         nome: 'Admin E2E Test',
@@ -42,7 +42,7 @@ describe('Adjustment Pending (e2e)', () => {
       },
     });
     adminId = userAdmin.id;
-    
+
     const userOperador = await prisma.usuario.create({
       data: {
         nome: 'Operador E2E Test',
@@ -73,13 +73,13 @@ describe('Adjustment Pending (e2e)', () => {
         custoMedio: 10.0,
       },
     });
-    
+
     const lote = await prisma.lote.create({
       data: {
         numeroLote: testBatch,
         produtoId: prod.id,
         quantidade: 100,
-      }
+      },
     });
     loteId = lote.id;
   });
@@ -90,14 +90,14 @@ describe('Adjustment Pending (e2e)', () => {
     await prisma.movimentacao.deleteMany({ where: { loteId } });
     await prisma.lote.deleteMany({ where: { id: loteId } });
     await prisma.produto.deleteMany({ where: { sku: testSku } });
-    await prisma.usuario.deleteMany({ where: { id: { in: [adminId, operadorId] } } });
+    await prisma.usuario.deleteMany({
+      where: { id: { in: [adminId, operadorId] } },
+    });
     await app.close();
   });
 
   it('GET /adjustments/pending sem token retorna 401', async () => {
-    await request(app.getHttpServer())
-      .get('/adjustments/pending')
-      .expect(401);
+    await request(app.getHttpServer()).get('/adjustments/pending').expect(401);
   });
 
   it('GET /adjustments/pending com OPERADOR retorna 403', async () => {
@@ -121,17 +121,17 @@ describe('Adjustment Pending (e2e)', () => {
       .send({
         loteId,
         quantidadeDelta: 5,
-        motivo: 'Sobra'
+        motivo: 'Sobra',
       })
       .expect(201);
-    
+
     const ajusteId = reqRes.body.ajuste.id;
 
     let listRes = await request(app.getHttpServer())
       .get('/adjustments/pending')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    
+
     const pendingItem = listRes.body.find((a: any) => a.id === ajusteId);
     expect(pendingItem).toBeDefined();
     expect(pendingItem.statusAprovacao).toBe('PENDENTE');
@@ -143,7 +143,7 @@ describe('Adjustment Pending (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         ajusteId,
-        aprovado: true
+        aprovado: true,
       })
       .expect(201);
 
@@ -151,7 +151,7 @@ describe('Adjustment Pending (e2e)', () => {
       .get('/adjustments/pending')
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
-    
+
     expect(listRes.body.find((a: any) => a.id === ajusteId)).toBeUndefined();
 
     const listResAprovado = await request(app.getHttpServer())
@@ -159,7 +159,9 @@ describe('Adjustment Pending (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
-    const aprovadoItem = listResAprovado.body.find((a: any) => a.id === ajusteId);
+    const aprovadoItem = listResAprovado.body.find(
+      (a: any) => a.id === ajusteId,
+    );
     expect(aprovadoItem).toBeDefined();
     expect(aprovadoItem.statusAprovacao).toBe('APROVADO');
   });

@@ -3,7 +3,10 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { RequestAdjustmentUseCase } from '../adjustment/request-adjustment.use-case';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
-import { ConflictException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  ConflictException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export interface RegisterCountDto {
   contagemId: number;

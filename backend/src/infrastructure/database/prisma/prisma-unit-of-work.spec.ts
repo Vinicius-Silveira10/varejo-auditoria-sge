@@ -6,7 +6,6 @@ import { HashService } from '../../security/hash.service';
 
 describe('PrismaUnitOfWork', () => {
   let unitOfWork: PrismaUnitOfWork;
-  let prismaService: PrismaService;
 
   beforeEach(async () => {
     // Mock the PrismaService with a simulated $transaction
@@ -14,7 +13,7 @@ describe('PrismaUnitOfWork', () => {
       $transaction: jest.fn().mockImplementation(async (callback) => {
         // Prisma's real behavior on rollback wraps/destroys the error prototype sometimes.
         // We simulate a rollback by executing the callback.
-        // Since we are mocking, we don't naturally destroy the prototype here, but our 
+        // Since we are mocking, we don't naturally destroy the prototype here, but our
         // test proves that the logic inside PrismaUnitOfWork (the try/catch interceptor)
         // correctly catches and re-throws the exact instance out of the $transaction promise.
         try {
@@ -24,7 +23,9 @@ describe('PrismaUnitOfWork', () => {
           // if we hadn't intercepted it. (Our UOW intercepts it before this happens though!)
           // Actually, our UOW intercepts it INSIDE the callback, so the callback itself throws.
           // The $transaction just rethrows whatever the callback threw.
-          throw new Error('Simulated Prisma Transaction Failure: ' + (error as any).message);
+          throw new Error(
+            'Simulated Prisma Transaction Failure: ' + (error as any).message,
+          );
         }
       }),
     };
@@ -44,14 +45,13 @@ describe('PrismaUnitOfWork', () => {
     }).compile();
 
     unitOfWork = module.get<PrismaUnitOfWork>(PrismaUnitOfWork);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   it('deve repassar a instância original da exceção customizada (ConflictException) sem perder o prototype', async () => {
     const errorInstance = new ConflictException('Teste de Conflito UOW');
 
     try {
-      await unitOfWork.execute(async (ctx) => {
+      await unitOfWork.execute(async () => {
         throw errorInstance;
       });
       // Should not reach here
@@ -59,9 +59,13 @@ describe('PrismaUnitOfWork', () => {
     } catch (error) {
       // Confirma que a exceção chegou como instância exata da classe ConflictException
       expect(error).toBeInstanceOf(ConflictException);
-      expect((error as ConflictException).message).toBe('Teste de Conflito UOW');
+      expect((error as ConflictException).message).toBe(
+        'Teste de Conflito UOW',
+      );
       // Confirma que não é o erro genérico do Prisma que colocamos no mock
-      expect((error as Error).message).not.toContain('Simulated Prisma Transaction Failure');
+      expect((error as Error).message).not.toContain(
+        'Simulated Prisma Transaction Failure',
+      );
     }
   });
 });

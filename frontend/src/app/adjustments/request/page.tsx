@@ -26,24 +26,26 @@ export default function RequestAdjustmentPage() {
 
       let loteId: number;
       try {
-        const batchResponse = await apiFetch(`/batches/number/${numeroLote}`);
+        const batchResponse = (await apiFetch(`/batches/number/${numeroLote}`)) as {
+          data?: { id: number };
+        };
         if (!batchResponse.data) {
           throw new Error(`Lote não encontrado no sistema para a etiqueta ${numeroLote}`);
         }
         loteId = batchResponse.data.id;
-      } catch (err: any) {
-        throw new Error(err.message || 'Lote não encontrado.');
+      } catch (err: unknown) {
+        throw new Error(err instanceof Error ? err.message : 'Lote não encontrado.');
       }
 
       // 2. Solicita o ajuste
-      const requestResponse = await apiFetch('/adjustments/request', {
+      const requestResponse = (await apiFetch('/adjustments/request', {
         method: 'POST',
         body: JSON.stringify({
           loteId,
           quantidadeDelta: Number(quantidadeDelta),
           motivo,
         }),
-      });
+      })) as { nivelAprovacaoExigido?: string };
 
       const nivel = requestResponse.nivelAprovacaoExigido === 'GESTOR_CONTROLADORIA' 
         ? 'ADMIN/CONTROLADORIA' 
@@ -59,8 +61,8 @@ export default function RequestAdjustmentPage() {
       setNumeroLote('');
       setQuantidadeDelta('');
       setMotivo('');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao processar solicitação de ajuste.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Erro ao processar solicitação de ajuste.');
     } finally {
       setLoading(false);
     }

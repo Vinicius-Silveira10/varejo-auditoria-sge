@@ -25,13 +25,15 @@ describe('validateEnv()', () => {
   it('[RED→GREEN] lança erro explícito quando DATABASE_URL está ausente', () => {
     delete process.env.DATABASE_URL;
     delete process.env.JWT_SECRET;
-    process.env.JWT_SECRET = 'uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real';
+    process.env.JWT_SECRET =
+      'uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real';
 
     expect(() => validateEnv()).toThrow('DATABASE_URL');
   });
 
   it('[RED→GREEN] lança erro explícito quando JWT_SECRET está ausente', () => {
-    process.env.DATABASE_URL = 'postgresql://admin:pass@localhost:5432/db?schema=public';
+    process.env.DATABASE_URL =
+      'postgresql://admin:pass@localhost:5432/db?schema=public';
     delete process.env.JWT_SECRET;
 
     expect(() => validateEnv()).toThrow('JWT_SECRET');
@@ -58,8 +60,10 @@ describe('validateEnv()', () => {
   // ============================================================
 
   it('retorna objeto validado quando todas as variáveis obrigatórias estão presentes', () => {
-    process.env.DATABASE_URL = 'postgresql://admin:pass@localhost:5432/db?schema=public';
-    process.env.JWT_SECRET = 'uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real';
+    process.env.DATABASE_URL =
+      'postgresql://admin:pass@localhost:5432/db?schema=public';
+    process.env.JWT_SECRET =
+      'uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real';
     process.env.REDIS_HOST = 'redis-server';
     process.env.REDIS_PORT = '6380';
     process.env.PORT = '4000';
@@ -67,16 +71,24 @@ describe('validateEnv()', () => {
 
     const result = validateEnv();
 
-    expect(result.DATABASE_URL).toBe('postgresql://admin:pass@localhost:5432/db?schema=public');
-    expect(result.JWT_SECRET).toBe('uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real');
+    expect(result.DATABASE_URL).toBe(
+      'postgresql://admin:pass@localhost:5432/db?schema=public',
+    );
+    expect(result.JWT_SECRET).toBe(
+      'uma-chave-forte-de-pelo-menos-64-caracteres-para-producao-real',
+    );
     expect(result.REDIS_HOST).toBe('redis-server');
     expect(result.REDIS_PORT).toBe(6380);
     expect(result.PORT).toBe(4000);
-    expect(result.ALLOWED_ORIGINS).toEqual(['https://staging.app.com', 'https://app.com']);
+    expect(result.ALLOWED_ORIGINS).toEqual([
+      'https://staging.app.com',
+      'https://app.com',
+    ]);
   });
 
   it('usa defaults operacionais para variáveis opcionais quando ausentes', () => {
-    process.env.DATABASE_URL = 'postgresql://admin:pass@localhost:5432/db?schema=public';
+    process.env.DATABASE_URL =
+      'postgresql://admin:pass@localhost:5432/db?schema=public';
     process.env.JWT_SECRET = 'chave-forte';
     delete process.env.REDIS_HOST;
     delete process.env.REDIS_PORT;
@@ -88,7 +100,10 @@ describe('validateEnv()', () => {
     expect(result.REDIS_HOST).toBe('localhost');
     expect(result.REDIS_PORT).toBe(6379);
     expect(result.PORT).toBe(3000);
-    expect(result.ALLOWED_ORIGINS).toEqual(['http://localhost:3001', 'http://localhost:3000']);
+    expect(result.ALLOWED_ORIGINS).toEqual([
+      'http://localhost:3001',
+      'http://localhost:3000',
+    ]);
   });
 
   // ============================================================
@@ -96,7 +111,8 @@ describe('validateEnv()', () => {
   // ============================================================
 
   it('nunca retorna wildcard (*) como origem padrão', () => {
-    process.env.DATABASE_URL = 'postgresql://admin:pass@localhost:5432/db?schema=public';
+    process.env.DATABASE_URL =
+      'postgresql://admin:pass@localhost:5432/db?schema=public';
     process.env.JWT_SECRET = 'chave-forte';
     delete process.env.ALLOWED_ORIGINS;
 

@@ -39,7 +39,9 @@ export class AuthenticateUserUseCase {
     const user = await this.userRepository.findByEmail(request.email);
 
     // Hash dummy para proteção de Timing Attack sem expor hash hardcoded no código
-    const dummyHash = process.env.AUTH_DUMMY_HASH || AuthenticateUserUseCase.getFallbackDummyHash();
+    const dummyHash =
+      process.env.AUTH_DUMMY_HASH ||
+      AuthenticateUserUseCase.getFallbackDummyHash();
 
     if (!user) {
       await bcrypt.compare(request.senhaBruta, dummyHash);
@@ -56,11 +58,11 @@ export class AuthenticateUserUseCase {
       throw new DomainException('RN-USR-002: Credenciais inválidas');
     }
 
-    const payload = { 
-      sub: user.id, 
-      email: user.email, 
+    const payload = {
+      sub: user.id,
+      email: user.email,
       perfil: user.perfil,
-      tokenVersion: user.tokenVersion
+      tokenVersion: user.tokenVersion,
     };
 
     // Atualizar data/hora do último login bem-sucedido (segurança / LGPD) (RN-REL-003)

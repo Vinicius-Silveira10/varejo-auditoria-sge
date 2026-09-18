@@ -4,7 +4,11 @@ import { IAddressRepository } from '../../interfaces/repositories/i-address.repo
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { ConflictException, DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  ConflictException,
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export interface StartCountDto {
   loteId: number;
@@ -35,7 +39,9 @@ export class StartCountUseCase {
     }
 
     if ((lote as any).emInventario) {
-      throw new ConflictException('Este lote já está sob contagem de inventário.');
+      throw new ConflictException(
+        'Este lote já está sob contagem de inventário.',
+      );
     }
 
     // Verificar frequência de contagem para classes B/C (GAP-008 / RN-INV-004)
@@ -74,7 +80,9 @@ export class StartCountUseCase {
       }
 
       if ((loteAtual as any).emInventario) {
-        throw new ConflictException('Este lote já está sob contagem de inventário.');
+        throw new ConflictException(
+          'Este lote já está sob contagem de inventário.',
+        );
       }
 
       // Identificar o endereço associado ao lote (via movimentos) e bloqueá-lo
@@ -82,7 +90,8 @@ export class StartCountUseCase {
       const lastMov = movements.find(
         (m) => m.enderecoDestinoId || m.enderecoOrigemId,
       );
-      const enderecoId = lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
+      const enderecoId =
+        lastMov?.enderecoDestinoId || lastMov?.enderecoOrigemId;
       if (enderecoId) {
         await ctx.addressRepository.bloquear(enderecoId);
       }

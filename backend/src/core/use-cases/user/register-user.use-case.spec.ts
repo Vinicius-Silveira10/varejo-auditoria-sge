@@ -68,7 +68,9 @@ describe('RegisterUserUseCase', () => {
     };
     mockRepository.findByEmail.mockResolvedValue({ id: 1 } as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-USR-001: Email admin@test.com já está em uso',
     );

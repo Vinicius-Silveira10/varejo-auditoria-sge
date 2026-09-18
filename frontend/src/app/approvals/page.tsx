@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { apiFetch } from '@/lib/api';
@@ -27,80 +27,132 @@ interface Ajuste {
   nivelAprovacaoExigido?: string;
 }
 
+interface AdjustmentResponse {
+  message?: string | string[];
+}
+
 export default function ApprovalsPage() {
   const router = useRouter();
   const [ajustes, setAjustes] = useState<Ajuste[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('PENDENTE');
 
-  useEffect(() => {
-    // Client-side RBAC Guard (UX Only)
-    if (!hasRole('GESTOR', 'ADMIN')) {
-      window.dispatchEvent(new CustomEvent('custom-toast', {
-        detail: { type: 'error', message: 'Acesso negado. Apenas gestores e administradores podem acessar esta página.' }
-      }));
-      router.push('/');
-      return;
-    }
-    fetchAjustes();
-  }, [router, filtroStatus]);
+  const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
+    window.dispatchEvent(new CustomEvent('custom-toast', { detail: { type, message } }));
+  };
 
-  const fetchAjustes = async () => {
-    setLoading(true);
+  const showError = useCallback(
+    (response: { status?: number; data?: unknown }) => {
+      const status = response.status;
+      const data = response.data as { message?: string | string[] } | undefined;
+      const msg = data?.message ?? 'Erro desconhecido';
+
+      if (status === 401) {
+        showToast('error', 'Sessão expirada. Faça login novamente.');
+      } else if (status === 403) {
+        showToast('error', 'Você não tem permissão para realizar esta ação.');
+      } else if (status === 409) {
+        showToast('error', 'Conflito: Este ajuste já foi processado por outra pessoa.');
+      } else if (status === 400) {
+        showToast('error', `Erro de validação: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+      } else {
+        showToast('error', `Erro ${status}: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+      }
+    },
+    [],
+  );
+
+  const fetchAjustes = useCallback(async () => {
     try {
       const query = filtroStatus ? `?status=${filtroStatus}` : '';
-      const response = await apiFetch(`/adjustments/pending${query}`);
-      
+      const response = (await apiFetch(`/adjustments/pending${query}`)) as {
+        ok?: boolean;
+        data?: Ajuste[];
+        status?: number;
+      };
+
       if (response.ok) {
-        setAjustes(response.data);
+        setAjustes(response.data as Ajuste[]);
       } else {
         showError(response);
       }
-    } catch (err: any) {
+    } catch {
       showToast('error', 'Erro de conexão ao carregar ajustes.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filtroStatus, showError]);
+
+  useEffect(() => {
+    // Client-side RBAC Guard (UX Only)
+    if (!hasRole('GESTOR', 'ADMIN')) {
+      window.dispatchEvent(
+        new CustomEvent('custom-toast', {
+          detail: {
+            type: 'error',
+            message: 'Acesso negado. Apenas gestores e administradores podem acessar esta página.',
+          },
+        }),
+      );
+      router.push('/');
+    }
+  }, [router]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadData() {
+      try {
+        const query = filtroStatus ? `?status=${filtroStatus}` : '';
+        const response = (await apiFetch(`/adjustments/pending${query}`)) as {
+          ok?: boolean;
+          data?: Ajuste[];
+          status?: number;
+        };
+
+        if (!ignore) {
+          if (response.ok) {
+            setAjustes(response.data as Ajuste[]);
+          } else {
+            showError(response);
+          }
+        }
+      } catch {
+        if (!ignore) {
+          showToast('error', 'Erro de conexão ao carregar ajustes.');
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadData();
+    return () => {
+      ignore = true;
+    };
+  }, [filtroStatus, showError]);
 
   const handleAction = async (ajusteId: number, aprovado: boolean) => {
     try {
-      const response = await apiFetch('/adjustments/approve', {
+      const response = (await apiFetch('/adjustments/approve', {
         method: 'POST',
-        body: JSON.stringify({ ajusteId, aprovado })
-      });
+        body: JSON.stringify({ ajusteId, aprovado }),
+      })) as {
+        ok?: boolean;
+        status?: number;
+        data?: AdjustmentResponse;
+      };
 
       if (response.ok) {
         showToast('success', `Ajuste ${aprovado ? 'aprovado' : 'rejeitado'} com sucesso!`);
-        fetchAjustes();
+        void fetchAjustes();
       } else {
         showError(response);
       }
-    } catch (err: any) {
+    } catch {
       showToast('error', 'Erro de conexão ao processar ajuste.');
     }
-  };
-
-  const showError = (response: any) => {
-    const status = response.status;
-    const msg = response.data?.message || 'Erro desconhecido';
-    
-    if (status === 401) {
-      showToast('error', 'Sessão expirada. Faça login novamente.');
-    } else if (status === 403) {
-      showToast('error', 'Você não tem permissão para realizar esta ação.');
-    } else if (status === 409) {
-      showToast('error', 'Conflito: Este ajuste já foi processado por outra pessoa.');
-      fetchAjustes(); // Reload to remove from list
-    } else if (status === 400) {
-      showToast('error', `Erro de validação: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
-    } else {
-      showToast('error', `Erro ${status}: ${msg}`);
-    }
-  };
-
-  const showToast = (type: 'success' | 'error' | 'warning', message: string) => {
-    window.dispatchEvent(new CustomEvent('custom-toast', { detail: { type, message } }));
   };
 
   return (

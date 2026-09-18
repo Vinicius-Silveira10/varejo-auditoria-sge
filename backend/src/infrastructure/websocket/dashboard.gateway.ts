@@ -13,7 +13,9 @@ import { JwtService } from '@nestjs/jwt';
 @WebSocketGateway({
   cors: {
     origin: (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
-      .split(',').map(o => o.trim()).filter(Boolean),
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
     credentials: true,
   },
 })
@@ -29,13 +31,15 @@ export class DashboardGateway
 
   afterInit(server: Server) {
     this.logger.log('Dashboard WebSocket Gateway Initialized');
-    
+
     server.use((client: Socket, next) => {
       let token = null;
 
       if (client.handshake.headers.cookie) {
-        const cookies = client.handshake.headers.cookie.split(';').map(c => c.trim());
-        const tokenCookie = cookies.find(c => c.startsWith('token='));
+        const cookies = client.handshake.headers.cookie
+          .split(';')
+          .map((c) => c.trim());
+        const tokenCookie = cookies.find((c) => c.startsWith('token='));
         if (tokenCookie) {
           token = tokenCookie.split('=')[1];
         }
@@ -55,7 +59,9 @@ export class DashboardGateway
       }
 
       try {
-        const payload = this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
+        const payload = this.jwtService.verify(token, {
+          secret: process.env.JWT_SECRET,
+        });
         client.data.user = payload;
         next();
       } catch {
@@ -66,7 +72,9 @@ export class DashboardGateway
   }
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id} (user: ${client.data.user?.email})`);
+    this.logger.log(
+      `Client connected: ${client.id} (user: ${client.data.user?.email})`,
+    );
   }
 
   handleDisconnect(client: Socket) {

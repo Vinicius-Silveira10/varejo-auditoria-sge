@@ -24,13 +24,11 @@ describe('ListPendingAdjustmentsUseCase', () => {
   });
 
   it('deve retornar apenas ajustes do status filtrado', async () => {
-    const mockAjustes = [
-      { id: 1, statusAprovacao: 'PENDENTE' },
-    ] as any;
+    const mockAjustes = [{ id: 1, statusAprovacao: 'PENDENTE' }] as any;
     mockAdjRepo.findPending.mockResolvedValue(mockAjustes);
-    
+
     const result = await useCase.execute('PENDENTE');
-    
+
     expect(result).toHaveLength(1);
     expect(result[0].statusAprovacao).toBe('PENDENTE');
     expect(mockAdjRepo.findPending).toHaveBeenCalledWith('PENDENTE');
@@ -53,11 +51,11 @@ describe('ListPendingAdjustmentsUseCase', () => {
         },
       },
     } as any;
-    
+
     mockAdjRepo.findPending.mockResolvedValue([mockAjusteEnriquecido]);
-    
+
     const result = await useCase.execute();
-    
+
     expect(result).toHaveLength(1);
     expect(result[0].lote.numeroLote).toBe('LOTE-123');
     expect(result[0].lote.produto.sku).toBe('SKU-001');

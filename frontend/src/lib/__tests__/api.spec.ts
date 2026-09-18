@@ -12,7 +12,7 @@ describe('apiFetch', () => {
       ok: true,
       status: 200,
       json: async () => ({ user: { id: 1, email: 'admin@fortal.com.br' }, accessToken: process.env.TEST_ACCESS_TOKEN || 'dummy-token' }),
-    }) as any;
+    }) as unknown as typeof global.fetch;
 
     const result = await apiFetch('/auth/login', { method: 'POST' });
     

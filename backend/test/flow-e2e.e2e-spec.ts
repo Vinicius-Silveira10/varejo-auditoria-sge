@@ -7,7 +7,6 @@ import { CloseOrderUseCase } from '../src/core/use-cases/order/close-order.use-c
 import { RegisterMovementUseCase } from '../src/core/use-cases/movement/register-movement.use-case';
 import { ReceiveBatchUseCase } from '../src/core/use-cases/batch/receive-batch.use-case';
 import { IProductRepository } from '../src/core/interfaces/repositories/i-product.repository';
-import { IBatchRepository } from '../src/core/interfaces/repositories/i-batch.repository';
 import { IAddressRepository } from '../src/core/interfaces/repositories/i-address.repository';
 
 describe('Flow E2E (Integration)', () => {
@@ -51,32 +50,40 @@ describe('Flow E2E (Integration)', () => {
     // 1. Limpar Pedidos e Itens
     const orderRepoPrisma = app.get('IOrderRepository').prisma;
     const order = await orderRepoPrisma.pedidoExpedicao.findFirst({
-      where: { codigoPedido: `PED-FLOW-${ts}` }
+      where: { codigoPedido: `PED-FLOW-${ts}` },
     });
     if (order) {
-      await orderRepoPrisma.itemPedido.deleteMany({ where: { pedidoId: order.id } });
+      await orderRepoPrisma.itemPedido.deleteMany({
+        where: { pedidoId: order.id },
+      });
       await orderRepoPrisma.pedidoExpedicao.delete({ where: { id: order.id } });
     }
 
     // 2. Limpar Lotes e Movimentacoes
     const batchRepoPrisma = app.get('IBatchRepository').prisma;
     const batch = await batchRepoPrisma.lote.findFirst({
-      where: { numeroLote: `L-FLOW-${ts}` }
+      where: { numeroLote: `L-FLOW-${ts}` },
     });
     if (batch) {
-      await batchRepoPrisma.movimentacao.deleteMany({ where: { loteId: batch.id } });
+      await batchRepoPrisma.movimentacao.deleteMany({
+        where: { loteId: batch.id },
+      });
       await batchRepoPrisma.lote.delete({ where: { id: batch.id } });
     }
 
     // 3. Limpar Enderecos, Produtos, Usuarios
     const prisma = app.get('IOrderRepository').prisma; // Aproveitando qualquer prisma client
     await prisma.endereco.deleteMany({ where: { codigo: `ADDR-FLOW-${ts}` } });
-    const product = await prisma.produto.findFirst({ where: { sku: `FLOW-${ts}` } });
+    const product = await prisma.produto.findFirst({
+      where: { sku: `FLOW-${ts}` },
+    });
     if (product) {
       await prisma.logCusto.deleteMany({ where: { produtoId: product.id } });
       await prisma.produto.delete({ where: { id: product.id } });
     }
-    await prisma.usuario.deleteMany({ where: { email: `admin-${ts}@test.com` } });
+    await prisma.usuario.deleteMany({
+      where: { email: `admin-${ts}@test.com` },
+    });
 
     await app.close();
   });

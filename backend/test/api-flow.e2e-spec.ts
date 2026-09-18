@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
 import { GlobalExceptionFilter } from '../src/infrastructure/http/filters/http-exception.filter';
@@ -9,15 +9,15 @@ import * as bcrypt from 'bcrypt';
 describe('API Flow E2E (Supertest)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  
+
   // Variáveis de estado do teste E2E
   let authToken: string;
   let managerToken: string;
   let adminId: number;
   let managerId: number;
-  let testSku = `E2E-PROD-${Date.now()}`;
-  let testAddress = `E2E-ADDR-${Date.now()}`;
-  let testBatch = `E2E-BATCH-${Date.now()}`;
+  const testSku = `E2E-PROD-${Date.now()}`;
+  const testAddress = `E2E-ADDR-${Date.now()}`;
+  const testBatch = `E2E-BATCH-${Date.now()}`;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -34,7 +34,7 @@ describe('API Flow E2E (Supertest)', () => {
     // 1. Limpeza de sujeira residual
     await prisma.movimentacao.deleteMany({});
     await prisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
-    
+
     // 2. Criar usuário temporário para o E2E
     const salt = await bcrypt.genSalt(10);
     const senha = await bcrypt.hash('SenhaE2E123', salt);
@@ -67,12 +67,10 @@ describe('API Flow E2E (Supertest)', () => {
       },
     });
 
-
-
     // Neutraliza temporariamente o endereço CONGELADO do seed
     await prisma.endereco.updateMany({
       where: { tipoZona: 'CONGELADO' },
-      data: { tipoZona: 'SECO' }
+      data: { tipoZona: 'SECO' },
     });
 
     await prisma.produto.create({
@@ -85,7 +83,7 @@ describe('API Flow E2E (Supertest)', () => {
         custoMedio: 15.0,
       },
     });
-    
+
     // 3. Criar Lote de entrada para manipulação
     const prod = await prisma.produto.findUnique({ where: { sku: testSku } });
     await prisma.lote.create({
@@ -94,26 +92,34 @@ describe('API Flow E2E (Supertest)', () => {
         produtoId: prod!.id,
         quantidade: 100,
         validade: new Date('2028-01-01'),
-      }
+      },
     });
   });
 
   afterAll(async () => {
     // Tear down: Limpeza completa dos dados inseridos pelo teste
-    await prisma.ajusteEstoque.deleteMany({ where: { solicitanteId: adminId }});
+    await prisma.ajusteEstoque.deleteMany({
+      where: { solicitanteId: adminId },
+    });
     await prisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
     await prisma.movimentacao.deleteMany({});
-    await prisma.lote.deleteMany({ where: { numeroLote: testBatch }});
-    await prisma.produto.deleteMany({ where: { sku: testSku }});
-    await prisma.endereco.deleteMany({ where: { codigo: { startsWith: 'E2E-ADDR' } }});
-    await prisma.usuario.deleteMany({ where: { id: { in: [adminId, managerId] } }});
-    
+    await prisma.lote.deleteMany({ where: { numeroLote: testBatch } });
+    await prisma.produto.deleteMany({ where: { sku: testSku } });
+    await prisma.endereco.deleteMany({
+      where: { codigo: { startsWith: 'E2E-ADDR' } },
+    });
+    await prisma.usuario.deleteMany({
+      where: { id: { in: [adminId, managerId] } },
+    });
+
     await app.close();
   });
 
   describe('Feature 1: Autenticação E2E', () => {
     it('deve logar e obter token JWT', async () => {
-      const email = (await prisma.usuario.findUnique({ where: { id: adminId } }))!.email;
+      const email = (await prisma.usuario.findUnique({
+        where: { id: adminId },
+      }))!.email;
       const res = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email, senhaBruta: 'SenhaE2E123' })
@@ -122,7 +128,9 @@ describe('API Flow E2E (Supertest)', () => {
       expect(res.body.accessToken).toBeDefined();
       authToken = res.body.accessToken;
 
-      const emailManager = (await prisma.usuario.findUnique({ where: { id: managerId } }))!.email;
+      const emailManager = (await prisma.usuario.findUnique({
+        where: { id: managerId },
+      }))!.email;
       const resManager = await request(app.getHttpServer())
         .post('/auth/login')
         .send({ email: emailManager, senhaBruta: 'SenhaE2E123' })
@@ -133,14 +141,20 @@ describe('API Flow E2E (Supertest)', () => {
 
   describe('Feature 2: Putaway e Armazenamento Inteligente', () => {
     it('deve bloquear o putaway de item congelado para zona seca', async () => {
-      const batch = await prisma.lote.findFirst({ where: { numeroLote: testBatch } });
+      const batch = await prisma.lote.findFirst({
+        where: { numeroLote: testBatch },
+      });
       const res = await request(app.getHttpServer())
-        .get(`/addresses/suggest-putaway?produtoId=${batch!.produtoId}&quantidade=50`)
+        .get(
+          `/addresses/suggest-putaway?produtoId=${batch!.produtoId}&quantidade=50`,
+        )
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
       expect(res.body.data.sugestoes).toHaveLength(0);
-      expect(res.body.data.aviso).toContain('Nenhum endereço CONGELADO disponível');
+      expect(res.body.data.aviso).toContain(
+        'Nenhum endereço CONGELADO disponível',
+      );
     });
 
     it('deve registrar a movimentação garantindo autoria via JWT', async () => {
@@ -154,10 +168,14 @@ describe('API Flow E2E (Supertest)', () => {
         },
       });
 
-      const batch = await prisma.lote.findFirst({ where: { numeroLote: testBatch } });
-      const address = await prisma.endereco.findUnique({ where: { codigo: `${testAddress}-FRIO` } });
-      
-      const res = await request(app.getHttpServer())
+      const batch = await prisma.lote.findFirst({
+        where: { numeroLote: testBatch },
+      });
+      const address = await prisma.endereco.findUnique({
+        where: { codigo: `${testAddress}-FRIO` },
+      });
+
+      await request(app.getHttpServer())
         .post('/movements')
         .set('Authorization', `Bearer ${authToken}`)
         .send({
@@ -165,11 +183,13 @@ describe('API Flow E2E (Supertest)', () => {
           loteId: batch!.id,
           quantidade: 50,
           motivo: 'Recebimento E2E',
-          enderecoDestinoId: address!.id
+          enderecoDestinoId: address!.id,
         })
         .expect(201);
-      
-      const mov = await prisma.movimentacao.findFirst({ where: { loteId: batch!.id } });
+
+      const mov = await prisma.movimentacao.findFirst({
+        where: { loteId: batch!.id },
+      });
       expect(mov!.usuarioId).toBe(adminId); // Garante que pegou do Token, não do payload
     });
   });
@@ -180,7 +200,7 @@ describe('API Flow E2E (Supertest)', () => {
         .get('/audit/verify')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
-      
+
       expect(res.body.status).toBe('INTEGRO');
     });
   });
@@ -189,8 +209,10 @@ describe('API Flow E2E (Supertest)', () => {
     let ajusteId: number;
 
     it('deve criar e aprovar o ajuste', async () => {
-      const batch = await prisma.lote.findFirst({ where: { numeroLote: testBatch } });
-      
+      const batch = await prisma.lote.findFirst({
+        where: { numeroLote: testBatch },
+      });
+
       // Criar o ajuste
       const resCreate = await request(app.getHttpServer())
         .post('/adjustments/request')
@@ -198,10 +220,10 @@ describe('API Flow E2E (Supertest)', () => {
         .send({
           loteId: batch!.id,
           quantidadeDelta: -1, // Inventário encontrou falta (< 2% para passar com GESTOR)
-          motivo: 'Avaria E2E'
+          motivo: 'Avaria E2E',
         })
         .expect(201);
-      
+
       ajusteId = resCreate.body.ajuste.id;
 
       // Aprovar o ajuste
@@ -210,7 +232,7 @@ describe('API Flow E2E (Supertest)', () => {
         .set('Authorization', `Bearer ${managerToken}`)
         .send({
           ajusteId: ajusteId,
-          aprovado: true
+          aprovado: true,
         })
         .expect(201);
 
@@ -220,12 +242,14 @@ describe('API Flow E2E (Supertest)', () => {
     it('deve manter o Custo Médio Ponderado inalterado após ajuste', async () => {
       // 15.0 era o custo inicial configurado no setup (beforeAll)
       const prod = await prisma.produto.findUnique({ where: { sku: testSku } });
-      expect(prod!.custoMedio).toBe(15.0); 
+      expect(prod!.custoMedio).toBe(15.0);
     });
 
     it('deve lidar com aprovação e rejeição simultâneas para o mesmo ajuste garantindo que apenas uma operação tenha sucesso', async () => {
-      const batch = await prisma.lote.findFirst({ where: { numeroLote: testBatch } });
-      
+      const batch = await prisma.lote.findFirst({
+        where: { numeroLote: testBatch },
+      });
+
       // Criar um novo ajuste para testar concorrência
       const resCreate = await request(app.getHttpServer())
         .post('/adjustments/request')
@@ -233,10 +257,10 @@ describe('API Flow E2E (Supertest)', () => {
         .send({
           loteId: batch!.id,
           quantidadeDelta: -2,
-          motivo: 'Teste Concorrencia E2E'
+          motivo: 'Teste Concorrencia E2E',
         })
         .expect(201);
-      
+
       const ajusteIdConcorrencia = resCreate.body.ajuste.id;
 
       // Disparar aprovação e rejeição simultaneamente
@@ -245,7 +269,7 @@ describe('API Flow E2E (Supertest)', () => {
         .set('Authorization', `Bearer ${managerToken}`)
         .send({
           ajusteId: ajusteIdConcorrencia,
-          aprovado: true
+          aprovado: true,
         });
 
       const promiseReject = request(app.getHttpServer())
@@ -253,17 +277,16 @@ describe('API Flow E2E (Supertest)', () => {
         .set('Authorization', `Bearer ${managerToken}`)
         .send({
           ajusteId: ajusteIdConcorrencia,
-          aprovado: false
+          aprovado: false,
         });
 
       const results = await Promise.all([promiseApprove, promiseReject]);
-      const statuses = results.map(r => r.status);
-      
+      const statuses = results.map((r) => r.status);
+
       // Um deve ser 201 (Created/Success) e o outro deve ser 409 (Conflict)
       expect(statuses).toContain(201);
       expect(statuses).toContain(409);
-      expect(statuses.filter(s => s === 201).length).toBe(1);
+      expect(statuses.filter((s) => s === 201).length).toBe(1);
     });
   });
-
 });

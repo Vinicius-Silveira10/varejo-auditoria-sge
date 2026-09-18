@@ -38,9 +38,9 @@ export function validateEnv(): ValidatedEnv {
   if (missing.length > 0) {
     throw new Error(
       `\n\n❌ ERRO CRÍTICO DE CONFIGURAÇÃO — A aplicação não pode ser iniciada.\n` +
-      `As seguintes variáveis de ambiente obrigatórias não estão definidas:\n` +
-      missing.map((v) => `  - ${v}`).join('\n') +
-      `\n\nCopie o arquivo .env.example para .env e preencha todos os valores.\n`,
+        `As seguintes variáveis de ambiente obrigatórias não estão definidas:\n` +
+        missing.map((v) => `  - ${v}`).join('\n') +
+        `\n\nCopie o arquivo .env.example para .env e preencha todos os valores.\n`,
     );
   }
 
@@ -50,8 +50,13 @@ export function validateEnv(): ValidatedEnv {
   const PORT = Number(process.env.PORT ?? 3000);
 
   // ALLOWED_ORIGINS: lista separada por vírgulas. Ex.: "http://localhost:3001,http://localhost:3000"
-  const originsRaw = process.env.ALLOWED_ORIGINS ?? 'http://localhost:3001,http://localhost:3000';
-  const ALLOWED_ORIGINS = originsRaw.split(',').map((o) => o.trim()).filter(Boolean);
+  const originsRaw =
+    process.env.ALLOWED_ORIGINS ??
+    'http://localhost:3001,http://localhost:3000';
+  const ALLOWED_ORIGINS = originsRaw
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
 
   return {
     DATABASE_URL: DATABASE_URL!,

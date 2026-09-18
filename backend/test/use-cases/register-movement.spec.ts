@@ -2,7 +2,7 @@ import { RegisterMovementUseCase } from '../../src/core/use-cases/movement/regis
 import { IBatchRepository } from '../../src/core/interfaces/repositories/i-batch.repository';
 import { IMovementRepository } from '../../src/core/interfaces/repositories/i-movement.repository';
 import { IUnitOfWork } from '../../src/core/interfaces/repositories/i-unit-of-work';
-import { Movimentacao, Lote } from '@prisma/client';
+import { Lote } from '@prisma/client';
 
 describe('RegisterMovementUseCase (@code.assure.elite)', () => {
   let useCase: RegisterMovementUseCase;

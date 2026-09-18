@@ -33,10 +33,27 @@ describe('ListPendingOrdersUseCase', () => {
 
   it('T2: deve retornar pedidos quando existem pedidos no status solicitado', async () => {
     const fakePedidos = [
-      { id: 1, codigoPedido: 'PED-001', status: 'PENDENTE', valorTotal: 500, createdAt: new Date(), itens: [] },
-      { id: 2, codigoPedido: 'PED-002', status: 'PENDENTE', valorTotal: 300, createdAt: new Date(), itens: [] },
+      {
+        id: 1,
+        codigoPedido: 'PED-001',
+        status: 'PENDENTE',
+        valorTotal: 500,
+        createdAt: new Date(),
+        itens: [],
+      },
+      {
+        id: 2,
+        codigoPedido: 'PED-002',
+        status: 'PENDENTE',
+        valorTotal: 300,
+        createdAt: new Date(),
+        itens: [],
+      },
     ];
-    mockOrderRepo.findByStatus.mockResolvedValue({ data: fakePedidos as any, total: 2 });
+    mockOrderRepo.findByStatus.mockResolvedValue({
+      data: fakePedidos as any,
+      total: 2,
+    });
     const result = await buildUseCase().execute({});
     expect(result.data).toHaveLength(2);
     expect(result.meta.total).toBe(2);
@@ -56,7 +73,10 @@ describe('ListPendingOrdersUseCase', () => {
   });
 
   it('T5: deve calcular totalPages corretamente e repassar page/limit ao repositorio', async () => {
-    mockOrderRepo.findByStatus.mockResolvedValue({ data: [] as any, total: 25 });
+    mockOrderRepo.findByStatus.mockResolvedValue({
+      data: [] as any,
+      total: 25,
+    });
     const result = await buildUseCase().execute({ page: 2, limit: 10 });
     expect(mockOrderRepo.findByStatus).toHaveBeenCalledWith('PENDENTE', 2, 10);
     expect(result.meta.page).toBe(2);
@@ -66,12 +86,17 @@ describe('ListPendingOrdersUseCase', () => {
   });
 
   it('T6: deve calcular totalPages sem pagina extra quando total e multiplo exato do limit', async () => {
-    mockOrderRepo.findByStatus.mockResolvedValue({ data: [] as any, total: 20 });
+    mockOrderRepo.findByStatus.mockResolvedValue({
+      data: [] as any,
+      total: 20,
+    });
     const result = await buildUseCase().execute({ page: 1, limit: 20 });
     expect(result.meta.totalPages).toBe(1);
   });
 
   it('T7: deve lancar erro para status invalido', async () => {
-    await expect(buildUseCase().execute({ status: 'STATUS_INVALIDO' })).rejects.toThrow('Status invalido');
+    await expect(
+      buildUseCase().execute({ status: 'STATUS_INVALIDO' }),
+    ).rejects.toThrow('Status invalido');
   });
 });

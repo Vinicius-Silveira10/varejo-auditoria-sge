@@ -22,7 +22,6 @@ import { RolesGuard } from './infrastructure/security/roles.guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { CustomThrottlerGuard } from './infrastructure/security/custom-throttler.guard';
 
-
 @Module({
   imports: [
     PrismaModule,

@@ -198,7 +198,9 @@ describe('ProcessNfeUseCase', () => {
   it('deve rejeitar NF-e duplicada com erro RN-REC-002', async () => {
     mockNfRepo.findByChaveAcesso.mockResolvedValue({ id: 1 } as any);
 
-    await expect(useCase.execute(VALID_XML, 999)).rejects.toBeInstanceOf(ConflictException);
+    await expect(useCase.execute(VALID_XML, 999)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
     await expect(useCase.execute(VALID_XML, 999)).rejects.toThrow('RN-REC-002');
     expect(mockNfRepo.create).not.toHaveBeenCalled();
   });

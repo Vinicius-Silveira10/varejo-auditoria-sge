@@ -1,7 +1,10 @@
 import { IAdjustmentRepository } from '../../interfaces/repositories/i-adjustment.repository';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 import { calcularNivelAprovacaoExigido } from '../../domain/adjustment/adjustment.rules';
 
 export interface RequestAdjustmentDto {
@@ -20,7 +23,9 @@ export class RequestAdjustmentUseCase {
 
   async execute(dto: RequestAdjustmentDto) {
     if (!dto.motivo || dto.motivo.trim() === '') {
-      throw new DomainException('RN-AJU-001: Todo ajuste deve ter motivo classificado.');
+      throw new DomainException(
+        'RN-AJU-001: Todo ajuste deve ter motivo classificado.',
+      );
     }
 
     const lote = await this.batchRepository.findById(dto.loteId);
@@ -46,7 +51,9 @@ export class RequestAdjustmentUseCase {
     }
 
     const saldoTeorico = lote.quantidade;
-    const valorDelta = Number((dto.quantidadeDelta * produto.custoMedio).toFixed(2));
+    const valorDelta = Number(
+      (dto.quantidadeDelta * produto.custoMedio).toFixed(2),
+    );
 
     const nivelAprovacao = calcularNivelAprovacaoExigido(
       dto.quantidadeDelta,

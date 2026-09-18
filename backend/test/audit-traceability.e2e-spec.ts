@@ -40,23 +40,35 @@ describe('Audit & Traceability (Integration)', () => {
   afterAll(async () => {
     // 1. Limpar Lotes e Movimentacoes
     const batchRepoPrisma = app.get('IProductRepository').prisma; // Aproveitando prisma client
-    await batchRepoPrisma.chainPointer.deleteMany({ where: { tabela: 'Movimentacao' } });
+    await batchRepoPrisma.chainPointer.deleteMany({
+      where: { tabela: 'Movimentacao' },
+    });
     const batch = await batchRepoPrisma.lote.findFirst({
-      where: { numeroLote: `L-AUDIT-${ts}` }
+      where: { numeroLote: `L-AUDIT-${ts}` },
     });
     if (batch) {
-      await batchRepoPrisma.movimentacao.deleteMany({ where: { loteId: batch.id } });
+      await batchRepoPrisma.movimentacao.deleteMany({
+        where: { loteId: batch.id },
+      });
       await batchRepoPrisma.lote.delete({ where: { id: batch.id } });
     }
 
     // 2. Limpar Enderecos, Produtos, Usuarios
-    await batchRepoPrisma.endereco.deleteMany({ where: { codigo: `ADDR-AUDIT-${ts}` } });
-    const product = await batchRepoPrisma.produto.findFirst({ where: { sku: `AUDIT-${ts}` } });
+    await batchRepoPrisma.endereco.deleteMany({
+      where: { codigo: `ADDR-AUDIT-${ts}` },
+    });
+    const product = await batchRepoPrisma.produto.findFirst({
+      where: { sku: `AUDIT-${ts}` },
+    });
     if (product) {
-      await batchRepoPrisma.logCusto.deleteMany({ where: { produtoId: product.id } });
+      await batchRepoPrisma.logCusto.deleteMany({
+        where: { produtoId: product.id },
+      });
       await batchRepoPrisma.produto.delete({ where: { id: product.id } });
     }
-    await batchRepoPrisma.usuario.deleteMany({ where: { email: `auditor-${ts}@test.com` } });
+    await batchRepoPrisma.usuario.deleteMany({
+      where: { email: `auditor-${ts}@test.com` },
+    });
 
     await app.close();
   });
@@ -91,7 +103,7 @@ describe('Audit & Traceability (Integration)', () => {
       custoAquisicao: 10,
       usuarioId: user.id,
     });
-    
+
     // Armazenagem (Mover da doca para o endereço real)
     const mov1 = await registerMovement.execute({
       tipo: 'ARMAZENAGEM',

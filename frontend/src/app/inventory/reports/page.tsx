@@ -34,11 +34,11 @@ export default function InventoryReportsPage() {
           apiFetch('/inventory/report/accuracy'),
           apiFetch('/inventory/report/value'),
         ]);
-        setAccuracy(accData);
-        setValue(valData);
-      } catch (error: any) {
+        setAccuracy(accData as AccuracyReport);
+        setValue(valData as ValueReport);
+      } catch (error: unknown) {
         window.dispatchEvent(new CustomEvent('custom-toast', {
-          detail: { type: 'error', message: error.message || 'Erro ao carregar relatórios' }
+          detail: { type: 'error', message: error instanceof Error ? error.message : 'Erro ao carregar relatórios' }
         }));
       } finally {
         setLoading(false);

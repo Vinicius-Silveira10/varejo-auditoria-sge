@@ -4,7 +4,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { DomainException } from '../../exceptions/domain.exception';
 
 /**
  * Helper para construir o mock do UnitOfWork com estado de endereços mutável,
@@ -97,11 +97,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 1,
       status: 'PENDENTE',
-      itens: [{ id: 10, produtoId: 1, quantidadeSolicitada: 30, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 10,
+          produtoId: 1,
+          quantidadeSolicitada: 30,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 101, numeroLote: 'L-NOVO', produtoId: 1, quantidade: 100, validade: null },
+      {
+        id: 101,
+        numeroLote: 'L-NOVO',
+        produtoId: 1,
+        quantidade: 100,
+        validade: null,
+      },
     ] as any);
 
     // Lote ainda não passou por putaway — findAllocationByLote retorna vazio
@@ -131,11 +144,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 1,
       status: 'PENDENTE',
-      itens: [{ id: 10, produtoId: 1, quantidadeSolicitada: 20, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 10,
+          produtoId: 1,
+          quantidadeSolicitada: 20,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: LOTE_ID, numeroLote: 'L-ARM', produtoId: 1, quantidade: 50, validade: null },
+      {
+        id: LOTE_ID,
+        numeroLote: 'L-ARM',
+        produtoId: 1,
+        quantidade: 50,
+        validade: null,
+      },
     ] as any);
 
     // 50 unidades no Endereço 5
@@ -144,10 +170,19 @@ describe('PickOrderUseCase', () => {
     ]);
 
     // Endereço com ocupado = 50
-    mockAddressRepo.findById.mockResolvedValue({ id: ENDERECO_ID, ocupado: 50 } as any);
+    mockAddressRepo.findById.mockResolvedValue({
+      id: ENDERECO_ID,
+      ocupado: 50,
+    } as any);
 
     const mockLockForUpdate = jest.fn();
-    mockUnitOfWork = buildUnitOfWork(mockBatchRepo, mockMovRepo, mockOrderRepo, mockAddressRepo, mockLockForUpdate);
+    mockUnitOfWork = buildUnitOfWork(
+      mockBatchRepo,
+      mockMovRepo,
+      mockOrderRepo,
+      mockAddressRepo,
+      mockLockForUpdate,
+    );
 
     const useCase = buildUseCase();
     await useCase.execute(1, 99);
@@ -157,9 +192,11 @@ describe('PickOrderUseCase', () => {
 
     // Validação da ORDEM ESTRITA: O lock deve ocorrer ANTES de qualquer update de lote, endereco ou insert de movimentacao
     const lockOrder = mockLockForUpdate.mock.invocationCallOrder[0];
-    const updateLoteOrder = mockBatchRepo.updateQuantidadeDelta.mock.invocationCallOrder[0];
+    const updateLoteOrder =
+      mockBatchRepo.updateQuantidadeDelta.mock.invocationCallOrder[0];
     const createMovOrder = mockMovRepo.create.mock.invocationCallOrder[0];
-    const updateAddressOrder = mockAddressRepo.updateOcupacao.mock.invocationCallOrder[0];
+    const updateAddressOrder =
+      mockAddressRepo.updateOcupacao.mock.invocationCallOrder[0];
 
     expect(lockOrder).toBeLessThan(updateLoteOrder);
     expect(updateLoteOrder).toBeLessThan(createMovOrder);
@@ -175,7 +212,10 @@ describe('PickOrderUseCase', () => {
     );
 
     // ocupado decrementado de 50 para 30
-    expect(mockAddressRepo.updateOcupacao).toHaveBeenCalledWith(ENDERECO_ID, 30);
+    expect(mockAddressRepo.updateOcupacao).toHaveBeenCalledWith(
+      ENDERECO_ID,
+      30,
+    );
   });
 
   // =========================================================================
@@ -186,26 +226,51 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 99,
       status: 'PENDENTE',
-      itens: [{ id: 10, produtoId: 1, quantidadeSolicitada: 40, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 10,
+          produtoId: 1,
+          quantidadeSolicitada: 40,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     // Repare que o banco retorna na ordem 500, depois 200.
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 500, numeroLote: 'L-500', produtoId: 1, quantidade: 20, validade: null },
-      { id: 200, numeroLote: 'L-200', produtoId: 1, quantidade: 20, validade: null },
+      {
+        id: 500,
+        numeroLote: 'L-500',
+        produtoId: 1,
+        quantidade: 20,
+        validade: null,
+      },
+      {
+        id: 200,
+        numeroLote: 'L-200',
+        produtoId: 1,
+        quantidade: 20,
+        validade: null,
+      },
     ] as any);
 
     mockMovRepo.findAllocationByLote.mockResolvedValue([]); // sem alocação física para simplificar
 
     const mockLockForUpdate = jest.fn();
-    mockUnitOfWork = buildUnitOfWork(mockBatchRepo, mockMovRepo, mockOrderRepo, mockAddressRepo, mockLockForUpdate);
+    mockUnitOfWork = buildUnitOfWork(
+      mockBatchRepo,
+      mockMovRepo,
+      mockOrderRepo,
+      mockAddressRepo,
+      mockLockForUpdate,
+    );
 
     const useCase = buildUseCase();
     await useCase.execute(99, 99);
 
     // O código DEVE ordenar os lotes numericamente (200, 500) antes de pedir lock.
     expect(mockLockForUpdate).toHaveBeenCalledTimes(2);
-    
+
     expect(mockLockForUpdate.mock.calls[0]).toEqual(['Lote', 200]);
     expect(mockLockForUpdate.mock.calls[1]).toEqual(['Lote', 500]);
   });
@@ -217,11 +282,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 2,
       status: 'PENDENTE',
-      itens: [{ id: 20, produtoId: 2, quantidadeSolicitada: 40, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 20,
+          produtoId: 2,
+          quantidadeSolicitada: 40,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 200, numeroLote: 'L-CROSS', produtoId: 2, quantidade: 100, validade: null },
+      {
+        id: 200,
+        numeroLote: 'L-CROSS',
+        produtoId: 2,
+        quantidade: 100,
+        validade: null,
+      },
     ] as any);
 
     mockMovRepo.findAllocationByLote.mockResolvedValue([]); // zero alocação física
@@ -245,11 +323,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 3,
       status: 'PENDENTE',
-      itens: [{ id: 30, produtoId: 3, quantidadeSolicitada: 30, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 30,
+          produtoId: 3,
+          quantidadeSolicitada: 30,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 300, numeroLote: 'L-MIX', produtoId: 3, quantidade: 100, validade: null },
+      {
+        id: 300,
+        numeroLote: 'L-MIX',
+        produtoId: 3,
+        quantidade: 100,
+        validade: null,
+      },
     ] as any);
 
     // 20 armazenados no Endereço 7; 80 ainda pendentes
@@ -257,7 +348,10 @@ describe('PickOrderUseCase', () => {
       { enderecoId: ENDERECO_ID, quantidadeAlocada: 20 },
     ]);
 
-    mockAddressRepo.findById.mockResolvedValue({ id: ENDERECO_ID, ocupado: 20 } as any);
+    mockAddressRepo.findById.mockResolvedValue({
+      id: ENDERECO_ID,
+      ocupado: 20,
+    } as any);
 
     const useCase = buildUseCase();
     await useCase.execute(3, 99);
@@ -267,8 +361,12 @@ describe('PickOrderUseCase', () => {
     );
 
     // Deve haver 2 movimentações: 20 do endereço + 10 cross-docking
-    const doEndereco = criarCalls.filter((c: any) => c.enderecoOrigemId === ENDERECO_ID);
-    const crossDock = criarCalls.filter((c: any) => c.enderecoOrigemId === null);
+    const doEndereco = criarCalls.filter(
+      (c: any) => c.enderecoOrigemId === ENDERECO_ID,
+    );
+    const crossDock = criarCalls.filter(
+      (c: any) => c.enderecoOrigemId === null,
+    );
 
     expect(doEndereco).toHaveLength(1);
     expect(doEndereco[0].quantidade).toBe(20);
@@ -297,18 +395,34 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 4,
       status: 'PENDENTE',
-      itens: [{ id: 40, produtoId: 4, quantidadeSolicitada: 30, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 40,
+          produtoId: 4,
+          quantidadeSolicitada: 30,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 400, numeroLote: 'L-REG', produtoId: 4, quantidade: 70, validade: null },
+      {
+        id: 400,
+        numeroLote: 'L-REG',
+        produtoId: 4,
+        quantidade: 70,
+        validade: null,
+      },
     ] as any);
 
     mockMovRepo.findAllocationByLote.mockResolvedValue([
       { enderecoId: ENDERECO_A, quantidadeAlocada: 60 },
     ]);
 
-    mockAddressRepo.findById.mockResolvedValue({ id: ENDERECO_A, ocupado: 60 } as any);
+    mockAddressRepo.findById.mockResolvedValue({
+      id: ENDERECO_A,
+      ocupado: 60,
+    } as any);
 
     const useCase = buildUseCase();
     await useCase.execute(4, 99);
@@ -337,12 +451,31 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 5,
       status: 'PENDENTE',
-      itens: [{ id: 50, produtoId: 5, quantidadeSolicitada: 50, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 50,
+          produtoId: 5,
+          quantidadeSolicitada: 50,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 501, numeroLote: 'L-OLD', produtoId: 5, quantidade: 30, validade: new Date('2026-10-01') },
-      { id: 502, numeroLote: 'L-NEW', produtoId: 5, quantidade: 100, validade: new Date('2027-01-01') },
+      {
+        id: 501,
+        numeroLote: 'L-OLD',
+        produtoId: 5,
+        quantidade: 30,
+        validade: new Date('2026-10-01'),
+      },
+      {
+        id: 502,
+        numeroLote: 'L-NEW',
+        produtoId: 5,
+        quantidade: 100,
+        validade: new Date('2027-01-01'),
+      },
     ] as any);
 
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
@@ -367,11 +500,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 6,
       status: 'PENDENTE',
-      itens: [{ id: 60, produtoId: 6, quantidadeSolicitada: 50, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 60,
+          produtoId: 6,
+          quantidadeSolicitada: 50,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 600, numeroLote: 'L-MULTI', produtoId: 6, quantidade: 100, validade: null },
+      {
+        id: 600,
+        numeroLote: 'L-MULTI',
+        produtoId: 6,
+        quantidade: 100,
+        validade: null,
+      },
     ] as any);
 
     // Retornado com o maior alocado primeiro (ordem DESC — conforme implementação do repositório)
@@ -390,7 +536,9 @@ describe('PickOrderUseCase', () => {
     const useCase = buildUseCase();
     await useCase.execute(6, 99);
 
-    const criarCalls = (mockMovRepo.create as jest.Mock).mock.calls.map((c: any) => c[0]);
+    const criarCalls = (mockMovRepo.create as jest.Mock).mock.calls.map(
+      (c: any) => c[0],
+    );
 
     const movA = criarCalls.find((c: any) => c.enderecoOrigemId === ENDERECO_A);
     const movB = criarCalls.find((c: any) => c.enderecoOrigemId === ENDERECO_B);
@@ -403,7 +551,7 @@ describe('PickOrderUseCase', () => {
     expect((movA?.quantidade ?? 0) + (movB?.quantidade ?? 0)).toBe(50);
 
     // Nenhum endereço com ocupado negativo
-    expect(mockAddressRepo.updateOcupacao).toHaveBeenCalledWith(ENDERECO_A, 0);  // 40 - 40 = 0
+    expect(mockAddressRepo.updateOcupacao).toHaveBeenCalledWith(ENDERECO_A, 0); // 40 - 40 = 0
     expect(mockAddressRepo.updateOcupacao).toHaveBeenCalledWith(ENDERECO_B, 20); // 30 - 10 = 20
 
     // Pendente final pela fórmula ADR-001:
@@ -420,8 +568,14 @@ describe('PickOrderUseCase', () => {
   // Guardrails existentes — garantir que não quebramos nada
   // =========================================================================
   it('deve falhar se pedido não estiver em status PENDENTE (RN-EXP-002)', async () => {
-    mockOrderRepo.findById.mockResolvedValue({ id: 1, status: 'SEPARACAO', itens: [] } as any);
-    await expect(buildUseCase().execute(1, 99)).rejects.toBeInstanceOf(DomainException);
+    mockOrderRepo.findById.mockResolvedValue({
+      id: 1,
+      status: 'SEPARACAO',
+      itens: [],
+    } as any);
+    await expect(buildUseCase().execute(1, 99)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(buildUseCase().execute(1, 99)).rejects.toThrow('RN-EXP-002');
   });
 
@@ -429,10 +583,22 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 2,
       status: 'PENDENTE',
-      itens: [{ id: 11, produtoId: 1, quantidadeSolicitada: 100, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 11,
+          produtoId: 1,
+          quantidadeSolicitada: 100,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 101, numeroLote: 'L-1', quantidade: 40, validade: new Date(Date.now() + 86400000) },
+      {
+        id: 101,
+        numeroLote: 'L-1',
+        quantidade: 40,
+        validade: new Date(Date.now() + 86400000),
+      },
     ] as any);
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
@@ -443,18 +609,45 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 3,
       status: 'PENDENTE',
-      itens: [{ id: 12, produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 12,
+          produtoId: 1,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     // RN-EXP-001: lotes COM validade devem ser priorizados antes de lotes SEM validade.
     // Usamos datas futuras relativas (não hardcoded) para evitar que o teste quebre com o tempo.
-    const validadeMaisProxima = new Date(); validadeMaisProxima.setMonth(validadeMaisProxima.getMonth() + 1); // daqui 1 mês
-    const validadeMaisDistante = new Date(); validadeMaisDistante.setMonth(validadeMaisDistante.getMonth() + 6); // daqui 6 meses
+    const validadeMaisProxima = new Date();
+    validadeMaisProxima.setMonth(validadeMaisProxima.getMonth() + 1); // daqui 1 mês
+    const validadeMaisDistante = new Date();
+    validadeMaisDistante.setMonth(validadeMaisDistante.getMonth() + 6); // daqui 6 meses
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 201, numeroLote: 'SEM-VAL', produtoId: 1, quantidade: 10, validade: null },
-      { id: 202, numeroLote: 'COM-VAL-PROXIMO', produtoId: 1, quantidade: 10, validade: validadeMaisProxima },
-      { id: 203, numeroLote: 'COM-VAL-DISTANTE', produtoId: 1, quantidade: 10, validade: validadeMaisDistante },
+      {
+        id: 201,
+        numeroLote: 'SEM-VAL',
+        produtoId: 1,
+        quantidade: 10,
+        validade: null,
+      },
+      {
+        id: 202,
+        numeroLote: 'COM-VAL-PROXIMO',
+        produtoId: 1,
+        quantidade: 10,
+        validade: validadeMaisProxima,
+      },
+      {
+        id: 203,
+        numeroLote: 'COM-VAL-DISTANTE',
+        produtoId: 1,
+        quantidade: 10,
+        validade: validadeMaisDistante,
+      },
     ] as any);
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
@@ -476,7 +669,14 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 10,
       status: 'PENDENTE',
-      itens: [{ id: 100, produtoId: 99, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 100,
+          produtoId: 99,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
@@ -497,11 +697,24 @@ describe('PickOrderUseCase', () => {
     mockOrderRepo.findById.mockResolvedValue({
       id: 11,
       status: 'PENDENTE',
-      itens: [{ id: 101, produtoId: 98, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+      itens: [
+        {
+          id: 101,
+          produtoId: 98,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
     } as any);
 
     mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-      { id: 888, numeroLote: 'LOTE-SEM-VAL', produtoId: 98, quantidade: 50, validade: null },
+      {
+        id: 888,
+        numeroLote: 'LOTE-SEM-VAL',
+        produtoId: 98,
+        quantidade: 50,
+        validade: null,
+      },
     ] as any);
     mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
@@ -514,57 +727,87 @@ describe('PickOrderUseCase', () => {
     );
   });
 
-    it('RN-EXP-007: deve permitir picking de lote com validade futura', async () => {
-      const validadeFutura = new Date();
-      validadeFutura.setFullYear(validadeFutura.getFullYear() + 1); // daqui 1 ano
+  it('RN-EXP-007: deve permitir picking de lote com validade futura', async () => {
+    const validadeFutura = new Date();
+    validadeFutura.setFullYear(validadeFutura.getFullYear() + 1); // daqui 1 ano
 
-      mockOrderRepo.findById.mockResolvedValue({
-        id: 12,
-        status: 'PENDENTE',
-        itens: [{ id: 102, produtoId: 97, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
-      } as any);
+    mockOrderRepo.findById.mockResolvedValue({
+      id: 12,
+      status: 'PENDENTE',
+      itens: [
+        {
+          id: 102,
+          produtoId: 97,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
+    } as any);
 
-      mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-        { id: 777, numeroLote: 'LOTE-VALIDO', produtoId: 97, quantidade: 50, validade: validadeFutura },
-      ] as any);
-      mockMovRepo.findAllocationByLote.mockResolvedValue([]);
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      {
+        id: 777,
+        numeroLote: 'LOTE-VALIDO',
+        produtoId: 97,
+        quantidade: 50,
+        validade: validadeFutura,
+      },
+    ] as any);
+    mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
-      // Verificar também que o picking efetivamente registrou a movimentação de SAIDA
-      const result = await buildUseCase().execute(12, 99);
-      expect(result).toBeDefined();
-      expect(mockMovRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ tipo: 'EXPEDICAO', loteId: 777 }),
-      );
-    });
+    // Verificar também que o picking efetivamente registrou a movimentação de SAIDA
+    const result = await buildUseCase().execute(12, 99);
+    expect(result).toBeDefined();
+    expect(mockMovRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ tipo: 'EXPEDICAO', loteId: 777 }),
+    );
+  });
 
-    it('RN-EXP-007: TOCTOU gap - deve rejeitar picking se a validade expirar entre a leitura (find) e o lock (update)', async () => {
-      const loteAparentementeValido = new Date();
-      loteAparentementeValido.setFullYear(loteAparentementeValido.getFullYear() + 1);
+  it('RN-EXP-007: TOCTOU gap - deve rejeitar picking se a validade expirar entre a leitura (find) e o lock (update)', async () => {
+    const loteAparentementeValido = new Date();
+    loteAparentementeValido.setFullYear(
+      loteAparentementeValido.getFullYear() + 1,
+    );
 
-      mockOrderRepo.findById.mockResolvedValue({
-        id: 13,
-        status: 'PENDENTE',
-        itens: [{ id: 103, produtoId: 96, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
-      } as any);
+    mockOrderRepo.findById.mockResolvedValue({
+      id: 13,
+      status: 'PENDENTE',
+      itens: [
+        {
+          id: 103,
+          produtoId: 96,
+          quantidadeSolicitada: 5,
+          quantidadeSeparada: 0,
+        },
+      ],
+    } as any);
 
-      // O Repositório (leitura fora do lock) retorna o lote como válido!
-      mockBatchRepo.findAvailableByProduct.mockResolvedValue([
-        { id: 888, numeroLote: 'LOTE-TOCTOU', produtoId: 96, quantidade: 50, validade: loteAparentementeValido },
-      ] as any);
-      mockMovRepo.findAllocationByLote.mockResolvedValue([]);
-
-      // O mock da transação (leitura atômica com o lock) simula que o tempo virou, e ele retorna o lote vencido.
-      const loteVencidoReal = new Date();
-      loteVencidoReal.setDate(loteVencidoReal.getDate() - 1); // Venceu!
-
-      mockBatchRepo.updateQuantidadeDelta.mockResolvedValue({
+    // O Repositório (leitura fora do lock) retorna o lote como válido!
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      {
         id: 888,
         numeroLote: 'LOTE-TOCTOU',
-        quantidade: 45, // saldo positivo
-        validade: loteVencidoReal, // VENCIDO!
-      } as any);
+        produtoId: 96,
+        quantidade: 50,
+        validade: loteAparentementeValido,
+      },
+    ] as any);
+    mockMovRepo.findAllocationByLote.mockResolvedValue([]);
 
-      // O UseCase deve processar a array do find normalmente, mas arremessar RN-EXP-007 de dentro do bloco do UoW
-      await expect(buildUseCase().execute(13, 99)).rejects.toThrow('venceu durante a operação (TOCTOU interceptado no lock)');
-    });
+    // O mock da transação (leitura atômica com o lock) simula que o tempo virou, e ele retorna o lote vencido.
+    const loteVencidoReal = new Date();
+    loteVencidoReal.setDate(loteVencidoReal.getDate() - 1); // Venceu!
+
+    mockBatchRepo.updateQuantidadeDelta.mockResolvedValue({
+      id: 888,
+      numeroLote: 'LOTE-TOCTOU',
+      quantidade: 45, // saldo positivo
+      validade: loteVencidoReal, // VENCIDO!
+    } as any);
+
+    // O UseCase deve processar a array do find normalmente, mas arremessar RN-EXP-007 de dentro do bloco do UoW
+    await expect(buildUseCase().execute(13, 99)).rejects.toThrow(
+      'venceu durante a operação (TOCTOU interceptado no lock)',
+    );
+  });
 });

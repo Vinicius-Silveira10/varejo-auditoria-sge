@@ -5,7 +5,6 @@ import { GetExpiryAlertsUseCase } from '../../core/use-cases/batch/get-expiry-al
 import { GetPendingPutawayBatchesUseCase } from '../../core/use-cases/batch/get-pending-putaway.use-case';
 import { GetBatchByNumberUseCase } from '../../core/use-cases/batch/get-batch-by-number.use-case';
 import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
-import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
 import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
 import { PrismaNotaFiscalRepository } from '../database/prisma/repositories/prisma-nota-fiscal.repository';
 import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
@@ -26,17 +25,9 @@ import { PrismaModule } from '../database/prisma/prisma.module';
         notaFiscalRepo: PrismaNotaFiscalRepository,
         unitOfWork: IUnitOfWork,
       ) => {
-        return new ReceiveBatchUseCase(
-          productRepo,
-          notaFiscalRepo,
-          unitOfWork,
-        );
+        return new ReceiveBatchUseCase(productRepo, notaFiscalRepo, unitOfWork);
       },
-      inject: [
-        'IProductRepository',
-        'INotaFiscalRepository',
-        'IUnitOfWork',
-      ],
+      inject: ['IProductRepository', 'INotaFiscalRepository', 'IUnitOfWork'],
     },
     {
       provide: GetExpiryAlertsUseCase,

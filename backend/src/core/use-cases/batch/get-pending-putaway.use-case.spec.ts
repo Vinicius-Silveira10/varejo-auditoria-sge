@@ -8,7 +8,11 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 function buildLote(overrides: {
   id?: number;
   quantidade: number;
-  movimentacoes?: Array<{ tipo: string; quantidade: number; enderecoOrigemId?: number | null }>;
+  movimentacoes?: Array<{
+    tipo: string;
+    quantidade: number;
+    enderecoOrigemId?: number | null;
+  }>;
 }) {
   return {
     id: overrides.id ?? 1,
@@ -147,7 +151,7 @@ describe('GetPendingPutawayBatchesUseCase — Fórmula ADR-001', () => {
         quantidade: 70,
         movimentacoes: [
           { tipo: 'ARMAZENAGEM', quantidade: 60, enderecoOrigemId: null },
-          { tipo: 'EXPEDICAO', quantidade: 20, enderecoOrigemId: 7 },  // saiu de endereço
+          { tipo: 'EXPEDICAO', quantidade: 20, enderecoOrigemId: 7 }, // saiu de endereço
           { tipo: 'EXPEDICAO', quantidade: 10, enderecoOrigemId: null }, // cross-docking (não conta)
         ],
       }),
@@ -174,8 +178,8 @@ describe('GetPendingPutawayBatchesUseCase — Fórmula ADR-001', () => {
         id: 7,
         quantidade: 50,
         movimentacoes: [
-          { tipo: 'ARMAZENAGEM', quantidade: 40, enderecoOrigemId: null },  // put em A
-          { tipo: 'ARMAZENAGEM', quantidade: 30, enderecoOrigemId: null },  // put em B
+          { tipo: 'ARMAZENAGEM', quantidade: 40, enderecoOrigemId: null }, // put em A
+          { tipo: 'ARMAZENAGEM', quantidade: 30, enderecoOrigemId: null }, // put em B
           { tipo: 'EXPEDICAO', quantidade: 40, enderecoOrigemId: ENDERECO_A }, // 40 saíram de A
           { tipo: 'EXPEDICAO', quantidade: 10, enderecoOrigemId: ENDERECO_B }, // 10 saíram de B
         ],
@@ -191,8 +195,10 @@ describe('GetPendingPutawayBatchesUseCase — Fórmula ADR-001', () => {
 
     // Validação cruzada: Endereço A tem 40-40=0, Endereço B tem 30-10=20 → 20 em endereços.
     // Lote.quantidade = 50. Pendente = 50 - 20 = 30. Bate. ✅
-    const emEnderecos = (40 - 40) + (30 - 10);
-    expect(result[0].quantidadePendente).toBe(result[0].quantidadeTotal - emEnderecos);
+    const emEnderecos = 40 - 40 + (30 - 10);
+    expect(result[0].quantidadePendente).toBe(
+      result[0].quantidadeTotal - emEnderecos,
+    );
   });
 
   // =========================================================================

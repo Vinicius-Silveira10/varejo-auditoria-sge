@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
 
@@ -31,13 +31,15 @@ describe('Account Lifecycle & Session Invalidation (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.usuario.deleteMany({ where: { email: { startsWith: 'temp_lifecycle' } } });
+    await prisma.usuario.deleteMany({
+      where: { email: { startsWith: 'temp_lifecycle' } },
+    });
     await app.close();
   });
 
   it('Deve invalidar o acesso após a conta ser desativada no banco (tokenVersion / ativo)', async () => {
     const tempEmail = `temp_lifecycle_${Date.now()}@fortal.com`;
-    
+
     // 1. Cria usuário
     await request(app.getHttpServer())
       .post('/auth/register')
@@ -72,7 +74,7 @@ describe('Account Lifecycle & Session Invalidation (e2e)', () => {
     const ordersResAfterDisable = await request(app.getHttpServer())
       .get('/orders')
       .set('Authorization', `Bearer ${userToken}`);
-    
+
     expect(ordersResAfterDisable.status).toBe(401);
   });
 });

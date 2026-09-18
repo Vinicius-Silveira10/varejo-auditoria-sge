@@ -27,8 +27,19 @@ describe('PrismaAddressRepository', () => {
   });
 
   it('deve criar um endereco no banco', async () => {
-    const data = { codigo: 'A-01', zona: 'Seca', tipoZona: 'SECO', capacidade: 100 };
-    const mockCreated = { id: 1, ocupado: 0, ativo: true, bloqueado: false, ...data } as any;
+    const data = {
+      codigo: 'A-01',
+      zona: 'Seca',
+      tipoZona: 'SECO',
+      capacidade: 100,
+    };
+    const mockCreated = {
+      id: 1,
+      ocupado: 0,
+      ativo: true,
+      bloqueado: false,
+      ...data,
+    } as any;
     (prismaService.endereco.create as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await repository.create(data);

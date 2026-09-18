@@ -48,11 +48,31 @@ export class OrderController {
 
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Get()
-  @ApiOperation({ summary: 'Listar pedidos de expedição por status (padrão: PENDENTE)' })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'], description: 'Filtro de status (default: PENDENTE)' })
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Página (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Itens por página (default: 20)' })
-  @ApiResponse({ status: 200, description: 'Lista de pedidos retornada com sucesso.' })
+  @ApiOperation({
+    summary: 'Listar pedidos de expedição por status (padrão: PENDENTE)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDENTE', 'SEPARACAO', 'CONFERIDO', 'EXPEDIDO'],
+    description: 'Filtro de status (default: PENDENTE)',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Página (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Itens por página (default: 20)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de pedidos retornada com sucesso.',
+  })
   @ApiResponse({ status: 400, description: 'Status inválido.' })
   async listOrders(
     @Query('status') status?: string,
@@ -85,7 +105,6 @@ export class OrderController {
     return { data: result };
   }
 
-
   @Roles(Role.OPERADOR, Role.GESTOR, Role.ADMIN)
   @Post(':id/pick')
   @ApiOperation({
@@ -100,7 +119,10 @@ export class OrderController {
     status: 400,
     description: 'Saldo insuficiente ou pedido em status inválido.',
   })
-  async pickOrder(@Param('id') id: string, @CurrentUser('userId') operadorId: number) {
+  async pickOrder(
+    @Param('id') id: string,
+    @CurrentUser('userId') operadorId: number,
+  ) {
     try {
       const result = await this.pickOrderUseCase.execute(+id, operadorId);
       this.dashboardGateway.emitDashboardUpdate('order:picked', result);

@@ -22,7 +22,10 @@ describe('P2034 Concurrency Check (e2e)', () => {
 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
+      .send({
+        email: 'admin@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
     adminToken = loginRes.body.accessToken;
 
     const prod = await prisma.produto.create({
@@ -32,7 +35,7 @@ describe('P2034 Concurrency Check (e2e)', () => {
         categoria: 'Teste',
         perecivel: false,
         custoMedio: 10.0,
-      }
+      },
     });
 
     const end = await prisma.endereco.findFirst();
@@ -41,7 +44,13 @@ describe('P2034 Concurrency Check (e2e)', () => {
     const batchRes = await request(app.getHttpServer())
       .post('/batches')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ numeroLote: `LOTE-P2034-${Date.now()}`, produtoId: prod.id, quantidade: 100, custoAquisicao: 10, validade: '2030-12-31T00:00:00.000Z' });
+      .send({
+        numeroLote: `LOTE-P2034-${Date.now()}`,
+        produtoId: prod.id,
+        quantidade: 100,
+        custoAquisicao: 10,
+        validade: '2030-12-31T00:00:00.000Z',
+      });
     loteId = batchRes.body.data.id;
   });
 
@@ -56,17 +65,26 @@ describe('P2034 Concurrency Check (e2e)', () => {
         request(app.getHttpServer())
           .post('/movements')
           .set('Authorization', `Bearer ${adminToken}`)
-          .send({ loteId, tipo: 'SAIDA', quantidade: 5, usuarioId: 1, enderecoOrigemId })
+          .send({
+            loteId,
+            tipo: 'SAIDA',
+            quantidade: 5,
+            usuarioId: 1,
+            enderecoOrigemId,
+          }),
       );
     }
 
     const results = await Promise.all(promises);
-    
+
     let has500 = false;
-    results.forEach(res => {
+    results.forEach((res) => {
       if (res.status === 500) {
         has500 = true;
-        console.error('Falha de Concorrência Detectada (Status 500):', res.body);
+        console.error(
+          'Falha de Concorrência Detectada (Status 500):',
+          res.body,
+        );
       } else {
         expect(res.status).toBe(201);
       }
@@ -83,7 +101,13 @@ describe('P2034 Concurrency Check (e2e)', () => {
     const batchRes = await request(app.getHttpServer())
       .post('/batches')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ numeroLote: `LOTE-OVERSELL-${Date.now()}`, produtoId: 1, quantidade: 100, custoAquisicao: 10, validade: '2030-12-31T00:00:00.000Z' });
+      .send({
+        numeroLote: `LOTE-OVERSELL-${Date.now()}`,
+        produtoId: 1,
+        quantidade: 100,
+        custoAquisicao: 10,
+        validade: '2030-12-31T00:00:00.000Z',
+      });
     const loteOversellId = batchRes.body.data.id;
 
     // Disparamos 5 requisições de SAIDA pedindo 30 unidades cada (Total: 150 > 100)
@@ -93,22 +117,35 @@ describe('P2034 Concurrency Check (e2e)', () => {
         request(app.getHttpServer())
           .post('/movements')
           .set('Authorization', `Bearer ${adminToken}`)
-          .send({ loteId: loteOversellId, tipo: 'SAIDA', quantidade: 30, usuarioId: 1, enderecoOrigemId })
+          .send({
+            loteId: loteOversellId,
+            tipo: 'SAIDA',
+            quantidade: 30,
+            usuarioId: 1,
+            enderecoOrigemId,
+          }),
       );
     }
 
     const results = await Promise.all(promises);
-    
+
     let successes = 0;
     let businessErrors = 0;
-    
-    results.forEach(res => {
+
+    results.forEach((res) => {
       if (res.status === 201) {
         successes++;
-      } else if (res.status === 400 && res.body.message.includes('RN-TRV-002')) {
+      } else if (
+        res.status === 400 &&
+        res.body.message.includes('RN-TRV-002')
+      ) {
         businessErrors++;
       } else {
-        console.error('Status inesperado no teste de Oversell:', res.status, res.body);
+        console.error(
+          'Status inesperado no teste de Oversell:',
+          res.status,
+          res.body,
+        );
       }
     });
 
@@ -118,7 +155,9 @@ describe('P2034 Concurrency Check (e2e)', () => {
     expect(businessErrors).toBe(2);
 
     // O saldo final deve ser exatamente 10 (100 - 90) e NUNCA negativo.
-    const loteDb = await prisma.lote.findUnique({ where: { id: loteOversellId } });
+    const loteDb = await prisma.lote.findUnique({
+      where: { id: loteOversellId },
+    });
     expect(loteDb!.quantidade).toBe(10);
   });
 });

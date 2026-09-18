@@ -4,8 +4,6 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException, ConflictException } from '../../exceptions/domain.exception';
-
 describe('ApproveAdjustmentUseCase', () => {
   let useCase: ApproveAdjustmentUseCase;
   let mockAdjRepo: jest.Mocked<IAdjustmentRepository>;
@@ -19,13 +17,16 @@ describe('ApproveAdjustmentUseCase', () => {
     mockAdjRepo = {
       create: jest.fn(),
       findById: jest.fn(),
-      updateStatus: jest.fn().mockImplementation((id, status, aprovadorId, fase) => ({
-        id,
-        statusAprovacao: status,
-        aprovadorId,
-        aprovadorGestorId: fase === 'GESTOR' ? aprovadorId : undefined,
-        aprovadorControladoriaId: fase === 'CONTROLADORIA' ? aprovadorId : undefined,
-      })),
+      updateStatus: jest
+        .fn()
+        .mockImplementation((id, status, aprovadorId, fase) => ({
+          id,
+          statusAprovacao: status,
+          aprovadorId,
+          aprovadorGestorId: fase === 'GESTOR' ? aprovadorId : undefined,
+          aprovadorControladoriaId:
+            fase === 'CONTROLADORIA' ? aprovadorId : undefined,
+        })),
       sumFinancialLosses: jest.fn(),
       findPending: jest.fn(),
     };
@@ -165,7 +166,10 @@ describe('ApproveAdjustmentUseCase', () => {
         produtoId: 20,
         quantidade: 1000,
       } as any); // Delta% = 0.5%
-      mockProductRepo.findById.mockResolvedValue({ id: 20, custoMedio: 10.0 } as any);
+      mockProductRepo.findById.mockResolvedValue({
+        id: 20,
+        custoMedio: 10.0,
+      } as any);
 
       await useCase.execute({
         ajusteId: 1,
@@ -180,15 +184,22 @@ describe('ApproveAdjustmentUseCase', () => {
 
       const lockAjusteOrder = mockLockForUpdate.mock.invocationCallOrder[0];
       const lockLoteOrder = mockLockForUpdate.mock.invocationCallOrder[1];
-      const updateLoteOrder = mockBatchRepo.updateQuantidade.mock.invocationCallOrder[0];
-      const createMovOrder = mockMovementRepo.create.mock.invocationCallOrder[0];
+      const updateLoteOrder =
+        mockBatchRepo.updateQuantidade.mock.invocationCallOrder[0];
+      const createMovOrder =
+        mockMovementRepo.create.mock.invocationCallOrder[0];
 
       expect(lockAjusteOrder).toBeLessThan(lockLoteOrder);
       expect(lockLoteOrder).toBeLessThan(updateLoteOrder);
       expect(updateLoteOrder).toBeLessThan(createMovOrder);
 
       expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1005);
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        3,
+        'GESTOR',
+      );
       expect(mockMovementRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           tipo: 'AJUSTE',
@@ -243,7 +254,11 @@ describe('ApproveAdjustmentUseCase', () => {
 
     it('Fase 1: GESTOR aprova PENDENTE -> PENDENTE_CONTROLADORIA sem alterar lote e sem criar movimentação', async () => {
       mockAdjRepo.findById.mockResolvedValue({ ...ajusteDuplaAprovacao });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       const result = await useCase.execute({
@@ -253,7 +268,12 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovado: true,
       });
 
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'PENDENTE_CONTROLADORIA', 3, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'PENDENTE_CONTROLADORIA',
+        3,
+        'GESTOR',
+      );
       expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
       expect(mockMovementRepo.create).not.toHaveBeenCalled();
       expect(result.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
@@ -261,7 +281,11 @@ describe('ApproveAdjustmentUseCase', () => {
 
     it('Fase 1: ADMIN aprova PENDENTE -> PENDENTE_CONTROLADORIA sem alterar lote', async () => {
       mockAdjRepo.findById.mockResolvedValue({ ...ajusteDuplaAprovacao });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       const result = await useCase.execute({
@@ -271,7 +295,12 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovado: true,
       });
 
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'PENDENTE_CONTROLADORIA', 9, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'PENDENTE_CONTROLADORIA',
+        9,
+        'GESTOR',
+      );
       expect(mockBatchRepo.updateQuantidade).not.toHaveBeenCalled();
       expect(mockMovementRepo.create).not.toHaveBeenCalled();
       expect(result.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
@@ -279,7 +308,11 @@ describe('ApproveAdjustmentUseCase', () => {
 
     it('Fase 1: deve bloquear papel inválido (CONTROLADORIA ou OPERADOR) na primeira aprovação', async () => {
       mockAdjRepo.findById.mockResolvedValue({ ...ajusteDuplaAprovacao });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       await expect(
@@ -289,7 +322,9 @@ describe('ApproveAdjustmentUseCase', () => {
           aprovadorRole: 'CONTROLADORIA',
           aprovado: true,
         }),
-      ).rejects.toThrow('RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.');
+      ).rejects.toThrow(
+        'RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.',
+      );
 
       await expect(
         useCase.execute({
@@ -298,7 +333,9 @@ describe('ApproveAdjustmentUseCase', () => {
           aprovadorRole: 'OPERADOR',
           aprovado: true,
         }),
-      ).rejects.toThrow('RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.');
+      ).rejects.toThrow(
+        'RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.',
+      );
     });
 
     it('Fase 2: CONTROLADORIA aprova PENDENTE_CONTROLADORIA -> APROVADO alterando lote e gerando movimentação', async () => {
@@ -307,7 +344,11 @@ describe('ApproveAdjustmentUseCase', () => {
         statusAprovacao: 'PENDENTE_CONTROLADORIA',
         aprovadorGestorId: 3,
       });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       const result = await useCase.execute({
@@ -317,7 +358,12 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovado: true,
       });
 
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 4, 'CONTROLADORIA');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        4,
+        'CONTROLADORIA',
+      );
       expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1030);
       expect(mockMovementRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -336,7 +382,11 @@ describe('ApproveAdjustmentUseCase', () => {
         statusAprovacao: 'PENDENTE_CONTROLADORIA',
         aprovadorGestorId: 3,
       });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       const result = await useCase.execute({
@@ -346,7 +396,12 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovado: true,
       });
 
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 9, 'CONTROLADORIA');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        9,
+        'CONTROLADORIA',
+      );
       expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1030);
       expect(result.statusAprovacao).toBe('APROVADO');
     });
@@ -357,7 +412,11 @@ describe('ApproveAdjustmentUseCase', () => {
         statusAprovacao: 'PENDENTE_CONTROLADORIA',
         aprovadorGestorId: 3,
       });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       // Usuário 3 foi o aprovadorGestorId e tenta fazer a segunda aprovação
@@ -381,7 +440,11 @@ describe('ApproveAdjustmentUseCase', () => {
         statusAprovacao: 'PENDENTE_CONTROLADORIA',
         aprovadorGestorId: 3,
       });
-      mockBatchRepo.findById.mockResolvedValue({ id: 10, produtoId: 20, quantidade: 1000 } as any);
+      mockBatchRepo.findById.mockResolvedValue({
+        id: 10,
+        produtoId: 20,
+        quantidade: 1000,
+      } as any);
       mockProductRepo.findById.mockResolvedValue({ id: 20 } as any);
 
       await expect(
@@ -391,7 +454,9 @@ describe('ApproveAdjustmentUseCase', () => {
           aprovadorRole: 'GESTOR',
           aprovado: true,
         }),
-      ).rejects.toThrow('RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.');
+      ).rejects.toThrow(
+        'RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.',
+      );
 
       await expect(
         useCase.execute({
@@ -400,7 +465,9 @@ describe('ApproveAdjustmentUseCase', () => {
           aprovadorRole: 'OPERADOR',
           aprovado: true,
         }),
-      ).rejects.toThrow('RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.');
+      ).rejects.toThrow(
+        'RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.',
+      );
     });
   });
 
@@ -483,7 +550,12 @@ describe('ApproveAdjustmentUseCase', () => {
 
       expect(mockProductRepo.updateCustoMedio).not.toHaveBeenCalled();
       expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 1050);
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        3,
+        'GESTOR',
+      );
     });
 
     it('NÃO deve alterar o custo médio ao aprovar ajuste NEGATIVO (RN-AJU-005)', async () => {
@@ -516,7 +588,12 @@ describe('ApproveAdjustmentUseCase', () => {
 
       expect(mockProductRepo.updateCustoMedio).not.toHaveBeenCalled();
       expect(mockBatchRepo.updateQuantidade).toHaveBeenCalledWith(10, 980);
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        3,
+        'GESTOR',
+      );
     });
   });
 
@@ -552,7 +629,12 @@ describe('ApproveAdjustmentUseCase', () => {
         aprovado: true,
       });
       expect(result).toBeDefined();
-      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(1, 'APROVADO', 3, 'GESTOR');
+      expect(mockAdjRepo.updateStatus).toHaveBeenCalledWith(
+        1,
+        'APROVADO',
+        3,
+        'GESTOR',
+      );
     });
 
     it('Cenário inverso: fotografia de GESTOR_CONTROLADORIA impede efetivação direta mesmo que lote atual tenha saldo alto', async () => {
@@ -588,7 +670,9 @@ describe('ApproveAdjustmentUseCase', () => {
           aprovadorRole: 'GESTOR',
           aprovado: true,
         }),
-      ).rejects.toThrow('RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.');
+      ).rejects.toThrow(
+        'RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.',
+      );
     });
   });
 });

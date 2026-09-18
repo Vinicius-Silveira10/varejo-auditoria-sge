@@ -10,7 +10,9 @@ export class HealthController {
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Verificar saúde da aplicação e conectividade com o banco' })
+  @ApiOperation({
+    summary: 'Verificar saúde da aplicação e conectividade com o banco',
+  })
   @ApiResponse({ status: 200, description: 'Aplicação saudável' })
   async check() {
     try {
@@ -25,7 +27,7 @@ export class HealthController {
           database: 'up',
         },
       };
-    } catch (error) {
+    } catch {
       return {
         status: 'error',
         checks: {

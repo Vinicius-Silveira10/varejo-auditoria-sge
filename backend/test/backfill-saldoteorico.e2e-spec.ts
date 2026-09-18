@@ -44,7 +44,12 @@ async function criarProduto(prisma: PrismaClient, suffix: string) {
   });
 }
 
-async function criarLote(prisma: PrismaClient, produtoId: number, quantidade: number, suffix: string) {
+async function criarLote(
+  prisma: PrismaClient,
+  produtoId: number,
+  quantidade: number,
+  suffix: string,
+) {
   return prisma.lote.create({
     data: {
       numeroLote: `BKF-LOTE-${suffix}-${Date.now()}`,
@@ -110,12 +115,22 @@ describe('Backfill saldoTeorico (e2e — banco efêmero Docker)', () => {
 
     // ── Ajustes PENDENTE sem saldoTeorico (alvo principal do backfill) ─────────
     for (const loteId of loteIds) {
-      const id = await inserirAjusteSemSaldoTeorico(prisma, loteId, usuarioId, 'PENDENTE');
+      const id = await inserirAjusteSemSaldoTeorico(
+        prisma,
+        loteId,
+        usuarioId,
+        'PENDENTE',
+      );
       ajusteIds.push(id);
     }
 
     // ── Ajuste APROVADO sem saldoTeorico (não deve ser tocado) ────────────────
-    const idAprovado = await inserirAjusteSemSaldoTeorico(prisma, loteIds[0], usuarioId, 'APROVADO');
+    const idAprovado = await inserirAjusteSemSaldoTeorico(
+      prisma,
+      loteIds[0],
+      usuarioId,
+      'APROVADO',
+    );
     ajusteIds.push(idAprovado); // para cleanup
 
     // ── Ajuste PENDENTE COM saldoTeorico já preenchido (não deve ser sobrescrito) ──
@@ -154,7 +169,9 @@ describe('Backfill saldoTeorico (e2e — banco efêmero Docker)', () => {
   // ──────────────────────────────────────────────────────────────────────────────
 
   it('deve confirmar que os 3 ajustes PENDENTE têm saldoTeorico NULL antes do backfill', async () => {
-    const nullRows = await prisma.$queryRaw<{ id: number; saldo: number | null }[]>`
+    const nullRows = await prisma.$queryRaw<
+      { id: number; saldo: number | null }[]
+    >`
       SELECT id, "saldoTeorico" AS saldo FROM "AjusteEstoque"
       WHERE id = ANY(${ajusteIds.slice(0, 3)}::int[])
     `;
@@ -168,7 +185,9 @@ describe('Backfill saldoTeorico (e2e — banco efêmero Docker)', () => {
     const updatedCount = await backfillSaldoTeorico(prisma);
 
     expect(updatedCount).toBe(3); // só os PENDENTE sem saldo
-    console.log(`[BACKFILL] ${updatedCount} registros atualizados — conforme esperado.`);
+    console.log(
+      `[BACKFILL] ${updatedCount} registros atualizados — conforme esperado.`,
+    );
   });
 
   it('deve atribuir a cada ajuste PENDENTE o saldoTeorico = lote.quantidade do seu lote', async () => {
@@ -180,7 +199,9 @@ describe('Backfill saldoTeorico (e2e — banco efêmero Docker)', () => {
         SELECT "saldoTeorico" FROM "AjusteEstoque" WHERE id = ${ajusteIds[i]}
       `;
       const saldo = rows[0].saldoTeorico;
-      console.log(`  Ajuste #${ajusteIds[i]} (lote.quantidade=${lotesQtds[i]}) → saldoTeorico=${saldo}`);
+      console.log(
+        `  Ajuste #${ajusteIds[i]} (lote.quantidade=${lotesQtds[i]}) → saldoTeorico=${saldo}`,
+      );
       expect(saldo).toBe(lotesQtds[i]);
     }
   });

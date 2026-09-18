@@ -198,7 +198,7 @@ model ItemPedido {
   quantidadeSolicitada Int
   quantidadeSeparada   Int      @default(0) // Preenchido durante o picking
 
-  pedido  PedidoExpedicao @relation(fields: [pedidoId], references: [id])
+  pedido  PedidoExpedicao @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   produto Produto         @relation(fields: [produtoId], references: [id])
 }
 

@@ -3,7 +3,11 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException, ConflictException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+  ConflictException,
+} from '../../exceptions/domain.exception';
 import { calcularNivelAprovacaoExigido } from '../../domain/adjustment/adjustment.rules';
 
 export interface ApproveAdjustmentDto {
@@ -41,9 +45,11 @@ export class ApproveAdjustmentUseCase {
       const ajusteRejeitado = await this.unitOfWork.execute(async (ctx) => {
         // FIX RACE CONDITION: Adquirir lock na linha do AjusteEstoque antes de prosseguir
         await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
-        
+
         // Re-verificar o status atômicamente (permite rejeição em qualquer fase)
-        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
         if (
           ajusteAtual?.statusAprovacao !== 'PENDENTE' &&
           ajusteAtual?.statusAprovacao !== 'PENDENTE_CONTROLADORIA'
@@ -101,14 +107,18 @@ export class ApproveAdjustmentUseCase {
 
     if (nivelExigido === 'GESTOR') {
       if (dto.aprovadorRole !== 'GESTOR' && dto.aprovadorRole !== 'ADMIN') {
-        throw new DomainException('RN-AJU-004: Aprovador deve ser GESTOR ou superior.');
+        throw new DomainException(
+          'RN-AJU-004: Aprovador deve ser GESTOR ou superior.',
+        );
       }
 
       // Efetivação direta
       const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
         await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
 
-        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
         if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
           throw new ConflictException('Este ajuste já foi processado.');
         }
@@ -155,7 +165,9 @@ export class ApproveAdjustmentUseCase {
       const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
         await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
 
-        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
         if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
           throw new ConflictException('Este ajuste já foi processado.');
         }
@@ -177,7 +189,10 @@ export class ApproveAdjustmentUseCase {
 
     if (ajuste.statusAprovacao === 'PENDENTE_CONTROLADORIA') {
       // Fase 2 - Controladoria
-      if (dto.aprovadorRole !== 'CONTROLADORIA' && dto.aprovadorRole !== 'ADMIN') {
+      if (
+        dto.aprovadorRole !== 'CONTROLADORIA' &&
+        dto.aprovadorRole !== 'ADMIN'
+      ) {
         throw new DomainException(
           'RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.',
         );
@@ -193,12 +208,17 @@ export class ApproveAdjustmentUseCase {
       const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
         await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
 
-        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
         if (ajusteAtual?.statusAprovacao !== 'PENDENTE_CONTROLADORIA') {
           throw new ConflictException('Este ajuste já foi processado.');
         }
 
-        if (ajusteAtual?.aprovadorGestorId && dto.aprovadorId === ajusteAtual.aprovadorGestorId) {
+        if (
+          ajusteAtual?.aprovadorGestorId &&
+          dto.aprovadorId === ajusteAtual.aprovadorGestorId
+        ) {
           throw new DomainException(
             'RN-REL-004: Segregação de funções violada. O mesmo usuário não pode realizar a primeira e a segunda aprovação.',
           );

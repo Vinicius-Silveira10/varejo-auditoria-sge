@@ -58,14 +58,18 @@ describe('resolveJwtExpiration', () => {
     const result = resolveJwtExpiration('1w');
     expect(result).toBe('1d');
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('JWT_EXPIRATION="1w"'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('JWT_EXPIRATION="1w"'),
+    );
   });
 
   it('retorna fallback "1d" e emite warn quando valor é texto livre (ex: "um dia")', () => {
     const result = resolveJwtExpiration('um dia');
     expect(result).toBe('1d');
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('JWT_EXPIRATION="um dia"'));
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('JWT_EXPIRATION="um dia"'),
+    );
   });
 
   it('retorna fallback "1d" e emite warn quando formato tem espaço (ex: "1 d")', () => {

@@ -24,7 +24,9 @@ describe('PrismaAdjustmentRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<PrismaAdjustmentRepository>(PrismaAdjustmentRepository);
+    repository = module.get<PrismaAdjustmentRepository>(
+      PrismaAdjustmentRepository,
+    );
     prismaService = module.get(PrismaService);
   });
 
@@ -47,7 +49,9 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.create as jest.Mock).mockResolvedValue(prismaCreated);
+    (prismaService.ajusteEstoque.create as jest.Mock).mockResolvedValue(
+      prismaCreated,
+    );
 
     const result = await repository.create(input);
 
@@ -94,11 +98,15 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(prismaRecord);
+    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(
+      prismaRecord,
+    );
 
     const result = await repository.findById(5);
 
-    expect(prismaService.ajusteEstoque.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
+    expect(prismaService.ajusteEstoque.findUnique).toHaveBeenCalledWith({
+      where: { id: 5 },
+    });
     expect(result).toEqual({
       id: 5,
       loteId: 10,
@@ -115,7 +123,9 @@ describe('PrismaAdjustmentRepository', () => {
   });
 
   it('deve retornar null se ajuste não for encontrado', async () => {
-    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(null);
+    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(
+      null,
+    );
 
     const result = await repository.findById(999);
 
@@ -137,7 +147,9 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.update as jest.Mock).mockResolvedValue(prismaUpdated);
+    (prismaService.ajusteEstoque.update as jest.Mock).mockResolvedValue(
+      prismaUpdated,
+    );
 
     const result = await repository.updateStatus(1, 'APROVADO', 3);
 
@@ -227,7 +239,9 @@ describe('PrismaAdjustmentRepository', () => {
       },
     ];
 
-    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue(prismaRows);
+    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue(
+      prismaRows,
+    );
 
     const result = await repository.findPending();
 

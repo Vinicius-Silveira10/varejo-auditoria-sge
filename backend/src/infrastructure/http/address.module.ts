@@ -61,7 +61,12 @@ import { PrismaModule } from '../database/prisma/prisma.module';
           unitOfWork,
         );
       },
-      inject: ['IBatchRepository', 'IAddressRepository', 'IProductRepository', 'IUnitOfWork'],
+      inject: [
+        'IBatchRepository',
+        'IAddressRepository',
+        'IProductRepository',
+        'IUnitOfWork',
+      ],
     },
   ],
 })

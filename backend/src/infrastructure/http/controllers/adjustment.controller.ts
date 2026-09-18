@@ -112,7 +112,11 @@ export class AdjustmentController {
   @ApiOperation({
     summary: 'Listar ajustes de estoque pendentes ou por status',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDENTE', 'APROVADO', 'REJEITADO'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDENTE', 'APROVADO', 'REJEITADO'],
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de ajustes retornada com sucesso.',
@@ -120,7 +124,9 @@ export class AdjustmentController {
   async listPending(@Query('status') status?: string) {
     const validStatuses = ['PENDENTE', 'APROVADO', 'REJEITADO'];
     if (status && !validStatuses.includes(status)) {
-      throw new BadRequestException(`Status inválido. Use: ${validStatuses.join(', ')}`);
+      throw new BadRequestException(
+        `Status inválido. Use: ${validStatuses.join(', ')}`,
+      );
     }
     return this.listPendingAdjustmentsUseCase.execute(status);
   }

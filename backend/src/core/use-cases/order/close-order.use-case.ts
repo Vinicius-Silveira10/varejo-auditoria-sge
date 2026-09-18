@@ -1,6 +1,9 @@
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
 import { PedidoExpedicao } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export class CloseOrderUseCase {
   constructor(private readonly orderRepository: IOrderRepository) {}
