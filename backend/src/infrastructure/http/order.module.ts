@@ -7,15 +7,12 @@ import { PickOrderUseCase } from '../../core/use-cases/order/pick-order.use-case
 import { GetOtifDashboardUseCase } from '../../core/use-cases/order/get-otif-dashboard.use-case';
 import { ListPendingOrdersUseCase } from '../../core/use-cases/order/list-pending-orders.use-case';
 import { IOrderRepository } from '../../core/interfaces/repositories/i-order.repository';
-import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
-import { IMovementRepository } from '../../core/interfaces/repositories/i-movement.repository';
 import { IAddressRepository } from '../../core/interfaces/repositories/i-address.repository';
 import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
 import { PrismaModule } from '../database/prisma/prisma.module';
 import { PrismaOrderRepository } from '../database/prisma/repositories/prisma-order.repository';
 import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
-import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
 import { PrismaMovementRepository } from '../database/prisma/repositories/prisma-movement.repository';
 
 @Module({
@@ -55,7 +52,13 @@ import { PrismaMovementRepository } from '../database/prisma/repositories/prisma
         unitOfWork: IUnitOfWork,
         addressRepo: IAddressRepository,
       ) => {
-        return new PickOrderUseCase(orderRepo, batchRepo, movRepo, unitOfWork, addressRepo);
+        return new PickOrderUseCase(
+          orderRepo,
+          batchRepo,
+          movRepo,
+          unitOfWork,
+          addressRepo,
+        );
       },
       inject: [
         'IOrderRepository',

@@ -1,10 +1,5 @@
 import { RegisterMovementUseCase } from './register-movement.use-case';
-import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
-import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
-import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
-import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { Lote, Movimentacao } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { DomainException } from '../../exceptions/domain.exception';
 
 describe('RegisterMovementUseCase', () => {
   let useCase: RegisterMovementUseCase;
@@ -20,7 +15,9 @@ describe('RegisterMovementUseCase', () => {
       findById: jest.fn(),
       findAvailableByProduct: jest.fn(),
       updateQuantidade: jest.fn(),
-      updateQuantidadeDelta: jest.fn().mockResolvedValue({ id: 1, quantidade: 10 }),
+      updateQuantidadeDelta: jest
+        .fn()
+        .mockResolvedValue({ id: 1, quantidade: 10 }),
       updateInventarioStatus: jest.fn(),
       create: jest.fn(),
     };
@@ -115,8 +112,10 @@ describe('RegisterMovementUseCase', () => {
 
     // Validação da ORDEM ESTRITA: O lock deve ocorrer ANTES de qualquer update ou insert no BD
     const lockOrder = mockLockForUpdate.mock.invocationCallOrder[0];
-    const updateLoteOrder = mockBatchRepository.updateQuantidadeDelta.mock.invocationCallOrder[0];
-    const createMovOrder = mockMovementRepository.create.mock.invocationCallOrder[0];
+    const updateLoteOrder =
+      mockBatchRepository.updateQuantidadeDelta.mock.invocationCallOrder[0];
+    const createMovOrder =
+      mockMovementRepository.create.mock.invocationCallOrder[0];
 
     expect(lockOrder).toBeLessThan(updateLoteOrder);
     expect(updateLoteOrder).toBeLessThan(createMovOrder);
@@ -167,7 +166,7 @@ describe('RegisterMovementUseCase', () => {
       ...movRequest,
     });
 
-    const result = await useCase.execute(movRequest);
+    await useCase.execute(movRequest);
 
     expect(mockMovementRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -199,7 +198,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-TRV-002');
     expect(mockBatchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
@@ -247,7 +248,9 @@ describe('RegisterMovementUseCase', () => {
       codigo: 'B1',
     } as any);
 
-    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-EXP-001');
   });
 
@@ -274,7 +277,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-INV-006');
   });
 
@@ -313,7 +318,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(movRequest)).rejects.toThrow('RN-ARM-001');
     expect(mockBatchRepository.updateQuantidade).not.toHaveBeenCalled();
   });
@@ -352,7 +359,9 @@ describe('RegisterMovementUseCase', () => {
       usuarioId: 1,
     };
 
-    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(movRequest)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(movRequest)).rejects.toThrow(
       'RN-INV-006: Endereço bloqueado',
     );
@@ -411,9 +420,7 @@ describe('RegisterMovementUseCase', () => {
 
     const result = await useCase.execute(movRequest);
     expect(result.id).toBe(200);
-    expect(mockAddressRepository.updateOcupacao).toHaveBeenCalledWith(
-      5, 90
-    );
+    expect(mockAddressRepository.updateOcupacao).toHaveBeenCalledWith(5, 90);
   });
 
   it('deve lançar erro [RN-ARM-003] ao armazenar perecível em zona SECO', async () => {

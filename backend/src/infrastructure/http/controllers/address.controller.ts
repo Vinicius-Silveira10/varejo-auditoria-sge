@@ -30,7 +30,6 @@ import { ExecutePutawayUseCase } from '../../../core/use-cases/address/execute-p
 import { GetAddressCapacityAlertsUseCase } from '../../../core/use-cases/address/get-address-capacity-alerts.use-case';
 import { Roles, Role } from '../../security/roles.decorator';
 
-
 @ApiTags('Endereços')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
@@ -157,16 +156,20 @@ export class AddressController {
       properties: {
         loteId: { type: 'number', example: 1 },
         enderecoDestinoId: { type: 'number', example: 5 },
-        quantidade: { type: 'number', example: 10 }
+        quantidade: { type: 'number', example: 10 },
       },
-      required: ['loteId', 'enderecoDestinoId', 'quantidade']
-    }
+      required: ['loteId', 'enderecoDestinoId', 'quantidade'],
+    },
   })
   @ApiResponse({ status: 201, description: 'Lote armazenado com sucesso.' })
-  @ApiResponse({ status: 400, description: 'Falha de validação ou capacidade.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Falha de validação ou capacidade.',
+  })
   async executePutaway(
-    @Body() body: { loteId: number; enderecoDestinoId: number; quantidade: number },
-    @CurrentUser('userId') usuarioId: number
+    @Body()
+    body: { loteId: number; enderecoDestinoId: number; quantidade: number },
+    @CurrentUser('userId') usuarioId: number,
   ) {
     const movimentacao = await this.executePutawayUseCase.execute({
       loteId: body.loteId,

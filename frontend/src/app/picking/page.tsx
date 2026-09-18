@@ -28,10 +28,6 @@ export default function PickingPage() {
   const [conferente1Id, setConferente1Id] = useState('');
   const [conferente2Id, setConferente2Id] = useState('');
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
   const dispatchToast = (type: 'success' | 'error', message: string) => {
     window.dispatchEvent(
       new CustomEvent('custom-toast', { detail: { type, message } })
@@ -41,14 +37,48 @@ export default function PickingPage() {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch('/orders?status=PENDENTE&page=1&limit=20');
-      setOrders(res.data || []);
-    } catch (err: any) {
-      dispatchToast('error', err.message || 'Erro ao buscar pedidos');
+      const res = (await apiFetch('/orders?status=PENDENTE&page=1&limit=20')) as {
+        data?: Order[];
+      };
+      setOrders(res.data ?? []);
+    } catch (err: unknown) {
+      dispatchToast(
+        'error',
+        err instanceof Error ? err.message : 'Erro ao buscar pedidos',
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadOrders() {
+      try {
+        const res = (await apiFetch('/orders?status=PENDENTE&page=1&limit=20')) as {
+          data?: Order[];
+        };
+        if (!ignore) {
+          setOrders(res.data ?? []);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          dispatchToast(
+            'error',
+            err instanceof Error ? err.message : 'Erro ao buscar pedidos',
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    void loadOrders();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const startPicking = async (order: Order) => {
     setCurrentOrder(order);
@@ -59,8 +89,11 @@ export default function PickingPage() {
     try {
       await apiFetch(`/orders/${order.id}/pick`, { method: 'POST' });
       setViewState('CONFERINDO');
-    } catch (err: any) {
-      dispatchToast('error', err.message || 'Erro ao iniciar separação');
+    } catch (err: unknown) {
+      dispatchToast(
+        'error',
+        err instanceof Error ? err.message : 'Erro ao iniciar separação',
+      );
       setCurrentOrder(null);
       setViewState('LIST');
     }
@@ -83,8 +116,11 @@ export default function PickingPage() {
       });
       setViewState('EXPEDINDO');
       dispatchToast('success', 'Conferência concluída!');
-    } catch (err: any) {
-      dispatchToast('error', err.message || 'Erro na conferência');
+    } catch (err: unknown) {
+      dispatchToast(
+        'error',
+        err instanceof Error ? err.message : 'Erro na conferência',
+      );
     }
   };
 
@@ -95,9 +131,12 @@ export default function PickingPage() {
       dispatchToast('success', 'Pedido fechado com sucesso!');
       setCurrentOrder(null);
       setViewState('LIST');
-      fetchOrders();
-    } catch (err: any) {
-      dispatchToast('error', err.message || 'Erro ao fechar pedido');
+      void fetchOrders();
+    } catch (err: unknown) {
+      dispatchToast(
+        'error',
+        err instanceof Error ? err.message : 'Erro ao fechar pedido',
+      );
     }
   };
 

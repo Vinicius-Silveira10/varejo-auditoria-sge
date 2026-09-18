@@ -42,7 +42,10 @@ function makeSocket(opts: {
 }
 
 // ─── Helper: gera um JWT válido para testes ─────────────────────────────────
-function makeValidToken(jwtService: JwtService, payload = { sub: 1, email: 'test@sge.com', perfil: 'ADMIN' }): string {
+function makeValidToken(
+  jwtService: JwtService,
+  payload = { sub: 1, email: 'test@sge.com', perfil: 'ADMIN' },
+): string {
   return jwtService.sign(payload, { secret: 'test-secret', expiresIn: '1h' });
 }
 
@@ -207,8 +210,16 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
     });
 
     it('deve priorizar cookie sobre auth.token quando ambos presentes', () => {
-      const validToken = makeValidToken(jwtService, { sub: 1, email: 'cookie@sge.com', perfil: 'ADMIN' });
-      const otherToken = makeValidToken(jwtService, { sub: 2, email: 'auth@sge.com', perfil: 'OPERADOR' });
+      const validToken = makeValidToken(jwtService, {
+        sub: 1,
+        email: 'cookie@sge.com',
+        perfil: 'ADMIN',
+      });
+      const otherToken = makeValidToken(jwtService, {
+        sub: 2,
+        email: 'auth@sge.com',
+        perfil: 'OPERADOR',
+      });
 
       const client = makeSocket({
         cookie: `token=${validToken}`,
@@ -232,7 +243,9 @@ describe('DashboardGateway — Autenticação WebSocket', () => {
       // server é undefined antes de afterInit ser chamado
       (gateway as any).server = undefined;
 
-      expect(() => gateway.emitDashboardUpdate('kpi:update', { data: 1 })).not.toThrow();
+      expect(() =>
+        gateway.emitDashboardUpdate('kpi:update', { data: 1 }),
+      ).not.toThrow();
     });
 
     it('deve emitir evento dashboard:update ao servidor quando inicializado', () => {

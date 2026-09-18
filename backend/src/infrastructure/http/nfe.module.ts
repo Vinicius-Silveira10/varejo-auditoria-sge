@@ -6,11 +6,9 @@ import { GetNfeDivergencesUseCase } from '../../core/use-cases/nfe/get-nfe-diver
 import { ParseNfeXmlService } from '../../core/use-cases/nfe/parse-nfe-xml.service';
 import { ReceiveBatchUseCase } from '../../core/use-cases/batch/receive-batch.use-case';
 import { INotaFiscalRepository } from '../../core/interfaces/repositories/i-nota-fiscal.repository';
-import { IBatchRepository } from '../../core/interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../core/interfaces/repositories/i-product.repository';
 import { PrismaModule } from '../database/prisma/prisma.module';
 import { IUnitOfWork } from '../../core/interfaces/repositories/i-unit-of-work';
-import { PrismaBatchRepository } from '../database/prisma/repositories/prisma-batch.repository';
 import { PrismaProductRepository } from '../database/prisma/repositories/prisma-product.repository';
 import { PrismaNotaFiscalRepository } from '../database/prisma/repositories/prisma-nota-fiscal.repository';
 
@@ -30,17 +28,9 @@ import { PrismaNotaFiscalRepository } from '../database/prisma/repositories/pris
         notaFiscalRepo: PrismaNotaFiscalRepository,
         unitOfWork: IUnitOfWork,
       ) => {
-        return new ReceiveBatchUseCase(
-          productRepo,
-          notaFiscalRepo,
-          unitOfWork,
-        );
+        return new ReceiveBatchUseCase(productRepo, notaFiscalRepo, unitOfWork);
       },
-      inject: [
-        'IProductRepository',
-        'INotaFiscalRepository',
-        'IUnitOfWork',
-      ],
+      inject: ['IProductRepository', 'INotaFiscalRepository', 'IUnitOfWork'],
     },
     {
       provide: ProcessNfeUseCase,

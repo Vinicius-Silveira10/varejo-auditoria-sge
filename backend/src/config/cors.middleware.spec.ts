@@ -42,14 +42,16 @@ class MinimalModule {}
 // Factory: cria o app com a lista de origens fornecida pelo teste
 // ---------------------------------------------------------------------------
 
-async function createAppWithOrigins(allowedOrigins: string[]): Promise<INestApplication> {
+async function createAppWithOrigins(
+  allowedOrigins: string[],
+): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
     imports: [MinimalModule],
   }).compile();
 
   const app = moduleRef.createNestApplication();
   app.enableCors({
-    origin: allowedOrigins,          // replicando exatamente o main.ts
+    origin: allowedOrigins, // replicando exatamente o main.ts
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
@@ -61,12 +63,10 @@ async function createAppWithOrigins(allowedOrigins: string[]): Promise<INestAppl
 // Testes
 // ---------------------------------------------------------------------------
 
+jest.setTimeout(15000);
+
 describe('CORS Allowlist Middleware', () => {
   let app: INestApplication;
-
-  beforeAll(() => {
-    jest.setTimeout(15000);
-  });
 
   afterEach(async () => {
     if (app) await app.close();
@@ -106,10 +106,7 @@ describe('CORS Allowlist Middleware', () => {
   // ─── CASO 3: múltiplas origens — cada uma individualmente permitida ────────
 
   it('múltiplas origens: aceita qualquer da lista e rejeita as de fora', async () => {
-    const origins = [
-      'https://staging.fortal.com',
-      'https://app.fortal.com.br',
-    ];
+    const origins = ['https://staging.fortal.com', 'https://app.fortal.com.br'];
     app = await createAppWithOrigins(origins);
 
     // Primeira origem da lista
@@ -117,14 +114,18 @@ describe('CORS Allowlist Middleware', () => {
       .options('/ping')
       .set('Origin', 'https://staging.fortal.com')
       .set('Access-Control-Request-Method', 'GET');
-    expect(res1.headers['access-control-allow-origin']).toBe('https://staging.fortal.com');
+    expect(res1.headers['access-control-allow-origin']).toBe(
+      'https://staging.fortal.com',
+    );
 
     // Segunda origem da lista
     const res2 = await request(app.getHttpServer())
       .options('/ping')
       .set('Origin', 'https://app.fortal.com.br')
       .set('Access-Control-Request-Method', 'GET');
-    expect(res2.headers['access-control-allow-origin']).toBe('https://app.fortal.com.br');
+    expect(res2.headers['access-control-allow-origin']).toBe(
+      'https://app.fortal.com.br',
+    );
 
     // Origem fora da lista
     const res3 = await request(app.getHttpServer())
@@ -150,7 +151,9 @@ describe('CORS Allowlist Middleware', () => {
       .options('/ping')
       .set('Origin', 'https://staging.fortal.com')
       .set('Access-Control-Request-Method', 'GET');
-    expect(staging.headers['access-control-allow-origin']).toBe('https://staging.fortal.com');
+    expect(staging.headers['access-control-allow-origin']).toBe(
+      'https://staging.fortal.com',
+    );
 
     // localhost (não listado) deve ser bloqueado
     const localhost = await request(app.getHttpServer())

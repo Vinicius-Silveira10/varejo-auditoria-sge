@@ -10,10 +10,14 @@ import { JwtUser } from '../../security/jwt.strategy';
 const mockExecutePutawayUseCase = { execute: jest.fn() };
 const mockRequestAdjustmentUseCase = { execute: jest.fn() };
 const mockProcessAdjustmentApprovalUseCase = { execute: jest.fn() };
-const mockRecordInventoryUseCase = { execute: jest.fn().mockResolvedValue({ contagem: {} }) };
+const mockRecordInventoryUseCase = {
+  execute: jest.fn().mockResolvedValue({ contagem: {} }),
+};
 const mockProcessInventoryDivergenceUseCase = { execute: jest.fn() };
 const mockLogMovementUseCase = { execute: jest.fn() };
-const mockPickOrderUseCase = { execute: jest.fn().mockResolvedValue({ totalMovimentacoes: 1 }) };
+const mockPickOrderUseCase = {
+  execute: jest.fn().mockResolvedValue({ totalMovimentacoes: 1 }),
+};
 const mockReceiveBatchUseCase = { execute: jest.fn() };
 
 describe('Controllers Identity Extractor Regression Test', () => {
@@ -26,26 +30,24 @@ describe('Controllers Identity Extractor Regression Test', () => {
 
   beforeEach(() => {
     // Generic mock that has all needed methods
-    const genericMock = { 
-      execute: jest.fn().mockResolvedValue({ totalMovimentacoes: 1 }), 
-      emitDashboardUpdate: jest.fn() 
+    const genericMock = {
+      execute: jest.fn().mockResolvedValue({ totalMovimentacoes: 1 }),
+      emitDashboardUpdate: jest.fn(),
     };
 
-    // Assign specific mocks so we can assert on them
-    const mockDeps = new Proxy({}, {
-      get: (target, prop) => genericMock
-    });
-
     addressController = new AddressController(
-      genericMock as any, genericMock as any, genericMock as any,
-      mockExecutePutawayUseCase as any, genericMock as any
+      genericMock as any,
+      genericMock as any,
+      genericMock as any,
+      mockExecutePutawayUseCase as any,
+      genericMock as any,
     );
 
     adjustmentController = new AdjustmentController(
       mockRequestAdjustmentUseCase as any,
       mockProcessAdjustmentApprovalUseCase as any,
       genericMock as any,
-      genericMock as any
+      genericMock as any,
     );
 
     inventoryController = new InventoryController(
@@ -53,16 +55,19 @@ describe('Controllers Identity Extractor Regression Test', () => {
       mockRecordInventoryUseCase as any,
       genericMock as any,
       genericMock as any,
-      genericMock as any
+      genericMock as any,
     );
     // Replace the real registerCountUseCase with mockRecordInventoryUseCase for the test
-    (inventoryController as any).registerCountUseCase = mockRecordInventoryUseCase;
-    (inventoryController as any).startCountUseCase = mockProcessInventoryDivergenceUseCase;
+    (inventoryController as any).registerCountUseCase =
+      mockRecordInventoryUseCase;
+    (inventoryController as any).startCountUseCase =
+      mockProcessInventoryDivergenceUseCase;
     (inventoryController as any).dashboardGateway = genericMock;
 
     movementController = new MovementController(
       mockLogMovementUseCase as any,
-      genericMock as any, genericMock as any
+      genericMock as any,
+      genericMock as any,
     );
     (movementController as any).dashboardGateway = genericMock;
 
@@ -73,7 +78,7 @@ describe('Controllers Identity Extractor Regression Test', () => {
       mockPickOrderUseCase as any, // PickOrderUseCase
       genericMock as any, // GetOtifDashboardUseCase
       genericMock as any, // ListPendingOrdersUseCase (Feature 1)
-      genericMock as any  // DashboardGateway
+      genericMock as any, // DashboardGateway
     );
 
     batchController = new BatchController(
@@ -81,7 +86,7 @@ describe('Controllers Identity Extractor Regression Test', () => {
       genericMock as any,
       genericMock as any,
       genericMock as any,
-      genericMock as any
+      genericMock as any,
     );
   });
 
@@ -89,61 +94,87 @@ describe('Controllers Identity Extractor Regression Test', () => {
     jest.clearAllMocks();
   });
 
-  const mockUser: JwtUser = { userId: 999, email: 'test@fortal.com.br', perfil: 'GESTOR' };
+  const mockUser: JwtUser = {
+    userId: 999,
+    email: 'test@fortal.com.br',
+    perfil: 'GESTOR',
+  };
 
   it('AddressController should pass usuarioId correctly', async () => {
-    await addressController.executePutaway({ loteId: 1, enderecoDestinoId: 2, quantidade: 10 }, mockUser.userId);
+    await addressController.executePutaway(
+      { loteId: 1, enderecoDestinoId: 2, quantidade: 10 },
+      mockUser.userId,
+    );
     expect(mockExecutePutawayUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 999 })
+      expect.objectContaining({ usuarioId: 999 }),
     );
   });
 
   it('AdjustmentController should pass solicitanteId correctly', async () => {
-    await adjustmentController.requestAdjustment({ loteId: 1, quantidadeDelta: 5, motivo: 'test' }, mockUser.userId);
+    await adjustmentController.requestAdjustment(
+      { loteId: 1, quantidadeDelta: 5, motivo: 'test' },
+      mockUser.userId,
+    );
     expect(mockRequestAdjustmentUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ solicitanteId: 999 })
+      expect.objectContaining({ solicitanteId: 999 }),
     );
   });
 
   it('AdjustmentController should pass aprovadorId and perfil correctly on approval', async () => {
-    await adjustmentController.approveAdjustment({ ajusteId: 1, aprovado: true }, mockUser.userId, mockUser.perfil);
+    await adjustmentController.approveAdjustment(
+      { ajusteId: 1, aprovado: true },
+      mockUser.userId,
+      mockUser.perfil,
+    );
     expect(mockProcessAdjustmentApprovalUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ aprovadorId: 999, aprovadorRole: 'GESTOR' })
+      expect.objectContaining({ aprovadorId: 999, aprovadorRole: 'GESTOR' }),
     );
   });
 
   it('InventoryController should pass usuarioId correctly when recording', async () => {
-    await inventoryController.registerCount({ contagemId: 1, quantidadeFisica: 10, isRecontagem: false }, mockUser.userId);
+    await inventoryController.registerCount(
+      { contagemId: 1, quantidadeFisica: 10, isRecontagem: false },
+      mockUser.userId,
+    );
     expect(mockRecordInventoryUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 999 })
+      expect.objectContaining({ usuarioId: 999 }),
     );
   });
 
   it('InventoryController should pass usuarioId correctly when starting count', async () => {
     await inventoryController.startCount({ loteId: 1 }, mockUser.userId);
     expect(mockProcessInventoryDivergenceUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 999 })
+      expect.objectContaining({ usuarioId: 999 }),
     );
   });
 
   it('MovementController should pass usuarioId correctly', async () => {
-    await movementController.registerMovement({ tipo: 'SAIDA', loteId: 1, quantidade: 1, motivo: 'test' } as any, mockUser.userId);
+    await movementController.registerMovement(
+      { tipo: 'SAIDA', loteId: 1, quantidade: 1, motivo: 'test' } as any,
+      mockUser.userId,
+    );
     expect(mockLogMovementUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 999 })
+      expect.objectContaining({ usuarioId: 999 }),
     );
   });
 
   it('OrderController should pass operadorId correctly', async () => {
     await orderController.pickOrder('1', mockUser.userId);
-    expect(mockPickOrderUseCase.execute).toHaveBeenCalledWith(
-      1, 999
-    );
+    expect(mockPickOrderUseCase.execute).toHaveBeenCalledWith(1, 999);
   });
 
   it('BatchController should pass usuarioId correctly', async () => {
-    await batchController.receiveBatch({ numeroLote: 'L-123', produtoId: 1, quantidade: 10, custoAquisicao: 10 } as any, mockUser.userId);
+    await batchController.receiveBatch(
+      {
+        numeroLote: 'L-123',
+        produtoId: 1,
+        quantidade: 10,
+        custoAquisicao: 10,
+      } as any,
+      mockUser.userId,
+    );
     expect(mockReceiveBatchUseCase.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 999 })
+      expect.objectContaining({ usuarioId: 999 }),
     );
   });
 });

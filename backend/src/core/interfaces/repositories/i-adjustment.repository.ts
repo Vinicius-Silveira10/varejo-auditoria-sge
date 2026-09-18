@@ -5,9 +5,11 @@ export interface AjusteEstoque {
   motivo: string;
   valorDelta: number;
   saldoTeorico: number;
-  statusAprovacao: string; // 'PENDENTE', 'APROVADO', 'REJEITADO'
+  statusAprovacao: string; // 'PENDENTE', 'PENDENTE_CONTROLADORIA', 'APROVADO', 'REJEITADO'
   solicitanteId: number;
   aprovadorId?: number;
+  aprovadorGestorId?: number;
+  aprovadorControladoriaId?: number;
   criadoEm?: Date;
   atualizadoEm?: Date;
 }
@@ -36,6 +38,7 @@ export interface IAdjustmentRepository {
     id: number,
     status: string,
     aprovadorId: number,
+    fase?: 'GESTOR' | 'CONTROLADORIA',
   ): Promise<AjusteEstoque>;
   sumFinancialLosses(): Promise<number>;
 

@@ -25,6 +25,8 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
         statusAprovacao: data.statusAprovacao as StatusAprovacao,
         solicitanteId: data.solicitanteId,
         aprovadorId: data.aprovadorId,
+        aprovadorGestorId: data.aprovadorGestorId,
+        aprovadorControladoriaId: data.aprovadorControladoriaId,
       },
     });
 
@@ -44,13 +46,22 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
     id: number,
     status: string,
     aprovadorId: number,
+    fase?: 'GESTOR' | 'CONTROLADORIA',
   ): Promise<AjusteEstoque> {
+    const data: any = {
+      statusAprovacao: status as StatusAprovacao,
+      aprovadorId,
+    };
+
+    if (fase === 'GESTOR') {
+      data.aprovadorGestorId = aprovadorId;
+    } else if (fase === 'CONTROLADORIA') {
+      data.aprovadorControladoriaId = aprovadorId;
+    }
+
     const ajuste = await this.prisma.ajusteEstoque.update({
       where: { id },
-      data: {
-        statusAprovacao: status as StatusAprovacao,
-        aprovadorId,
-      },
+      data,
     });
 
     return this.mapToDomain(ajuste);
@@ -70,8 +81,16 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
   }
 
   async findPending(status?: string): Promise<AjusteEstoqueWithDetails[]> {
+    const whereClause = status
+      ? { statusAprovacao: status as StatusAprovacao }
+      : {
+          statusAprovacao: {
+            in: ['PENDENTE', 'PENDENTE_CONTROLADORIA'] as StatusAprovacao[],
+          },
+        };
+
     const ajustes = await this.prisma.ajusteEstoque.findMany({
-      where: { statusAprovacao: (status as StatusAprovacao) ?? 'PENDENTE' },
+      where: whereClause,
       include: {
         lote: {
           include: {
@@ -114,6 +133,9 @@ export class PrismaAdjustmentRepository implements IAdjustmentRepository {
       statusAprovacao: prismaAjuste.statusAprovacao,
       solicitanteId: prismaAjuste.solicitanteId,
       aprovadorId: prismaAjuste.aprovadorId ?? undefined,
+      aprovadorGestorId: prismaAjuste.aprovadorGestorId ?? undefined,
+      aprovadorControladoriaId:
+        prismaAjuste.aprovadorControladoriaId ?? undefined,
       criadoEm: prismaAjuste.criadoEm,
       atualizadoEm: prismaAjuste.atualizadoEm,
     };

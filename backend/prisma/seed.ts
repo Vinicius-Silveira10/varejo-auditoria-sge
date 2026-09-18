@@ -25,6 +25,7 @@ async function main() {
   const usuarios = [
     { nome: 'Administrador SGE', email: 'admin@fortal.com.br', perfil: 'ADMIN' as const },
     { nome: 'Gestor Operacional', email: 'gestor@fortal.com.br', perfil: 'GESTOR' as const },
+    { nome: 'Controladoria SGE', email: 'controladoria@fortal.com.br', perfil: 'CONTROLADORIA' as const },
     { nome: 'Operador Logístico', email: 'operador@fortal.com.br', perfil: 'OPERADOR' as const },
   ];
 
@@ -41,7 +42,7 @@ async function main() {
       },
     });
   }
-  console.log(`✅ ${usuarios.length} Usuários inseridos (ADMIN, GESTOR, OPERADOR).`);
+  console.log(`✅ ${usuarios.length} Usuários inseridos (ADMIN, GESTOR, CONTROLADORIA, OPERADOR).`);
 
   // ==========================================
   // 3. ENDEREÇOS E ZONAS

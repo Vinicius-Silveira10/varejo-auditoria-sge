@@ -82,9 +82,10 @@ export default function ReceiveBatchPage() {
         detail: { type: 'success', message: 'Lote recebido com sucesso no sistema (HTTP).' }
       }));
       
-    } catch (err: any) {
-      if (err.message !== 'Sessão expirada' && err.message !== 'Rate limit atingido') {
-        setErrorMsg(err.message || 'Erro ao registrar o recebimento do lote.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao registrar o recebimento do lote.';
+      if (msg !== 'Sessão expirada' && msg !== 'Rate limit atingido') {
+        setErrorMsg(msg);
       }
     } finally {
       setLoading(false);

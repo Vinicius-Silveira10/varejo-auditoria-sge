@@ -22,6 +22,8 @@ model Usuario {
   movimentacoes Movimentacao[]
   ajustesSolicitados AjusteEstoque[] @relation("AjusteSolicitante")
   ajustesAprovados   AjusteEstoque[] @relation("AjusteAprovador")
+  ajustesAprovadosGestor AjusteEstoque[] @relation("AjusteAprovadorGestor")
+  ajustesAprovadosControladoria AjusteEstoque[] @relation("AjusteAprovadorControladoria")
   contagens          ContagemInventario[]
   pedidosConferidos1 PedidoExpedicao[] @relation("ConferenteUm")
   pedidosConferidos2 PedidoExpedicao[] @relation("ConferenteDois")
@@ -130,15 +132,19 @@ model AjusteEstoque {
   motivo          String
   valorDelta      Float    @default(0.0)
   saldoTeorico    Int
-  statusAprovacao StatusAprovacao @default(PENDENTE) // 'PENDENTE', 'APROVADO', 'REJEITADO'
+  statusAprovacao StatusAprovacao @default(PENDENTE) // 'PENDENTE', 'PENDENTE_CONTROLADORIA', 'APROVADO', 'REJEITADO'
   solicitanteId   Int
   aprovadorId     Int?
+  aprovadorGestorId        Int?
+  aprovadorControladoriaId Int?
   criadoEm        DateTime @default(now())
   atualizadoEm    DateTime @updatedAt
 
-  lote        Lote     @relation(fields: [loteId], references: [id])
-  solicitante Usuario  @relation("AjusteSolicitante", fields: [solicitanteId], references: [id])
-  aprovador   Usuario? @relation("AjusteAprovador", fields: [aprovadorId], references: [id])
+  lote                   Lote     @relation(fields: [loteId], references: [id])
+  solicitante            Usuario  @relation("AjusteSolicitante", fields: [solicitanteId], references: [id])
+  aprovador              Usuario? @relation("AjusteAprovador", fields: [aprovadorId], references: [id])
+  aprovadorGestor        Usuario? @relation("AjusteAprovadorGestor", fields: [aprovadorGestorId], references: [id])
+  aprovadorControladoria Usuario? @relation("AjusteAprovadorControladoria", fields: [aprovadorControladoriaId], references: [id])
 }
 
 model LogCusto {
@@ -192,7 +198,7 @@ model ItemPedido {
   quantidadeSolicitada Int
   quantidadeSeparada   Int      @default(0) // Preenchido durante o picking
 
-  pedido  PedidoExpedicao @relation(fields: [pedidoId], references: [id])
+  pedido  PedidoExpedicao @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   produto Produto         @relation(fields: [produtoId], references: [id])
 }
 
@@ -207,6 +213,7 @@ model ChainPointer {
 enum Perfil {
   ADMIN
   GESTOR
+  CONTROLADORIA
   OPERADOR
 }
 
@@ -218,6 +225,7 @@ enum StatusNfe {
 
 enum StatusAprovacao {
   PENDENTE
+  PENDENTE_CONTROLADORIA
   APROVADO
   REJEITADO
 }

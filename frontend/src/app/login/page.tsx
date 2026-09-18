@@ -31,9 +31,10 @@ export default function LoginPage() {
       }));
       
       router.push('/');
-    } catch (err: any) {
-      if (err.message !== 'Rate limit atingido') {
-        setErrorMsg(err.message || 'Erro ao realizar login.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao realizar login.';
+      if (msg !== 'Rate limit atingido') {
+        setErrorMsg(msg);
       }
     } finally {
       setLoading(false);

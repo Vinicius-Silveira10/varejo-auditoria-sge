@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, API_URL } from '@/lib/api';
+import { hasRole } from '@/lib/auth';
+import { io } from 'socket.io-client';
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const router = require('next/navigation').useRouter();
-  const { hasRole } = require('@/lib/auth');
+  const router = useRouter();
   
   // Consolidated KPIs
   const [acuracia, setAcuracia] = useState<number | null>(null);
@@ -66,28 +68,26 @@ export default function DashboardPage() {
       }
     };
 
-    fetchData();
+    void fetchData();
     // Simple polling every 30s
     // Documentação (ADR-DASH-002): O intervalo de 30s foi escolhido pois não onera o backend com
     // chamadas excessivas, mas garante um tempo de resposta aceitável para painéis gerenciais.
     const interval = setInterval(fetchData, 30000);
     
     // WebSocket Listening for real-time immediate updates
-    const { io } = require('socket.io-client');
-    const { API_URL } = require('@/lib/api');
     const socket = io(API_URL, {
       withCredentials: true
     });
     
-    socket.on('dashboard:update', (data: any) => {
-      console.log('Real-time event received:', data);
-      fetchData();
+    socket.on('dashboard:update', () => {
+      void fetchData();
     });
 
     return () => {
       clearInterval(interval);
       socket.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {

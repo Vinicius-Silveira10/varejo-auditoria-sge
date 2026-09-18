@@ -1,6 +1,9 @@
 import { CloseOrderUseCase } from './close-order.use-case';
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('CloseOrderUseCase', () => {
   let useCase: CloseOrderUseCase;

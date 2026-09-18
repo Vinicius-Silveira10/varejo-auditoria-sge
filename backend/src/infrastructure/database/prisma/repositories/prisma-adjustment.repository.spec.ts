@@ -1,4 +1,4 @@
-﻿import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaAdjustmentRepository } from './prisma-adjustment.repository';
 import { PrismaService } from '../prisma.service';
 
@@ -24,7 +24,9 @@ describe('PrismaAdjustmentRepository', () => {
       ],
     }).compile();
 
-    repository = module.get<PrismaAdjustmentRepository>(PrismaAdjustmentRepository);
+    repository = module.get<PrismaAdjustmentRepository>(
+      PrismaAdjustmentRepository,
+    );
     prismaService = module.get(PrismaService);
   });
 
@@ -47,7 +49,9 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.create as jest.Mock).mockResolvedValue(prismaCreated);
+    (prismaService.ajusteEstoque.create as jest.Mock).mockResolvedValue(
+      prismaCreated,
+    );
 
     const result = await repository.create(input);
 
@@ -94,11 +98,15 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(prismaRecord);
+    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(
+      prismaRecord,
+    );
 
     const result = await repository.findById(5);
 
-    expect(prismaService.ajusteEstoque.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
+    expect(prismaService.ajusteEstoque.findUnique).toHaveBeenCalledWith({
+      where: { id: 5 },
+    });
     expect(result).toEqual({
       id: 5,
       loteId: 10,
@@ -115,7 +123,9 @@ describe('PrismaAdjustmentRepository', () => {
   });
 
   it('deve retornar null se ajuste não for encontrado', async () => {
-    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(null);
+    (prismaService.ajusteEstoque.findUnique as jest.Mock).mockResolvedValue(
+      null,
+    );
 
     const result = await repository.findById(999);
 
@@ -137,7 +147,9 @@ describe('PrismaAdjustmentRepository', () => {
       atualizadoEm: new Date(),
     };
 
-    (prismaService.ajusteEstoque.update as jest.Mock).mockResolvedValue(prismaUpdated);
+    (prismaService.ajusteEstoque.update as jest.Mock).mockResolvedValue(
+      prismaUpdated,
+    );
 
     const result = await repository.updateStatus(1, 'APROVADO', 3);
 
@@ -227,12 +239,18 @@ describe('PrismaAdjustmentRepository', () => {
       },
     ];
 
-    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue(prismaRows);
+    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue(
+      prismaRows,
+    );
 
     const result = await repository.findPending();
 
     expect(prismaService.ajusteEstoque.findMany).toHaveBeenCalledWith({
-      where: { statusAprovacao: 'PENDENTE' },
+      where: {
+        statusAprovacao: {
+          in: ['PENDENTE', 'PENDENTE_CONTROLADORIA'],
+        },
+      },
       include: {
         lote: {
           include: {
@@ -252,5 +270,23 @@ describe('PrismaAdjustmentRepository', () => {
     // 50% e R$1500 -> GESTOR_CONTROLADORIA
     expect(result[1].nivelAprovacaoExigido).toBe('GESTOR_CONTROLADORIA');
     expect(result[1].lote.numeroLote).toBe('L-002');
+  });
+
+  it('deve listar ajustes filtrando por status quando especificado', async () => {
+    (prismaService.ajusteEstoque.findMany as jest.Mock).mockResolvedValue([]);
+
+    await repository.findPending('APROVADO');
+
+    expect(prismaService.ajusteEstoque.findMany).toHaveBeenCalledWith({
+      where: { statusAprovacao: 'APROVADO' },
+      include: {
+        lote: {
+          include: {
+            produto: true,
+          },
+        },
+      },
+      orderBy: { criadoEm: 'asc' },
+    });
   });
 });

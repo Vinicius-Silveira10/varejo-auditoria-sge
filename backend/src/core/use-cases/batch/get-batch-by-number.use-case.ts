@@ -10,7 +10,9 @@ export class GetBatchByNumberUseCase {
     const lote = await this.batchRepository.findByNumeroLote(numeroLote);
 
     if (!lote) {
-      throw new NotFoundException(`Lote com número ${numeroLote} não encontrado.`);
+      throw new NotFoundException(
+        `Lote com número ${numeroLote} não encontrado.`,
+      );
     }
 
     return lote;

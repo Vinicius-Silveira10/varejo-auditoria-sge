@@ -1,33 +1,23 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { removeUser, apiFetch } from '@/lib/api';
 import { hasRole } from '@/lib/auth';
 
 export default function Header({ title }: { title: string }) {
   const router = useRouter();
-  const [canViewApprovals, setCanViewApprovals] = useState(false);
-  const [canRequestAdjustment, setCanRequestAdjustment] = useState(false);
-  const [canViewInventory, setCanViewInventory] = useState(false);
-  const [canViewCount, setCanViewCount] = useState(false);
-  const [canViewDashboard, setCanViewDashboard] = useState(false);
-  const [canViewPicking, setCanViewPicking] = useState(false);
-
-  useEffect(() => {
-    setCanViewApprovals(hasRole('GESTOR', 'ADMIN'));
-    setCanRequestAdjustment(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
-    setCanViewInventory(hasRole('GESTOR', 'ADMIN'));
-    setCanViewCount(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
-    setCanViewDashboard(hasRole('GESTOR', 'ADMIN'));
-    setCanViewPicking(hasRole('OPERADOR', 'GESTOR', 'ADMIN'));
-  }, []);
+  const canViewApprovals = hasRole('GESTOR', 'ADMIN', 'CONTROLADORIA');
+  const canRequestAdjustment = hasRole('OPERADOR', 'GESTOR', 'ADMIN');
+  const canViewInventory = hasRole('GESTOR', 'ADMIN');
+  const canViewCount = hasRole('OPERADOR', 'GESTOR', 'ADMIN');
+  const canViewDashboard = hasRole('GESTOR', 'ADMIN');
+  const canViewPicking = hasRole('OPERADOR', 'GESTOR', 'ADMIN');
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
       try {
         await apiFetch('/auth/logout', { method: 'POST' });
-      } catch (e) {
-        console.error('Logout error', e);
+      } catch {
+        // Silencia erro no logout
       }
       removeUser();
       router.push('/login');

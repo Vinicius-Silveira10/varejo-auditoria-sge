@@ -3,8 +3,10 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { Movimentacao } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export interface PickSuggestion {
   itemPedidoId: number;
@@ -67,7 +69,9 @@ export class PickOrderUseCase {
     let totalMovimentacoes = 0;
 
     for (const item of pedido.itens) {
-      const lotes = await this.batchRepository.findAvailableByProduct(item.produtoId);
+      const lotes = await this.batchRepository.findAvailableByProduct(
+        item.produtoId,
+      );
 
       // RN-EXP-001: FEFO — lotes COM validade (mais próximos) primeiro, sem validade por último
       const lotesOrdenados = lotes.sort((a, b) => {
@@ -77,7 +81,8 @@ export class PickOrderUseCase {
         return a.validade.getTime() - b.validade.getTime();
       });
 
-      let quantidadeRestante = item.quantidadeSolicitada - item.quantidadeSeparada;
+      let quantidadeRestante =
+        item.quantidadeSolicitada - item.quantidadeSeparada;
       const sugestoes: PickSuggestion[] = [];
 
       for (const lote of lotesOrdenados) {
@@ -90,8 +95,8 @@ export class PickOrderUseCase {
         if (lote.validade && lote.validade < new Date()) {
           throw new DomainException(
             `RN-EXP-007: Lote "${lote.numeroLote}" (ID ${lote.id}) está vencido ` +
-            `(validade: ${lote.validade.toISOString().split('T')[0]}). ` +
-            `Expedição de itens vencidos é proibida.`,
+              `(validade: ${lote.validade.toISOString().split('T')[0]}). ` +
+              `Expedição de itens vencidos é proibida.`,
           );
         }
 
@@ -108,9 +113,14 @@ export class PickOrderUseCase {
         // ADR-001: Determinar a posição física do estoque deste lote.
         // Retorna endereços com alocação positiva, ordenados por maior alocado primeiro
         // (estratégia "esvaziar primeiro" — menos fragmentação de endereços).
-        const alocacoes = await this.movementRepository.findAllocationByLote(lote.id);
+        const alocacoes = await this.movementRepository.findAllocationByLote(
+          lote.id,
+        );
 
-        const totalAlocado = alocacoes.reduce((acc, a) => acc + a.quantidadeAlocada, 0);
+        const totalAlocado = alocacoes.reduce(
+          (acc, a) => acc + a.quantidadeAlocada,
+          0,
+        );
 
         // Quantidade desta sugestão que precisa ser "desalocada" de endereços físicos.
         // Caso totalAlocado < qtdDoLote, o restante é cross-docking (sem endereço físico).
@@ -167,7 +177,9 @@ export class PickOrderUseCase {
       // Como o loop abaixo irá criar Movimentações (que adquirem lock do ChainPointer),
       // precisamos garantir que todos os locks de Domínio (Lote) sejam adquiridos ANTES,
       // e sempre na mesma ordem (ordenados pelo ID) para evitar deadlocks entre transações concorrentes.
-      const uniqueLoteIds = [...new Set(pickSources.map((s) => s.loteId))].sort((a, b) => a - b);
+      const uniqueLoteIds = [...new Set(pickSources.map((s) => s.loteId))].sort(
+        (a, b) => a - b,
+      );
       for (const loteId of uniqueLoteIds) {
         await ctx.lockForUpdate('Lote', loteId);
       }
@@ -177,15 +189,22 @@ export class PickOrderUseCase {
 
       for (const source of pickSources) {
         // Debitar saldo contábil do lote
-        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(source.loteId, -source.quantidadePegar);
-        
+        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(
+          source.loteId,
+          -source.quantidadePegar,
+        );
+
         // Mitigação Risco 1 (TOCTOU): Validação de negócio DENTRO da seção crítica (lock)
         if (loteDb.quantidade < 0) {
-          throw new DomainException(`RN-TRV-002: Saldo insuficiente no lote ${source.loteId} (Oversell evitado no commit).`);
+          throw new DomainException(
+            `RN-TRV-002: Saldo insuficiente no lote ${source.loteId} (Oversell evitado no commit).`,
+          );
         }
 
         if (loteDb.validade && loteDb.validade < new Date()) {
-          throw new DomainException(`RN-EXP-007: Lote "${loteDb.numeroLote}" (ID ${loteDb.id}) venceu durante a operação (TOCTOU interceptado no lock). Expedição bloqueada.`);
+          throw new DomainException(
+            `RN-EXP-007: Lote "${loteDb.numeroLote}" (ID ${loteDb.id}) venceu durante a operação (TOCTOU interceptado no lock). Expedição bloqueada.`,
+          );
         }
 
         // Registrar movimentação de EXPEDICAO com enderecoOrigemId quando aplicável
@@ -194,7 +213,7 @@ export class PickOrderUseCase {
           loteId: source.loteId,
           quantidade: source.quantidadePegar,
           motivo: `Picking do Pedido #${pedidoId}`,
-          enderecoOrigemId: source.enderecoOrigemId,  // null para cross-docking
+          enderecoOrigemId: source.enderecoOrigemId, // null para cross-docking
           enderecoDestinoId: null,
           usuarioId: operadorId,
         });
@@ -202,7 +221,10 @@ export class PickOrderUseCase {
         // Acumular decremento por endereço (pode haver múltiplas retiradas do mesmo endereço)
         if (source.enderecoOrigemId !== null) {
           const atual = decrementoPorEndereco.get(source.enderecoOrigemId) ?? 0;
-          decrementoPorEndereco.set(source.enderecoOrigemId, atual + source.quantidadePegar);
+          decrementoPorEndereco.set(
+            source.enderecoOrigemId,
+            atual + source.quantidadePegar,
+          );
         }
 
         totalMovimentacoes++;

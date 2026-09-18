@@ -44,7 +44,9 @@ describe('PrismaOrderRepository', () => {
       itens: [{ produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
     };
 
-    (prismaService.pedidoExpedicao.create as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.pedidoExpedicao.create as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.create(data);
 
@@ -55,7 +57,9 @@ describe('PrismaOrderRepository', () => {
         valorTotal: 0,
         status: 'PENDENTE',
         itens: {
-          create: [{ produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 }],
+          create: [
+            { produtoId: 1, quantidadeSolicitada: 5, quantidadeSeparada: 0 },
+          ],
         },
       },
       include: { itens: true },
@@ -64,7 +68,9 @@ describe('PrismaOrderRepository', () => {
 
   it('deve buscar um pedido com itens pelo ID', async () => {
     const mockResult = { id: 1, codigoPedido: 'PED-1002', itens: [] };
-    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.findById(1);
 
@@ -76,7 +82,9 @@ describe('PrismaOrderRepository', () => {
   });
 
   it('deve retornar null para ID inexistente', async () => {
-    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(null);
+    (prismaService.pedidoExpedicao.findUnique as jest.Mock).mockResolvedValue(
+      null,
+    );
 
     const result = await repository.findById(99999);
 
@@ -85,7 +93,9 @@ describe('PrismaOrderRepository', () => {
 
   it('deve atualizar o status de um pedido', async () => {
     const mockResult = { id: 1, status: 'SEPARACAO' };
-    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(mockResult);
+    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.updateStatus(1, 'SEPARACAO');
 
@@ -97,8 +107,15 @@ describe('PrismaOrderRepository', () => {
   });
 
   it('deve atualizar os conferentes e marcar como CONFERIDO', async () => {
-    const mockResult = { id: 1, status: 'CONFERIDO', conferente1Id: 10, conferente2Id: 20 };
-    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(mockResult);
+    const mockResult = {
+      id: 1,
+      status: 'CONFERIDO',
+      conferente1Id: 10,
+      conferente2Id: 20,
+    };
+    (prismaService.pedidoExpedicao.update as jest.Mock).mockResolvedValue(
+      mockResult,
+    );
 
     const result = await repository.updateConferentes(1, 10, 20);
 

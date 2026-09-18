@@ -3,7 +3,11 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IMovementRepository } from '../../interfaces/repositories/i-movement.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException, ConflictException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+  ConflictException,
+} from '../../exceptions/domain.exception';
 import { calcularNivelAprovacaoExigido } from '../../domain/adjustment/adjustment.rules';
 
 export interface ApproveAdjustmentDto {
@@ -41,10 +45,15 @@ export class ApproveAdjustmentUseCase {
       const ajusteRejeitado = await this.unitOfWork.execute(async (ctx) => {
         // FIX RACE CONDITION: Adquirir lock na linha do AjusteEstoque antes de prosseguir
         await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
-        
-        // Re-verificar o status atômicamente
-        const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
-        if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
+
+        // Re-verificar o status atômicamente (permite rejeição em qualquer fase)
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
+        if (
+          ajusteAtual?.statusAprovacao !== 'PENDENTE' &&
+          ajusteAtual?.statusAprovacao !== 'PENDENTE_CONTROLADORIA'
+        ) {
           throw new ConflictException('Este ajuste já foi processado.');
         }
 
@@ -96,63 +105,155 @@ export class ApproveAdjustmentUseCase {
       ajuste.saldoTeorico,
     );
 
-    if (nivelExigido === 'GESTOR_CONTROLADORIA') {
-      if (dto.aprovadorRole !== 'ADMIN') {
+    if (nivelExigido === 'GESTOR') {
+      if (dto.aprovadorRole !== 'GESTOR' && dto.aprovadorRole !== 'ADMIN') {
         throw new DomainException(
-          'RN-AJU-004: Ajustes acima de 2% ou R$ 1000 exigem aprovação de Controladoria/ADMIN.',
+          'RN-AJU-004: Aprovador deve ser GESTOR ou superior.',
         );
       }
-    } else {
-      if (dto.aprovadorRole !== 'GESTOR' && dto.aprovadorRole !== 'ADMIN') {
-        throw new DomainException('RN-AJU-004: Aprovador deve ser GESTOR ou superior.');
-      }
-    }
 
-    // RN-AJU-005 / RN-CST-002: Ajustes de estoque NÃO recalculam o Custo Médio Ponderado.
-    // O CMP só é alterado em fluxos de entrada real de mercadoria (ex.: recebimento de NF-e).
-    // Vide ADR: docs/adr/0001-ajuste-nao-altera-custo-medio.md
+      // Efetivação direta
+      const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
+        await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
 
-    // 4. Executa a aprovação e atualização do saldo de forma ATÔMICA, incluindo a Movimentação
-    const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
-      // FIX RACE CONDITION: Adquirir lock na linha do AjusteEstoque antes de prosseguir
-      await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
-      
-      // Re-verificar o status atômicamente
-      const ajusteAtual = await ctx.adjustmentRepository.findById(dto.ajusteId);
-      if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
-        throw new ConflictException('Este ajuste já foi processado.');
-      }
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
+        if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
+          throw new ConflictException('Este ajuste já foi processado.');
+        }
 
-      // Ordem: AjusteEstoque -> Lote -> ChainPointer
-      await ctx.lockForUpdate('Lote', lote.id);
+        await ctx.lockForUpdate('Lote', lote.id);
 
-      // 1. Atualiza o lote
-      await ctx.loteRepository.updateQuantidade(
-        lote.id,
-        lote.quantidade + ajuste.quantidadeDelta,
-      );
+        await ctx.loteRepository.updateQuantidade(
+          lote.id,
+          lote.quantidade + ajuste.quantidadeDelta,
+        );
 
-      // 2. Atualiza o status do ajuste
-      const atualizado = await ctx.adjustmentRepository.updateStatus(
-        dto.ajusteId,
-        'APROVADO',
-        dto.aprovadorId,
-      );
+        const atualizado = await ctx.adjustmentRepository.updateStatus(
+          dto.ajusteId,
+          'APROVADO',
+          dto.aprovadorId,
+          'GESTOR',
+        );
 
-      // 3. Gerar Movimentação de Auditoria atrelada à mesma transação
-      await ctx.movementRepository.create({
-        tipo: 'AJUSTE',
-        loteId: lote.id,
-        quantidade: ajuste.quantidadeDelta,
-        motivo: ajuste.motivo,
-        usuarioId: dto.aprovadorId,
-        enderecoOrigemId: null,
-        enderecoDestinoId: null,
+        await ctx.movementRepository.create({
+          tipo: 'AJUSTE',
+          loteId: lote.id,
+          quantidade: ajuste.quantidadeDelta,
+          motivo: ajuste.motivo,
+          usuarioId: dto.aprovadorId,
+          enderecoOrigemId: null,
+          enderecoDestinoId: null,
+        });
+
+        return atualizado;
       });
 
-      return atualizado;
-    });
+      return ajusteAtualizado;
+    }
 
-    return ajusteAtualizado;
+    // Caso nivelExigido === 'GESTOR_CONTROLADORIA'
+    if (ajuste.statusAprovacao === 'PENDENTE') {
+      // Fase 1 - Gestor
+      if (dto.aprovadorRole !== 'GESTOR' && dto.aprovadorRole !== 'ADMIN') {
+        throw new DomainException(
+          'RN-AJU-004: Primeira aprovação deve ser realizada por GESTOR ou ADMIN.',
+        );
+      }
+
+      const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
+        await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
+
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
+        if (ajusteAtual?.statusAprovacao !== 'PENDENTE') {
+          throw new ConflictException('Este ajuste já foi processado.');
+        }
+
+        // Transiciona para 'PENDENTE_CONTROLADORIA': grava aprovadorGestorId = dto.aprovadorId
+        // NÃO altera quantidade do lote e NÃO cria movimentação de estoque
+        const atualizado = await ctx.adjustmentRepository.updateStatus(
+          dto.ajusteId,
+          'PENDENTE_CONTROLADORIA',
+          dto.aprovadorId,
+          'GESTOR',
+        );
+
+        return atualizado;
+      });
+
+      return ajusteAtualizado;
+    }
+
+    if (ajuste.statusAprovacao === 'PENDENTE_CONTROLADORIA') {
+      // Fase 2 - Controladoria
+      if (
+        dto.aprovadorRole !== 'CONTROLADORIA' &&
+        dto.aprovadorRole !== 'ADMIN'
+      ) {
+        throw new DomainException(
+          'RN-AJU-004: Segunda aprovação exige papel CONTROLADORIA ou ADMIN.',
+        );
+      }
+
+      // Segregação SoD entre aprovadores
+      if (dto.aprovadorId === ajuste.aprovadorGestorId) {
+        throw new DomainException(
+          'RN-REL-004: Segregação de funções violada. O mesmo usuário não pode realizar a primeira e a segunda aprovação.',
+        );
+      }
+
+      const ajusteAtualizado = await this.unitOfWork.execute(async (ctx) => {
+        await ctx.lockForUpdate('AjusteEstoque', dto.ajusteId);
+
+        const ajusteAtual = await ctx.adjustmentRepository.findById(
+          dto.ajusteId,
+        );
+        if (ajusteAtual?.statusAprovacao !== 'PENDENTE_CONTROLADORIA') {
+          throw new ConflictException('Este ajuste já foi processado.');
+        }
+
+        if (
+          ajusteAtual?.aprovadorGestorId &&
+          dto.aprovadorId === ajusteAtual.aprovadorGestorId
+        ) {
+          throw new DomainException(
+            'RN-REL-004: Segregação de funções violada. O mesmo usuário não pode realizar a primeira e a segunda aprovação.',
+          );
+        }
+
+        await ctx.lockForUpdate('Lote', lote.id);
+
+        await ctx.loteRepository.updateQuantidade(
+          lote.id,
+          lote.quantidade + ajuste.quantidadeDelta,
+        );
+
+        const atualizado = await ctx.adjustmentRepository.updateStatus(
+          dto.ajusteId,
+          'APROVADO',
+          dto.aprovadorId,
+          'CONTROLADORIA',
+        );
+
+        await ctx.movementRepository.create({
+          tipo: 'AJUSTE',
+          loteId: lote.id,
+          quantidade: ajuste.quantidadeDelta,
+          motivo: ajuste.motivo,
+          usuarioId: dto.aprovadorId,
+          enderecoOrigemId: null,
+          enderecoDestinoId: null,
+        });
+
+        return atualizado;
+      });
+
+      return ajusteAtualizado;
+    }
+
+    throw new ConflictException('Este ajuste já foi processado.');
   }
 }

@@ -1,7 +1,10 @@
 import { SuggestPutawayUseCase } from './suggest-putaway.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('SuggestPutawayUseCase', () => {
   let useCase: SuggestPutawayUseCase;
@@ -234,8 +237,7 @@ describe('SuggestPutawayUseCase', () => {
       ativo: true,
     } as any);
 
-    mockAddressRepo.findAvailableByZona
-      .mockResolvedValueOnce([]); // REFRIGERADO vazio
+    mockAddressRepo.findAvailableByZona.mockResolvedValueOnce([]); // REFRIGERADO vazio
 
     const result = await useCase.execute({ produtoId: 2, quantidade: 10 });
 

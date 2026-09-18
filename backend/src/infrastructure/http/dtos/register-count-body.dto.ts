@@ -1,11 +1,4 @@
-import {
-  IsInt,
-  IsNumber,
-  Min,
-  IsOptional,
-  IsBoolean,
-  IsPositive,
-} from 'class-validator';
+import { IsInt, Min, IsOptional, IsBoolean, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterCountBodyDto {

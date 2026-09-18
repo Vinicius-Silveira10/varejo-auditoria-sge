@@ -3,7 +3,7 @@ import { IBatchRepository } from '../../interfaces/repositories/i-batch.reposito
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import { DomainException } from '../../exceptions/domain.exception';
 
 describe('ExecutePutawayUseCase', () => {
   let useCase: ExecutePutawayUseCase;
@@ -31,7 +31,9 @@ describe('ExecutePutawayUseCase', () => {
         const ctx = {
           addressRepository: addressRepo,
           movementRepository: {
-            create: jest.fn().mockResolvedValue({ id: 999, tipo: 'ARMAZENAGEM' }),
+            create: jest
+              .fn()
+              .mockResolvedValue({ id: 999, tipo: 'ARMAZENAGEM' }),
           },
           lockForUpdate: jest.fn(),
         };
@@ -87,9 +89,7 @@ describe('ExecutePutawayUseCase', () => {
       id: 1,
       quantidade: 50,
       ativo: true,
-      movimentacoes: [
-        { tipo: 'ARMAZENAGEM', quantidade: 40 }
-      ], // Já tem 40 armazenado, resta 10
+      movimentacoes: [{ tipo: 'ARMAZENAGEM', quantidade: 40 }], // Já tem 40 armazenado, resta 10
     } as any);
 
     await expect(
@@ -207,7 +207,7 @@ describe('ExecutePutawayUseCase', () => {
     ).rejects.toThrow('DB Error');
 
     // A chamada ocorre DENTRO do mock transacional simulado.
-    // Em um BD real com UnitOfWork, a exceção aborta o COMMIT e dá ROLLBACK, 
+    // Em um BD real com UnitOfWork, a exceção aborta o COMMIT e dá ROLLBACK,
     // garantindo que a alteração de ocupação não seja persistida.
     expect(addressRepo.updateOcupacao).toHaveBeenCalled();
   });

@@ -60,7 +60,9 @@ describe('CreateOrderUseCase', () => {
 
     productRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute(dto)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(useCase.execute(dto)).rejects.toThrow(
       'Produto com ID 999 não encontrado',
     );

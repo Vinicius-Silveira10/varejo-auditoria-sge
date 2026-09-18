@@ -33,11 +33,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Registrar novo usuário (Apenas Admin/Gestor)' })
   @ApiBody({ type: RegisterUserDto })
   @ApiResponse({ status: 201, description: 'Usuário criado com sucesso' })
-  @ApiResponse({ status: 400, description: 'E-mail já cadastrado (RN-USR-001)' })
+  @ApiResponse({
+    status: 400,
+    description: 'E-mail já cadastrado (RN-USR-001)',
+  })
   async register(@Body() dto: RegisterUserDto, @Req() req: any) {
     try {
       const user = req.user;
-      
+
       // Se não for ADMIN, ignora o perfil enviado e força OPERADOR
       if (user.perfil !== 'ADMIN') {
         dto.perfil = 'OPERADOR';
@@ -62,15 +65,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Autenticar usuário e obter token JWT' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 200, description: 'Token JWT retornado no cookie httpOnly' })
+  @ApiResponse({
+    status: 200,
+    description: 'Token JWT retornado no cookie httpOnly',
+  })
   @ApiResponse({ status: 401, description: 'Credenciais inválidas' })
-  @ApiResponse({ status: 429, description: 'Rate limit atingido (5 tentativas/minuto)' })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: express.Response) {
+  @ApiResponse({
+    status: 429,
+    description: 'Rate limit atingido (5 tentativas/minuto)',
+  })
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) response: express.Response,
+  ) {
     try {
       const result = await this.authenticateUserUseCase.execute(dto);
-      
-      const expiresInDays = parseInt(process.env.JWT_EXPIRATION?.replace('d', '') || '1');
-      
+
+      const expiresInDays = parseInt(
+        process.env.JWT_EXPIRATION?.replace('d', '') || '1',
+      );
+
       response.cookie('token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV !== 'development',
@@ -78,8 +92,12 @@ export class AuthController {
         maxAge: expiresInDays * 24 * 60 * 60 * 1000,
         path: '/',
       });
-      
-      return { user: result.user, message: 'Login realizado com sucesso', accessToken: result.accessToken };
+
+      return {
+        user: result.user,
+        message: 'Login realizado com sucesso',
+        accessToken: result.accessToken,
+      };
     } catch (error: any) {
       if (
         error.message.includes('RN-USR-002') ||
@@ -90,12 +108,12 @@ export class AuthController {
       throw error;
     }
   }
-  
+
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Fazer logout (limpar cookie)' })
   @ApiResponse({ status: 200, description: 'Logout realizado com sucesso' })
-  async logout(@Res({ passthrough: true }) response: express.Response) {
+  logout(@Res({ passthrough: true }) response: express.Response) {
     response.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV !== 'development',

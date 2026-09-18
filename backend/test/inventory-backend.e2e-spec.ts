@@ -16,7 +16,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
 import { GlobalExceptionFilter } from '../src/infrastructure/http/filters/http-exception.filter';
@@ -55,32 +55,53 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
 
     // Usuários: 1 OPERADOR, 2 GESTORES
     const uOp = await prisma.usuario.create({
-      data: { nome: 'Operador Inv', email: `op-inv-${Date.now()}@test.com`, senha, perfil: 'OPERADOR' },
+      data: {
+        nome: 'Operador Inv',
+        email: `op-inv-${Date.now()}@test.com`,
+        senha,
+        perfil: 'OPERADOR',
+      },
     });
     operadorId = uOp.id;
 
     const uG1 = await prisma.usuario.create({
-      data: { nome: 'Gestor Inv 1', email: `g1-inv-${Date.now()}@test.com`, senha, perfil: 'GESTOR' },
+      data: {
+        nome: 'Gestor Inv 1',
+        email: `g1-inv-${Date.now()}@test.com`,
+        senha,
+        perfil: 'GESTOR',
+      },
     });
     gestorId1 = uG1.id;
 
     const uG2 = await prisma.usuario.create({
-      data: { nome: 'Gestor Inv 2', email: `g2-inv-${Date.now()}@test.com`, senha, perfil: 'GESTOR' },
+      data: {
+        nome: 'Gestor Inv 2',
+        email: `g2-inv-${Date.now()}@test.com`,
+        senha,
+        perfil: 'GESTOR',
+      },
     });
     gestorId2 = uG2.id;
 
     // Tokens
-    operadorToken = (await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: uOp.email, senhaBruta: 'SenhaInv123' })).body.accessToken;
+    operadorToken = (
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: uOp.email, senhaBruta: 'SenhaInv123' })
+    ).body.accessToken;
 
-    gestorToken1 = (await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: uG1.email, senhaBruta: 'SenhaInv123' })).body.accessToken;
+    gestorToken1 = (
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: uG1.email, senhaBruta: 'SenhaInv123' })
+    ).body.accessToken;
 
-    gestorToken2 = (await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: uG2.email, senhaBruta: 'SenhaInv123' })).body.accessToken;
+    gestorToken2 = (
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: uG2.email, senhaBruta: 'SenhaInv123' })
+    ).body.accessToken;
 
     // Produto e Lote (curva A para não ter restrição de frequência)
     const prod = await prisma.produto.create({
@@ -96,7 +117,11 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
     produtoId = prod.id;
 
     const lote = await prisma.lote.create({
-      data: { numeroLote: `INV-LOTE-${Date.now()}`, produtoId: prod.id, quantidade: 500 },
+      data: {
+        numeroLote: `INV-LOTE-${Date.now()}`,
+        produtoId: prod.id,
+        quantidade: 500,
+      },
     });
     loteId = lote.id;
   });
@@ -104,16 +129,23 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
   afterAll(async () => {
     // Cleanup em ordem de FK
     if (contagemIds.length > 0) {
-      await prisma.contagemInventario.deleteMany({ where: { id: { in: contagemIds } } });
+      await prisma.contagemInventario.deleteMany({
+        where: { id: { in: contagemIds } },
+      });
     }
     // Garantir que lote não fique travado
-    await prisma.lote.updateMany({ where: { id: loteId }, data: { emInventario: false } });
+    await prisma.lote.updateMany({
+      where: { id: loteId },
+      data: { emInventario: false },
+    });
     await prisma.contagemInventario.deleteMany({ where: { loteId } });
     await prisma.ajusteEstoque.deleteMany({ where: { loteId } });
     await prisma.movimentacao.deleteMany({ where: { loteId } });
     await prisma.lote.deleteMany({ where: { id: loteId } });
     await prisma.produto.deleteMany({ where: { id: produtoId } });
-    await prisma.usuario.deleteMany({ where: { id: { in: [operadorId, gestorId1, gestorId2] } } });
+    await prisma.usuario.deleteMany({
+      where: { id: { in: [operadorId, gestorId1, gestorId2] } },
+    });
     await app.close();
   });
 
@@ -155,8 +187,14 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
       expect(registerRes.status).toBe(201);
 
       // Cleanup: garantir lote desbloqueado para os próximos testes
-      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
-      await prisma.contagemInventario.update({ where: { id: contagemId }, data: { status: 'CONCLUIDO' } });
+      await prisma.lote.update({
+        where: { id: loteId },
+        data: { emInventario: false },
+      });
+      await prisma.contagemInventario.update({
+        where: { id: contagemId },
+        data: { status: 'CONCLUIDO' },
+      });
     });
 
     it('[RED→GREEN] POST /inventory/register NÃO deve vazar a quantidadeTeorica na resposta para o OPERADOR', async () => {
@@ -165,7 +203,7 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
         .post('/inventory/start')
         .set('Authorization', `Bearer ${gestorToken1}`)
         .send({ loteId });
-      
+
       const contagemId = startRes.body.id;
 
       // 2. Operador registra uma contagem divergente (que vai gerar recontagem ou ajuste)
@@ -179,13 +217,16 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
         });
 
       expect(registerRes.status).toBe(201);
-      
+
       // A prova do vazamento: a API não deve devolver o campo quantidadeTeorica dentro do objeto contagem
       expect(registerRes.body.contagem).toBeDefined();
       expect(registerRes.body.contagem.quantidadeTeorica).toBeUndefined();
 
       // Cleanup
-      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
+      await prisma.lote.update({
+        where: { id: loteId },
+        data: { emInventario: false },
+      });
     });
 
     it('[GREEN] GESTOR pode chamar POST /inventory/start (sempre deve passar)', async () => {
@@ -200,7 +241,10 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
       contagemIds.push(res.body.id);
 
       // Cleanup
-      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
+      await prisma.lote.update({
+        where: { id: loteId },
+        data: { emInventario: false },
+      });
     });
   });
 
@@ -211,7 +255,10 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
   describe('Feature 3 — Concorrência: TOCTOU em /inventory/start', () => {
     it('dois POST /inventory/start simultâneos para o mesmo lote são filtrados (um passa e o outro retorna 409 Conflict)', async () => {
       // Garantir lote limpo
-      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
+      await prisma.lote.update({
+        where: { id: loteId },
+        data: { emInventario: false },
+      });
 
       // Disparar dois requests simultâneos — mesmo padrão usado nos testes de deadlock
       const [res1, res2] = await Promise.all([
@@ -234,14 +281,17 @@ describe('Inventory — Feature 2 & 3 (e2e)', () => {
 
       // ← RED:   ambos retornam 201 (BUG confirmado — duas contagens abertas)
       // ← GREEN: exatamente 1 retorna 201 e 1 retorna 409 (protegido pelo lock)
-      const successCount = statuses.filter(s => s === 201).length;
-      const conflictCount = statuses.filter(s => s === 409).length;
+      const successCount = statuses.filter((s) => s === 201).length;
+      const conflictCount = statuses.filter((s) => s === 409).length;
 
-      expect(successCount).toBe(1);   // ← FALHA no RED (ambos passam)
-      expect(conflictCount).toBe(1);  // ← FALHA no RED (nenhum conflita)
+      expect(successCount).toBe(1); // ← FALHA no RED (ambos passam)
+      expect(conflictCount).toBe(1); // ← FALHA no RED (nenhum conflita)
 
       // Cleanup
-      await prisma.lote.update({ where: { id: loteId }, data: { emInventario: false } });
+      await prisma.lote.update({
+        where: { id: loteId },
+        data: { emInventario: false },
+      });
     });
   });
 });

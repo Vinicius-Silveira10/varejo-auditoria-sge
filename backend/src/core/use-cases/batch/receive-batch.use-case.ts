@@ -1,10 +1,13 @@
-import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { ProcessNfeUseCase } from '../nfe/process-nfe.use-case';
 import { Lote } from '@prisma/client';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
+import { calcularNovoCustoMedio } from '../../domain/cost/cost.rules';
 
 export interface ReceiveBatchRequest {
   numeroLote: string;
@@ -105,7 +108,7 @@ export class ReceiveBatchUseCase {
       }
     }
 
-    // As verificações preliminares passaram. 
+    // As verificações preliminares passaram.
     // Inicia a transação síncrona com Lock Pessimista para garantir o cálculo correto do CMP (GAP-009).
     return await this.unitOfWork.execute(async (ctx) => {
       // LOCK EXCLUSIVO no Produto
@@ -114,7 +117,9 @@ export class ReceiveBatchUseCase {
       // Busca o estado mais recente do produto DEPOIS de obter o lock
       const lockedProduto = await ctx.produtoRepository.findById(produto.id);
       if (!lockedProduto) {
-        throw new NotFoundException('Produto não encontrado durante o processamento.');
+        throw new NotFoundException(
+          'Produto não encontrado durante o processamento.',
+        );
       }
 
       // Salva o novo lote
@@ -131,24 +136,31 @@ export class ReceiveBatchUseCase {
 
       // Cálculo Síncrono do Custo Médio Ponderado (CMP)
       if (request.quantidade <= 0) {
-        throw new DomainException('RN-CST-001: Quantidade de entrada deve ser maior que zero para cálculo de custo.');
+        throw new DomainException(
+          'RN-CST-001: Quantidade de entrada deve ser maior que zero para cálculo de custo.',
+        );
       }
       if (request.custoAquisicao < 0) {
-        throw new DomainException('RN-CST-001: Custo de entrada não pode ser negativo.');
+        throw new DomainException(
+          'RN-CST-001: Custo de entrada não pode ser negativo.',
+        );
       }
 
       const lotes = await ctx.loteRepository.findAvailableByProduct(produto.id);
       const quantidadeNova = lotes.reduce((acc, l) => acc + l.quantidade, 0);
-      const quantidadeAnterior = Math.max(0, quantidadeNova - request.quantidade);
+      const quantidadeAnterior = Math.max(
+        0,
+        quantidadeNova - request.quantidade,
+      );
       const custoAnterior = lockedProduto.custoMedio;
 
-      let novoCusto = custoAnterior;
-      if (quantidadeAnterior === 0) {
-        novoCusto = request.custoAquisicao;
-      } else {
-        novoCusto = (custoAnterior * quantidadeAnterior + request.custoAquisicao * request.quantidade) / quantidadeNova;
-      }
-      novoCusto = Number(novoCusto.toFixed(6));
+      // RN-CST-001: Delegado à função de domínio pura (cost.rules.ts) — testável isoladamente
+      const novoCusto = calcularNovoCustoMedio(
+        custoAnterior,
+        quantidadeAnterior,
+        request.custoAquisicao,
+        request.quantidade,
+      );
 
       await ctx.produtoRepository.updateCustoMedio(produto.id, novoCusto);
 
@@ -163,11 +175,21 @@ export class ReceiveBatchUseCase {
 
       // Fechamento da NF-e
       if (request.notaFiscalId) {
-        const nfe = await ctx.notaFiscalRepository.findById(request.notaFiscalId);
+        const nfe = await ctx.notaFiscalRepository.findById(
+          request.notaFiscalId,
+        );
         if (nfe) {
-          const lotesRecebidos = await ctx.loteRepository.countByNotaFiscal(request.notaFiscalId);
-          if (lotesRecebidos === nfe.itensNfe.length && nfe.status !== 'DIVERGENTE') {
-            await ctx.notaFiscalRepository.updateStatus(request.notaFiscalId, 'CONFERIDO');
+          const lotesRecebidos = await ctx.loteRepository.countByNotaFiscal(
+            request.notaFiscalId,
+          );
+          if (
+            lotesRecebidos === nfe.itensNfe.length &&
+            nfe.status !== 'DIVERGENTE'
+          ) {
+            await ctx.notaFiscalRepository.updateStatus(
+              request.notaFiscalId,
+              'CONFERIDO',
+            );
           }
         }
       }

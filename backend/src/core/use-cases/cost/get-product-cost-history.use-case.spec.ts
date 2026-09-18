@@ -38,7 +38,9 @@ describe('GetProductCostHistoryUseCase', () => {
   it('deve lançar erro se o produto não existir', async () => {
     productRepository.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(useCase.execute(999)).rejects.toThrow(
       'Produto com ID 999 não encontrado',
     );

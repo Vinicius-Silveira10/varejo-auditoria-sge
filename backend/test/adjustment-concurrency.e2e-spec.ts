@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
 import { GlobalExceptionFilter } from '../src/infrastructure/http/filters/http-exception.filter';
@@ -9,14 +9,14 @@ import * as bcrypt from 'bcrypt';
 describe('Adjustment Concurrency (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  
+
   let gestorToken1: string;
   let gestorToken2: string;
-  let adminId: number; 
+  let adminId: number;
   let gestorId1: number;
   let gestorId2: number;
-  let testSku = `E2E-CONCURRENCY-${Date.now()}`;
-  let testBatch = `E2E-BATCH-CONC-${Date.now()}`;
+  const testSku = `E2E-CONCURRENCY-${Date.now()}`;
+  const testBatch = `E2E-BATCH-CONC-${Date.now()}`;
   let loteId: number;
 
   beforeAll(async () => {
@@ -32,7 +32,7 @@ describe('Adjustment Concurrency (e2e)', () => {
 
     const salt = await bcrypt.genSalt(10);
     const senha = await bcrypt.hash('SenhaE2E123', salt);
-    
+
     const userAdmin = await prisma.usuario.create({
       data: {
         nome: 'Admin Solicitante',
@@ -42,7 +42,7 @@ describe('Adjustment Concurrency (e2e)', () => {
       },
     });
     adminId = userAdmin.id;
-    
+
     const userGestor1 = await prisma.usuario.create({
       data: {
         nome: 'Gestor 1',
@@ -82,13 +82,13 @@ describe('Adjustment Concurrency (e2e)', () => {
         custoMedio: 10.0,
       },
     });
-    
+
     const lote = await prisma.lote.create({
       data: {
         numeroLote: testBatch,
         produtoId: prod.id,
         quantidade: 100,
-      }
+      },
     });
     loteId = lote.id;
   });
@@ -99,7 +99,9 @@ describe('Adjustment Concurrency (e2e)', () => {
     await prisma.movimentacao.deleteMany({ where: { loteId } });
     await prisma.lote.deleteMany({ where: { id: loteId } });
     await prisma.produto.deleteMany({ where: { sku: testSku } });
-    await prisma.usuario.deleteMany({ where: { id: { in: [adminId, gestorId1, gestorId2] } } });
+    await prisma.usuario.deleteMany({
+      where: { id: { in: [adminId, gestorId1, gestorId2] } },
+    });
     await app.close();
   });
 
@@ -113,7 +115,7 @@ describe('Adjustment Concurrency (e2e)', () => {
         saldoTeorico: 100,
         statusAprovacao: 'PENDENTE',
         solicitanteId: adminId,
-      }
+      },
     });
 
     const req1 = request(app.getHttpServer())
@@ -121,7 +123,7 @@ describe('Adjustment Concurrency (e2e)', () => {
       .set('Authorization', `Bearer ${gestorToken1}`)
       .send({
         ajusteId: ajuste.id,
-        aprovado: true
+        aprovado: true,
       });
 
     const req2 = request(app.getHttpServer())
@@ -129,16 +131,18 @@ describe('Adjustment Concurrency (e2e)', () => {
       .set('Authorization', `Bearer ${gestorToken2}`)
       .send({
         ajusteId: ajuste.id,
-        aprovado: true
+        aprovado: true,
       });
 
     const [res1, res2] = await Promise.all([req1, req2]);
 
     const statuses = [res1.status, res2.status].sort((a, b) => a - b);
-    
+
     expect(statuses).toEqual([201, 409]);
 
-    const loteAtualizado = await prisma.lote.findUnique({ where: { id: loteId } });
+    const loteAtualizado = await prisma.lote.findUnique({
+      where: { id: loteId },
+    });
     expect(loteAtualizado!.quantidade).toBe(101);
   });
 
@@ -156,7 +160,7 @@ describe('Adjustment Concurrency (e2e)', () => {
         saldoTeorico: 100,
         statusAprovacao: 'PENDENTE',
         solicitanteId: adminId,
-      }
+      },
     });
 
     const reqApprove = request(app.getHttpServer())
@@ -164,7 +168,7 @@ describe('Adjustment Concurrency (e2e)', () => {
       .set('Authorization', `Bearer ${gestorToken1}`)
       .send({
         ajusteId: ajuste.id,
-        aprovado: true
+        aprovado: true,
       });
 
     const reqReject = request(app.getHttpServer())
@@ -172,23 +176,27 @@ describe('Adjustment Concurrency (e2e)', () => {
       .set('Authorization', `Bearer ${gestorToken2}`)
       .send({
         ajusteId: ajuste.id,
-        aprovado: false
+        aprovado: false,
       });
 
     const [resApprove, resReject] = await Promise.all([reqApprove, reqReject]);
 
-    const statuses = [resApprove.status, resReject.status].sort((a, b) => a - b);
-    
+    const statuses = [resApprove.status, resReject.status].sort(
+      (a, b) => a - b,
+    );
+
     // Um deve passar (201) e o outro falhar com conflito (409)
     expect(statuses).toEqual([201, 409]);
 
-    const loteAtualizado = await prisma.lote.findUnique({ where: { id: loteId } });
-    
+    const loteAtualizado = await prisma.lote.findUnique({
+      where: { id: loteId },
+    });
+
     // Se a aprovação passou primeiro, o saldo deve ser saldoInicial + 5.
     // Se a rejeição passou primeiro, o saldo deve ser saldoInicial.
-    // Portanto, o saldo atualizado NÃO PODE SER saldoInicial + 10 (aplicado duas vezes de alguma forma errônea, 
+    // Portanto, o saldo atualizado NÃO PODE SER saldoInicial + 10 (aplicado duas vezes de alguma forma errônea,
     // ou seja, ambas terem sucesso não esperado).
-    
+
     if (resApprove.status === 201) {
       expect(loteAtualizado!.quantidade).toBe(saldoInicial + 1);
     } else {

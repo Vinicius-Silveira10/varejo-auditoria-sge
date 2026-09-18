@@ -14,7 +14,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      throw new Error('JWT_SECRET não configurado — variável de ambiente obrigatória');
+      throw new Error(
+        'JWT_SECRET não configurado — variável de ambiente obrigatória',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -35,11 +37,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
     }
-    
+
     if (!user.ativo) {
       throw new UnauthorizedException('Usuário inativo ou bloqueado');
     }
-    
+
     if (user.tokenVersion !== payload.tokenVersion) {
       throw new UnauthorizedException('Sessão expirada ou invalidada');
     }

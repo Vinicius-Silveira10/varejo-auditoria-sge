@@ -28,26 +28,27 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
       )) as { lastHash: string }[];
 
       let previousHash: string | null = null;
+      let finalHash: string;
       if (rows && rows.length > 0) {
         previousHash = rows[0].lastHash;
         const hash = this.hashService.generateHash(log, previousHash);
-        await (tx as any).chainPointer.update({
+        await tx.chainPointer.update({
           where: { tabela: CHAIN_KEY },
           data: { lastHash: hash },
         });
-        var finalHash = hash; // scoping issue workaround
+        finalHash = hash;
       } else {
         const hash = this.hashService.generateHash(log, null);
-        await (tx as any).chainPointer.upsert({
+        await tx.chainPointer.upsert({
           where: { tabela: CHAIN_KEY },
           update: { lastHash: hash },
           create: { tabela: CHAIN_KEY, lastHash: hash },
         });
-        var finalHash = hash;
+        finalHash = hash;
       }
       const hash = finalHash;
 
-      const created = await (tx as any).logCusto.create({
+      const created = await tx.logCusto.create({
         data: {
           produtoId: log.produtoId,
           custoAnterior: log.custoAnterior,
@@ -64,7 +65,8 @@ export class PrismaLogCustoRepository implements ILogCustoRepository {
     };
 
     if (existingTx) return execute(existingTx);
-    if (typeof this.prisma.$transaction !== 'function') return execute(this.prisma);
+    if (typeof this.prisma.$transaction !== 'function')
+      return execute(this.prisma);
     return this.prisma.$transaction(execute);
   }
 

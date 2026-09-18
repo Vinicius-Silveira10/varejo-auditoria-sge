@@ -1,6 +1,9 @@
 import { DisableAddressUseCase } from './disable-address.use-case';
 import { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('DisableAddressUseCase', () => {
   let useCase: DisableAddressUseCase;
@@ -72,4 +75,3 @@ describe('DisableAddressUseCase', () => {
     );
   });
 });
-

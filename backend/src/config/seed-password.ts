@@ -42,10 +42,10 @@ export function resolveSeedPassword(): SeedPasswordResult {
   if (isDev) {
     console.warn(
       '\n⚠️  AVISO DE SEGURANÇA — SEED EM MODO DESENVOLVIMENTO\n' +
-      '   Usando senha padrão hardcoded: SenhaSegura123!\n' +
-      '   Esta senha é conhecida publicamente e NÃO deve ser usada\n' +
-      '   em nenhum ambiente além do desenvolvimento local.\n' +
-      '   Para sobrescrever, defina SEED_ADMIN_PASSWORD no seu .env\n',
+        '   Usando senha padrão hardcoded: SenhaSegura123!\n' +
+        '   Esta senha é conhecida publicamente e NÃO deve ser usada\n' +
+        '   em nenhum ambiente além do desenvolvimento local.\n' +
+        '   Para sobrescrever, defina SEED_ADMIN_PASSWORD no seu .env\n',
     );
     return { password: DEV_DEFAULT_PASSWORD, isDev: true };
   }
@@ -53,11 +53,11 @@ export function resolveSeedPassword(): SeedPasswordResult {
   // Fora de dev sem a variável: falha explícita (fail-loud)
   throw new Error(
     '\n\n❌ ERRO CRÍTICO DE SEED — Ambiente não-desenvolvimento detectado.\n' +
-    `   NODE_ENV="${nodeEnv}" mas SEED_ADMIN_PASSWORD não está definida.\n` +
-    '   O seed NÃO criará usuários com senha padrão conhecida em staging/produção.\n' +
-    '\n' +
-    '   Solução: injete SEED_ADMIN_PASSWORD como secret no seu pipeline antes\n' +
-    '   de executar "npx prisma db seed".\n' +
-    '   Exemplo: SEED_ADMIN_PASSWORD="SenhaForteAleatoria!" npx prisma db seed\n',
+      `   NODE_ENV="${nodeEnv}" mas SEED_ADMIN_PASSWORD não está definida.\n` +
+      '   O seed NÃO criará usuários com senha padrão conhecida em staging/produção.\n' +
+      '\n' +
+      '   Solução: injete SEED_ADMIN_PASSWORD como secret no seu pipeline antes\n' +
+      '   de executar "npx prisma db seed".\n' +
+      '   Exemplo: SEED_ADMIN_PASSWORD="SenhaForteAleatoria!" npx prisma db seed\n',
   );
 }

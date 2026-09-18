@@ -1,6 +1,9 @@
 import { IOrderRepository } from '../../interfaces/repositories/i-order.repository';
 import { PedidoExpedicao } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export interface VerifyOrderRequest {
   pedidoId: number;
@@ -17,7 +20,9 @@ export class VerifyOrderUseCase {
     const pedido = await this.orderRepository.findById(request.pedidoId);
 
     if (!pedido) {
-      throw new NotFoundException(`Pedido com ID ${request.pedidoId} não encontrado.`);
+      throw new NotFoundException(
+        `Pedido com ID ${request.pedidoId} não encontrado.`,
+      );
     }
 
     if (pedido.status === 'CONFERIDO' || pedido.status === 'EXPEDIDO') {

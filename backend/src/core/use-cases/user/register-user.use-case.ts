@@ -17,7 +17,9 @@ export class RegisterUserUseCase {
     const existingUser = await this.userRepository.findByEmail(request.email);
 
     if (existingUser) {
-      throw new DomainException(`RN-USR-001: Email ${request.email} já está em uso`);
+      throw new DomainException(
+        `RN-USR-001: Email ${request.email} já está em uso`,
+      );
     }
 
     const saltRounds = 10;

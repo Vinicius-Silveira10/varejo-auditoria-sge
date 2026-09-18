@@ -19,10 +19,18 @@ describe('GetOrders (e2e) - RBAC & Pagination', () => {
       $connect: jest.fn(),
       $disconnect: jest.fn(),
       $transaction: jest.fn().mockResolvedValue([[], 0]),
-      pedidoExpedicao: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+      pedidoExpedicao: {
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+      },
       usuario: {
-        findUnique: jest.fn().mockResolvedValue({ ativo: true, tokenVersion: 0, perfil: 'OPERADOR', email: 'e2e-getorders@fortal.com' })
-      }
+        findUnique: jest.fn().mockResolvedValue({
+          ativo: true,
+          tokenVersion: 0,
+          perfil: 'OPERADOR',
+          email: 'e2e-getorders@fortal.com',
+        }),
+      },
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,9 +50,9 @@ describe('GetOrders (e2e) - RBAC & Pagination', () => {
         sub: 999,
         email: 'e2e-getorders@fortal.com',
         perfil: 'OPERADOR',
-        tokenVersion: 0
+        tokenVersion: 0,
       },
-      { secret: process.env.JWT_SECRET || 'test-secret' }
+      { secret: process.env.JWT_SECRET || 'test-secret' },
     );
   });
 
@@ -53,9 +61,7 @@ describe('GetOrders (e2e) - RBAC & Pagination', () => {
   });
 
   it('GET /orders - Deve retornar 401 sem token (JwtAuthGuard)', () => {
-    return request(app.getHttpServer())
-      .get('/orders')
-      .expect(401);
+    return request(app.getHttpServer()).get('/orders').expect(401);
   });
 
   it('GET /orders - Deve retornar 401 com token invalido (JwtAuthGuard)', () => {

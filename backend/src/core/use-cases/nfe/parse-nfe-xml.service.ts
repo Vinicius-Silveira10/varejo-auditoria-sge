@@ -39,7 +39,7 @@ export class ParseNfeXmlService {
     let parsed: any;
     try {
       parsed = this.parser.parse(xmlContent);
-    } catch (error) {
+    } catch {
       throw new BadRequestException(
         'Falha ao interpretar o XML da NF-e. Verifique o formato.',
       );
@@ -63,7 +63,9 @@ export class ParseNfeXmlService {
       '';
 
     if (!chaveAcesso || chaveAcesso.length !== 44) {
-      throw new BadRequestException('Chave de acesso da NF-e inválida ou não encontrada.');
+      throw new BadRequestException(
+        'Chave de acesso da NF-e inválida ou não encontrada.',
+      );
     }
 
     // Dados da identificação

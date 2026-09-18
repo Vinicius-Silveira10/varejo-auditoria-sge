@@ -69,7 +69,10 @@ export class MovementController {
       'Dados inválidos ou regra de negócio violada (RN-TRV-002, RN-EXP-001).',
   })
   @ApiResponse({ status: 401, description: 'Não autorizado.' })
-  async registerMovement(@Body() dto: RegisterMovementDto, @CurrentUser('userId') usuarioId: number) {
+  async registerMovement(
+    @Body() dto: RegisterMovementDto,
+    @CurrentUser('userId') usuarioId: number,
+  ) {
     try {
       const result = await this.registerMovementUseCase.execute({
         ...dto,

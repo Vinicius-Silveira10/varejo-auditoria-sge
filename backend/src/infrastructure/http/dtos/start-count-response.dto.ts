@@ -10,7 +10,10 @@ export class StartCountResponseDto {
   @ApiProperty({ description: 'Status da contagem', example: 'PENDENTE' })
   status: string;
 
-  @ApiProperty({ description: 'ID do usuário que iniciou a contagem', example: 5 })
+  @ApiProperty({
+    description: 'ID do usuário que iniciou a contagem',
+    example: 5,
+  })
   usuarioId: number;
 
   @ApiProperty({ description: 'Data de criação da contagem' })

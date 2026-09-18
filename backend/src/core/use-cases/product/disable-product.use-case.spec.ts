@@ -1,6 +1,9 @@
 import { DisableProductUseCase } from './disable-product.use-case';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('DisableProductUseCase', () => {
   let useCase: DisableProductUseCase;

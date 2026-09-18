@@ -4,7 +4,10 @@ import { IAddressRepository } from '../../interfaces/repositories/i-address.repo
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
 import { Movimentacao } from '@prisma/client';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export class RegisterMovementUseCase {
   constructor(
@@ -102,7 +105,9 @@ export class RegisterMovementUseCase {
 
     if (data.tipo === 'SAIDA' || data.tipo === 'EXPEDICAO') {
       if (lote.quantidade < data.quantidade) {
-        throw new DomainException('RN-TRV-002: Saldo insuficiente para a movimentação.');
+        throw new DomainException(
+          'RN-TRV-002: Saldo insuficiente para a movimentação.',
+        );
       }
 
       if (data.tipo === 'EXPEDICAO') {
@@ -146,13 +151,21 @@ export class RegisterMovementUseCase {
         // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
         await ctx.lockForUpdate('Lote', lote.id);
 
-        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(lote.id, -data.quantidade);
+        const loteDb = await ctx.loteRepository.updateQuantidadeDelta(
+          lote.id,
+          -data.quantidade,
+        );
         if (loteDb.quantidade < 0) {
-          throw new DomainException('RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.');
+          throw new DomainException(
+            'RN-TRV-002: Saldo insuficiente no lote após tentar movimentar.',
+          );
         }
 
         if (data.enderecoOrigemId && novaOcupacaoOrigem !== undefined) {
-          await ctx.addressRepository.updateOcupacao(data.enderecoOrigemId, novaOcupacaoOrigem);
+          await ctx.addressRepository.updateOcupacao(
+            data.enderecoOrigemId,
+            novaOcupacaoOrigem,
+          );
         }
 
         return await ctx.movementRepository.create(data);
@@ -172,10 +185,16 @@ export class RegisterMovementUseCase {
         // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
         await ctx.lockForUpdate('Lote', lote.id);
 
-        await ctx.loteRepository.updateQuantidadeDelta(lote.id, data.quantidade);
-        
+        await ctx.loteRepository.updateQuantidadeDelta(
+          lote.id,
+          data.quantidade,
+        );
+
         if (data.enderecoDestinoId && novaOcupacaoDestino !== undefined) {
-          await ctx.addressRepository.updateOcupacao(data.enderecoDestinoId, novaOcupacaoDestino);
+          await ctx.addressRepository.updateOcupacao(
+            data.enderecoDestinoId,
+            novaOcupacaoDestino,
+          );
         }
 
         return await ctx.movementRepository.create(data);
@@ -189,7 +208,10 @@ export class RegisterMovementUseCase {
         // FIX: Prevenção de Deadlock - Adquirir lock de domínio antes do ChainPointer
         await ctx.lockForUpdate('Lote', lote.id);
 
-        await ctx.loteRepository.updateQuantidadeDelta(lote.id, data.quantidade);
+        await ctx.loteRepository.updateQuantidadeDelta(
+          lote.id,
+          data.quantidade,
+        );
         return await ctx.movementRepository.create(data);
       });
     }

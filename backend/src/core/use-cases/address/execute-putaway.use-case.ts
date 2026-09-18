@@ -2,7 +2,10 @@ import type { IBatchRepository } from '../../interfaces/repositories/i-batch.rep
 import type { IAddressRepository } from '../../interfaces/repositories/i-address.repository';
 import type { IProductRepository } from '../../interfaces/repositories/i-product.repository';
 import type { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 import { Movimentacao } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 
@@ -24,7 +27,9 @@ export class ExecutePutawayUseCase {
 
   async execute(request: ExecutePutawayRequest): Promise<Movimentacao> {
     if (request.quantidade <= 0) {
-      throw new DomainException('A quantidade a armazenar deve ser maior que zero.');
+      throw new DomainException(
+        'A quantidade a armazenar deve ser maior que zero.',
+      );
     }
 
     const lote = await this.batchRepository.findById(request.loteId);
@@ -51,7 +56,9 @@ export class ExecutePutawayUseCase {
       );
     }
 
-    const endereco = await this.addressRepository.findById(request.enderecoDestinoId);
+    const endereco = await this.addressRepository.findById(
+      request.enderecoDestinoId,
+    );
     if (!endereco) {
       throw new NotFoundException('Endereço de destino não encontrado.');
     }
@@ -69,7 +76,10 @@ export class ExecutePutawayUseCase {
     }
 
     const produto = await this.productRepository.findById(lote.produtoId);
-    if (produto && (produto as any).tipoZonaRequerida !== (endereco as any).tipoZona) {
+    if (
+      produto &&
+      (produto as any).tipoZonaRequerida !== (endereco as any).tipoZona
+    ) {
       throw new DomainException(
         `RN-ARM-003: Incompatibilidade térmica. Produto requer zona ${(produto as any).tipoZonaRequerida}, mas o endereço é ${(endereco as any).tipoZona}.`,
       );

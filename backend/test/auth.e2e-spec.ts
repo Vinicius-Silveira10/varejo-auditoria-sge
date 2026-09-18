@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/infrastructure/database/prisma/prisma.service';
 
@@ -82,13 +82,11 @@ describe('Auth (e2e)', () => {
   it('/auth/login (POST) - deve bloquear por rate limit apos sucessivas tentativas', async () => {
     let got429 = false;
     for (let i = 0; i < 10; i++) {
-      const res = await request(app.getHttpServer())
-        .post('/auth/login')
-        .send({
-          email: 'vini@fortal.com',
-          senhaBruta: 'senhaErrada',
-        });
-      
+      const res = await request(app.getHttpServer()).post('/auth/login').send({
+        email: 'vini@fortal.com',
+        senhaBruta: 'senhaErrada',
+      });
+
       if (res.status === 429) {
         got429 = true;
         break;
@@ -97,5 +95,3 @@ describe('Auth (e2e)', () => {
     expect(got429).toBe(true);
   });
 });
-
-

@@ -8,12 +8,8 @@ describe('ChainPointer Concurrency (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let adminToken: string;
-  let gestorToken: string;
   let produtoId: number;
   let enderecoId: number;
-  let loteId1: number;
-  let loteId2: number;
-  let ajusteId: number;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,17 +20,14 @@ describe('ChainPointer Concurrency (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    // Login as ADMIN 
+    // Login as ADMIN
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
-      .send({ email: 'admin@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
+      .send({
+        email: 'admin@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
     adminToken = loginRes.body.accessToken;
-    
-    // Login as GESTOR
-    const gestorRes = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: 'gestor@fortal.com.br', senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!' });
-    gestorToken = gestorRes.body.accessToken;
 
     // Obter produto
     const prod = await prisma.produto.findFirst();
@@ -49,7 +42,7 @@ describe('ChainPointer Concurrency (e2e)', () => {
     await app.close();
   });
   it('deve manter a integridade da cadeia de hash sob alto stress (5 fluxos paralelos)', async () => {
-    // Para evitar serialização no lock do Lote e jogar todo o stress de concorrência 
+    // Para evitar serialização no lock do Lote e jogar todo o stress de concorrência
     // direto para o ChainPointer, vamos criar 5 lotes diferentes.
     const loteIds: number[] = [];
     for (let i = 1; i <= 5; i++) {
@@ -62,13 +55,13 @@ describe('ChainPointer Concurrency (e2e)', () => {
           quantidade: 100,
           custoAquisicao: 10.5,
           validade: '2030-12-31T00:00:00.000Z',
-          evidenciaUrl: 'http://evidence.com/foto.jpg'
+          evidenciaUrl: 'http://evidence.com/foto.jpg',
         });
       loteIds.push(batchRes.body.data.id);
     }
 
     // Prepara 5 requisições de movimento, cada uma usando um lote diferente
-    const requests = loteIds.map((id) => 
+    const requests = loteIds.map((id) =>
       request(app.getHttpServer())
         .post('/movements')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -78,7 +71,7 @@ describe('ChainPointer Concurrency (e2e)', () => {
           quantidade: 1,
           enderecoOrigemId: enderecoId,
           usuarioId: 1, // ADMIN
-        })
+        }),
     );
 
     // Dispara as 5 requisições EXATAMENTE ao mesmo tempo em paralelo
@@ -95,12 +88,15 @@ describe('ChainPointer Concurrency (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`);
 
     expect(auditRes.status).toBe(200);
-    
+
     const status = auditRes.body.status;
     if (status !== 'INTEGRO') {
-      console.log('CORRUPÇÃO DETECTADA NO STRESS TEST:', JSON.stringify(auditRes.body, null, 2));
+      console.log(
+        'CORRUPÇÃO DETECTADA NO STRESS TEST:',
+        JSON.stringify(auditRes.body, null, 2),
+      );
     }
-    
+
     // Confirma que o BUG-007 (Race condition do ChainPointer) foi corrigido!
     expect(status).toBe('INTEGRO');
   });

@@ -32,5 +32,4 @@ export class RegisterMovementDto {
   @IsInt()
   @IsOptional()
   enderecoDestinoId?: number;
-
 }

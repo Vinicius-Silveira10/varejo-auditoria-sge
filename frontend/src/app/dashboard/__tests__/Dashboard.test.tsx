@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import DashboardPage from '../page';
 import * as api from '@/lib/api';
+import { hasRole } from '@/lib/auth';
 
 jest.mock('@/lib/api', () => ({
   apiFetch: jest.fn(),
@@ -77,8 +78,7 @@ function defaultApiFetchMock(url: string) {
 describe('DashboardPage Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const { hasRole } = require('@/lib/auth');
-    hasRole.mockReturnValue(true);
+    (hasRole as jest.Mock).mockReturnValue(true);
   });
 
   it('renders loading state initially', async () => {
@@ -142,8 +142,7 @@ describe('DashboardPage Component', () => {
   });
 
   it('redirects with toast if user lacks GESTOR or ADMIN role', async () => {
-    const { hasRole } = require('@/lib/auth');
-    hasRole.mockReturnValue(false);
+    (hasRole as jest.Mock).mockReturnValue(false);
 
     const dispatchEventSpy = jest.spyOn(window, 'dispatchEvent');
 
@@ -170,8 +169,7 @@ describe('DashboardPage Component', () => {
     });
 
     it('polls the API every 30 seconds', async () => {
-      const { hasRole } = require('@/lib/auth');
-      hasRole.mockReturnValue(true);
+      (hasRole as jest.Mock).mockReturnValue(true);
 
       (api.apiFetch as jest.Mock).mockImplementation(() => Promise.resolve({}));
 
@@ -200,8 +198,7 @@ describe('DashboardPage Component', () => {
     });
 
     it('clears interval on unmount to prevent memory leaks', async () => {
-      const { hasRole } = require('@/lib/auth');
-      hasRole.mockReturnValue(true);
+      (hasRole as jest.Mock).mockReturnValue(true);
       (api.apiFetch as jest.Mock).mockImplementation(() => Promise.resolve({}));
 
       let unmount: () => void;

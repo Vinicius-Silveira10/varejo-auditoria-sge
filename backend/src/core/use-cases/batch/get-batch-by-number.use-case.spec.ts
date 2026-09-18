@@ -51,6 +51,8 @@ describe('GetBatchByNumberUseCase', () => {
     await expect(useCase.execute('INVALID-LOTE')).rejects.toThrow(
       'Lote com número INVALID-LOTE não encontrado.',
     );
-    expect(batchRepository.findByNumeroLote).toHaveBeenCalledWith('INVALID-LOTE');
+    expect(batchRepository.findByNumeroLote).toHaveBeenCalledWith(
+      'INVALID-LOTE',
+    );
   });
 });

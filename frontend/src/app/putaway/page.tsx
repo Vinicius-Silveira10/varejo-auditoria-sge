@@ -41,13 +41,18 @@ export default function PutawayPage() {
 
   const fetchPendingBatches = async () => {
     try {
-      const response = await apiFetch('/batches/pending-putaway');
+      const response = (await apiFetch('/batches/pending-putaway')) as {
+        data?: PendingPutawayBatch[];
+      };
       setPendingBatches(response.data || []);
-    } catch (err: any) {
-      if (err.message !== 'Sessão expirada' && err.message !== 'Rate limit atingido') {
-        window.dispatchEvent(new CustomEvent('custom-toast', {
-          detail: { type: 'error', message: 'Erro ao buscar lotes pendentes.' }
-        }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg !== 'Sessão expirada' && msg !== 'Rate limit atingido') {
+        window.dispatchEvent(
+          new CustomEvent('custom-toast', {
+            detail: { type: 'error', message: 'Erro ao buscar lotes pendentes.' },
+          }),
+        );
       }
     }
   };
@@ -56,10 +61,37 @@ export default function PutawayPage() {
     const user = getUser();
     if (!user) {
       router.push('/login');
-      return;
     }
-    fetchPendingBatches();
   }, [router]);
+
+  useEffect(() => {
+    let ignore = false;
+    async function loadBatches() {
+      try {
+        const response = (await apiFetch('/batches/pending-putaway')) as {
+          data?: PendingPutawayBatch[];
+        };
+        if (!ignore) {
+          setPendingBatches(response.data || []);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          const msg = err instanceof Error ? err.message : '';
+          if (msg !== 'Sessão expirada' && msg !== 'Rate limit atingido') {
+            window.dispatchEvent(
+              new CustomEvent('custom-toast', {
+                detail: { type: 'error', message: 'Erro ao buscar lotes pendentes.' },
+              }),
+            );
+          }
+        }
+      }
+    }
+    void loadBatches();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleSelectBatch = async (batch: PendingPutawayBatch) => {
     setSelectedBatch(batch);
@@ -71,13 +103,20 @@ export default function PutawayPage() {
 
     try {
       setLoading(true);
-      const response = await apiFetch(`/addresses/suggest-putaway?produtoId=${batch.produtoId}&quantidade=${batch.quantidadePendente}`);
+      const response = (await apiFetch(
+        `/addresses/suggest-putaway?produtoId=${batch.produtoId}&quantidade=${batch.quantidadePendente}`,
+      )) as {
+        data?: {
+          sugestoes?: Suggestion[];
+          aviso?: string;
+        };
+      };
       if (response.data) {
         setSuggestions(response.data.sugestoes || []);
         setAviso(response.data.aviso || '');
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Erro ao buscar sugestões de endereço.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Erro ao buscar sugestões de endereço.');
     } finally {
       setLoading(false);
     }
@@ -119,9 +158,10 @@ export default function PutawayPage() {
       await fetchPendingBatches();
       handleCancelSelection();
 
-    } catch (err: any) {
-      if (err.message !== 'Sessão expirada' && err.message !== 'Rate limit atingido') {
-        setErrorMsg(err.message || 'Erro ao efetivar armazenagem.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao efetivar armazenagem.';
+      if (msg !== 'Sessão expirada' && msg !== 'Rate limit atingido') {
+        setErrorMsg(msg);
       }
     } finally {
       setLoading(false);

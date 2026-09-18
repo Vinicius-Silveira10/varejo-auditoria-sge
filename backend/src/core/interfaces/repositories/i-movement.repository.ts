@@ -14,7 +14,7 @@ export interface LoteAddressAllocation {
 export interface IMovementRepository {
   create(
     data: Omit<Movimentacao, 'id' | 'criadoEm' | 'hash' | 'previousHash'>,
-    tx?: any
+    tx?: any,
   ): Promise<Movimentacao>;
   findByLote(loteId: number): Promise<Movimentacao[]>;
   findAllOrdered(): Promise<Movimentacao[]>;

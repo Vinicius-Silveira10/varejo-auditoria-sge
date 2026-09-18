@@ -1,9 +1,11 @@
 import { ReceiveBatchUseCase } from './receive-batch.use-case';
 import { IBatchRepository } from '../../interfaces/repositories/i-batch.repository';
 import { IProductRepository } from '../../interfaces/repositories/i-product.repository';
-import { INotaFiscalRepository } from '../../interfaces/repositories/i-nota-fiscal.repository';
 import { IUnitOfWork } from '../../interfaces/repositories/i-unit-of-work';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('ReceiveBatchUseCase', () => {
   let useCase: ReceiveBatchUseCase;
@@ -96,7 +98,9 @@ describe('ReceiveBatchUseCase', () => {
 
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
     mockBatchRepo.create.mockResolvedValue(mockCreatedBatch as any);
-    mockBatchRepo.findAvailableByProduct.mockResolvedValue([mockCreatedBatch as any]);
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      mockCreatedBatch as any,
+    ]);
 
     const result = await useCase.execute(request);
 
@@ -109,7 +113,7 @@ describe('ReceiveBatchUseCase', () => {
         produtoId: 1,
         custoNovo: 10,
         quantidadeNova: 50,
-      })
+      }),
     );
 
     expect(mockBatchRepo.create).toHaveBeenCalledWith({
@@ -135,7 +139,9 @@ describe('ReceiveBatchUseCase', () => {
     };
     mockProductRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-BAT-001: Produto com ID 99 não encontrado',
     );
@@ -161,7 +167,9 @@ describe('ReceiveBatchUseCase', () => {
     };
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-BAT-002: Não é possível receber lote para um produto desativado',
     );
@@ -188,7 +196,9 @@ describe('ReceiveBatchUseCase', () => {
     };
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-REC-003: Produto perecível exige data de validade obrigatória',
     );
@@ -215,7 +225,9 @@ describe('ReceiveBatchUseCase', () => {
     };
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-REC-003: Produto perecível exige foto de evidência obrigatória',
     );
@@ -251,7 +263,9 @@ describe('ReceiveBatchUseCase', () => {
       notaFiscalId: null,
     } as any;
     mockBatchRepo.create.mockResolvedValue(mockCreatedBatch);
-    mockBatchRepo.findAvailableByProduct.mockResolvedValue([mockCreatedBatch as any]);
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      mockCreatedBatch as any,
+    ]);
 
     const result = await useCase.execute(request);
 
@@ -291,7 +305,9 @@ describe('ReceiveBatchUseCase', () => {
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
     mockNfeRepo.findById.mockResolvedValue(mockNfe);
 
-    await expect(useCase.execute(request)).rejects.toBeInstanceOf(DomainException);
+    await expect(useCase.execute(request)).rejects.toBeInstanceOf(
+      DomainException,
+    );
     await expect(useCase.execute(request)).rejects.toThrow(
       'RN-REC-001: Produto PROD1 não encontrado na NF-e 123',
     );
@@ -324,7 +340,9 @@ describe('ReceiveBatchUseCase', () => {
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
     mockNfeRepo.findById.mockResolvedValue(mockNfe);
     mockBatchRepo.create.mockResolvedValue({ id: 1 } as any);
-    mockBatchRepo.findAvailableByProduct.mockResolvedValue([{ id: 1, quantidade: 15 } as any]);
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      { id: 1, quantidade: 15 } as any,
+    ]);
 
     await useCase.execute(request);
 
@@ -362,7 +380,9 @@ describe('ReceiveBatchUseCase', () => {
     mockProductRepo.findById.mockResolvedValue(mockProduct as any);
     mockNfeRepo.findById.mockResolvedValue(mockNfe);
     mockBatchRepo.create.mockResolvedValue({ id: 1 } as any);
-    mockBatchRepo.findAvailableByProduct.mockResolvedValue([{ id: 1, quantidade: 10 } as any]);
+    mockBatchRepo.findAvailableByProduct.mockResolvedValue([
+      { id: 1, quantidade: 10 } as any,
+    ]);
     mockBatchRepo.countByNotaFiscal.mockResolvedValue(1);
 
     await useCase.execute(request);

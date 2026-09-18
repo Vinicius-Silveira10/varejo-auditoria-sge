@@ -27,8 +27,8 @@ export default function InventoryStartPage() {
         detail: { type: 'success', message: `Contagem de inventário iniciada! ID Contagem: ${response.id}` }
       }));
       setLoteId('');
-    } catch (error: any) {
-      let msg = error.message;
+    } catch (error: unknown) {
+      let msg = error instanceof Error ? error.message : 'Erro ao iniciar inventário.';
       if (msg.includes('Este lote já está sob contagem')) {
         msg = 'Este lote já está em processo de contagem por outro usuário.';
       }

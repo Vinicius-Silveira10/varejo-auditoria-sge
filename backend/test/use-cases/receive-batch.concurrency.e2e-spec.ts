@@ -2,9 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaModule } from '../../src/infrastructure/database/prisma/prisma.module';
 import { ReceiveBatchUseCase } from '../../src/core/use-cases/batch/receive-batch.use-case';
 import { PrismaService } from '../../src/infrastructure/database/prisma/prisma.service';
-import { IBatchRepository } from '../../src/core/interfaces/repositories/i-batch.repository';
-import { IProductRepository } from '../../src/core/interfaces/repositories/i-product.repository';
-import { INotaFiscalRepository } from '../../src/core/interfaces/repositories/i-nota-fiscal.repository';
 import { IUnitOfWork } from '../../src/core/interfaces/repositories/i-unit-of-work';
 import { PrismaBatchRepository } from '../../src/infrastructure/database/prisma/repositories/prisma-batch.repository';
 import { PrismaProductRepository } from '../../src/infrastructure/database/prisma/repositories/prisma-product.repository';
@@ -53,7 +50,9 @@ describe('ReceiveBatchUseCase - Concurrency Test (@code.assure.elite)', () => {
     useCase = moduleRef.get<ReceiveBatchUseCase>(ReceiveBatchUseCase);
     prisma = moduleRef.get<PrismaService>(PrismaService);
 
-    const prodBase = await prisma.produto.findUnique({ where: { sku: 'CONC-TEST-001' } });
+    const prodBase = await prisma.produto.findUnique({
+      where: { sku: 'CONC-TEST-001' },
+    });
     if (prodBase) {
       await prisma.logCusto.deleteMany({ where: { produtoId: prodBase.id } });
       await prisma.lote.deleteMany({ where: { produtoId: prodBase.id } });

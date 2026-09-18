@@ -55,11 +55,14 @@ export class GetPendingPutawayBatchesUseCase {
       // SUM de tudo que saiu de um endereço físico via expedição
       // (cross-docking não entra pois enderecoOrigemId = null nesses casos)
       const sumExpedicaoDeEndereco = movimentos
-        .filter((m: any) => m.tipo === 'EXPEDICAO' && m.enderecoOrigemId !== null)
+        .filter(
+          (m: any) => m.tipo === 'EXPEDICAO' && m.enderecoOrigemId !== null,
+        )
         .reduce((acc: number, m: any) => acc + m.quantidade, 0);
 
       // Fórmula ADR-001
-      const quantidadePendente = lote.quantidade - sumArmazenagem + sumExpedicaoDeEndereco;
+      const quantidadePendente =
+        lote.quantidade - sumArmazenagem + sumExpedicaoDeEndereco;
 
       if (quantidadePendente > 0) {
         pendentes.push({

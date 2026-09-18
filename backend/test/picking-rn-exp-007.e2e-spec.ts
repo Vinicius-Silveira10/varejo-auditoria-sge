@@ -9,7 +9,6 @@ describe('Picking RN-EXP-007 (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let token: string;
-  let expiredBatchId: number;
   let orderId: number;
 
   beforeAll(async () => {
@@ -44,7 +43,7 @@ describe('Picking RN-EXP-007 (e2e)', () => {
     const dataVencida = new Date();
     dataVencida.setMonth(dataVencida.getMonth() - 1); // 1 mês atrás
 
-    const lote = await prisma.lote.create({
+    await prisma.lote.create({
       data: {
         produtoId: produto.id,
         numeroLote: `LOTE-VENCIDO-${Date.now()}`,
@@ -53,7 +52,6 @@ describe('Picking RN-EXP-007 (e2e)', () => {
         ativo: true,
       },
     });
-    expiredBatchId = lote.id;
 
     // 4. Criar Pedido de Expedição pendente
     const pedido = await prisma.pedidoExpedicao.create({

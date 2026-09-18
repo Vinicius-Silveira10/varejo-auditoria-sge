@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-const request = require('supertest');
+import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/infrastructure/database/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 /**
  * ChainPointer Full-Flow E2E
@@ -13,20 +14,19 @@ import { PrismaService } from '../src/infrastructure/database/prisma/prisma.serv
  * Ao final, chama GET /audit/verify e confirma status: INTEGRO.
  *
  * Este é o teste de integridade de auditoria mais completo do sistema.
- * DEVE rodar em toda execução de CI.
  */
-describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
+describe('ChainPointer Full-Flow E2E', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
   let adminToken: string;
   let gestorToken: string;
+  let controladoriaToken: string;
 
   let produtoId: number;
   let loteId: number;
   let enderecoId: number;
   let pedidoId: number;
-  let adminUserId: number;
 
   const ts = Date.now();
 
@@ -40,36 +40,82 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     prisma = app.get(PrismaService);
     await app.init();
 
-    // Login ADMIN (seed)
-    const adminRes = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'admin@fortal.com.br',
-      senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
-    });
+    // Setup e Login ADMIN (seed)
+    const adminRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'admin@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
     adminToken = adminRes.body.accessToken;
-    adminUserId = adminRes.body.user.id;
 
     // Login GESTOR (seed)
-    const gestorRes = await request(app.getHttpServer()).post('/auth/login').send({
-      email: 'gestor@fortal.com.br',
-      senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
-    });
+    const gestorRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'gestor@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
     gestorToken = gestorRes.body.accessToken;
+
+    // Garante que o usuário CONTROLADORIA exista mesmo sem re-seed
+    const salt = await bcrypt.genSalt(10);
+    const senha = await bcrypt.hash(
+      process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      salt,
+    );
+    await prisma.usuario.upsert({
+      where: { email: 'controladoria@fortal.com.br' },
+      update: {},
+      create: {
+        nome: 'Controladoria SGE',
+        email: 'controladoria@fortal.com.br',
+        senha,
+        perfil: 'CONTROLADORIA',
+        ativo: true,
+      },
+    });
+
+    const ctrlRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: 'controladoria@fortal.com.br',
+        senhaBruta: process.env.SEED_ADMIN_PASSWORD || 'SenhaSegura123!',
+      });
+    controladoriaToken = ctrlRes.body.accessToken;
+
+    // Limpeza defensiva inicial para garantir bloco gênese íntegro
+    await prisma.logCusto.deleteMany({});
+    await prisma.movimentacao.deleteMany({});
+    await prisma.chainPointer.deleteMany({});
   });
 
   afterAll(async () => {
     // Limpeza seletiva dos dados criados neste teste
     try {
-      await prisma.pedidoExpedicao.deleteMany({ where: { id: pedidoId } });
+      if (pedidoId) {
+        await prisma.itemPedido.deleteMany({ where: { pedidoId } });
+        await prisma.pedidoExpedicao.deleteMany({ where: { id: pedidoId } });
+      }
       await prisma.ajusteEstoque.deleteMany({ where: { loteId } });
       await prisma.contagemInventario.deleteMany({ where: { loteId } });
+      await prisma.chainPointer.deleteMany({});
       await prisma.movimentacao.deleteMany({ where: { loteId } });
-      if (loteId) await prisma.lote.delete({ where: { id: loteId } }).catch(() => {});
+      if (loteId)
+        await prisma.lote.delete({ where: { id: loteId } }).catch(() => {});
       if (produtoId) {
         await prisma.logCusto.deleteMany({ where: { produtoId } });
-        await prisma.produto.delete({ where: { id: produtoId } }).catch(() => {});
+        await prisma.produto
+          .delete({ where: { id: produtoId } })
+          .catch(() => {});
       }
-      if (enderecoId) await prisma.endereco.delete({ where: { id: enderecoId } }).catch(() => {});
-    } catch (e) { /* silent */ }
+      if (enderecoId)
+        await prisma.endereco
+          .delete({ where: { id: enderecoId } })
+          .catch(() => {});
+    } catch {
+      /* silent */
+    }
     await app.close();
   });
 
@@ -78,14 +124,25 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     const prodRes = await request(app.getHttpServer())
       .post('/products')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ sku: `CP-FULL-${ts}`, descricao: 'ChainPointer Full Test', categoria: 'Secos', tipoZonaRequerida: 'SECO', custoMedio: 100 });
+      .send({
+        sku: `CP-FULL-${ts}`,
+        descricao: 'ChainPointer Full Test',
+        categoria: 'Secos',
+        tipoZonaRequerida: 'SECO',
+        custoMedio: 100,
+      });
     expect(prodRes.status).toBe(201);
     produtoId = prodRes.body.data.id;
 
     const endRes = await request(app.getHttpServer())
       .post('/addresses')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ codigo: `CPF-ADDR-${ts}`, zona: 'A-01', tipoZona: 'SECO', capacidade: 1000 });
+      .send({
+        codigo: `CPF-ADDR-${ts}`,
+        zona: 'A-01',
+        tipoZona: 'SECO',
+        capacidade: 1000,
+      });
     expect(endRes.status).toBe(201);
     enderecoId = endRes.body.data.id;
   });
@@ -106,7 +163,7 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     loteId = res.body.data.id;
 
     const movs = await prisma.movimentacao.findMany({ where: { loteId } });
-    expect(movs.some(m => m.tipo === 'ENTRADA')).toBe(true);
+    expect(movs.some((m) => m.tipo === 'ENTRADA')).toBe(true);
   });
 
   // --- PASSO 3: PUTAWAY (gera Movimentação ARMAZENAGEM) ---
@@ -118,11 +175,12 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     expect(res.status).toBe(201);
 
     const movs = await prisma.movimentacao.findMany({ where: { loteId } });
-    expect(movs.some(m => m.tipo === 'ARMAZENAGEM')).toBe(true);
+    expect(movs.some((m) => m.tipo === 'ARMAZENAGEM')).toBe(true);
   });
 
   // --- PASSO 4: AJUSTE APROVADO ---
-  it('PASSO 3 - AJUSTE APROVADO: deve solicitar e aprovar ajuste de estoque', async () => {
+  it('PASSO 3 - AJUSTE APROVADO: deve solicitar e aprovar ajuste de estoque com alçada dupla (GESTOR + CONTROLADORIA)', async () => {
+    // RN-AJU-004: quantidadeDelta = -5 sobre lote de 100 -> delta de 5% > 2% exige aprovação GESTOR_CONTROLADORIA
     const solRes = await request(app.getHttpServer())
       .post('/adjustments/request')
       .set('Authorization', `Bearer ${gestorToken}`)
@@ -130,15 +188,32 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     expect(solRes.status).toBe(201);
     const ajusteId = solRes.body.ajuste.id;
 
-    const aprRes = await request(app.getHttpServer())
+    // Fase 1: Gestor (ou Admin) aprova -> transiciona para PENDENTE_CONTROLADORIA (sem movimentação ainda)
+    const apr1Res = await request(app.getHttpServer())
       .post('/adjustments/approve')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({ ajusteId, aprovado: true });
-    
-    expect(aprRes.status).toBe(201);
+    expect(apr1Res.status).toBe(201);
+
+    const ajustePendenteCtrl = await prisma.ajusteEstoque.findUnique({
+      where: { id: ajusteId },
+    });
+    expect(ajustePendenteCtrl?.statusAprovacao).toBe('PENDENTE_CONTROLADORIA');
+
+    // Fase 2: Controladoria aprova -> transiciona para APROVADO e gera Movimentação AJUSTE
+    const apr2Res = await request(app.getHttpServer())
+      .post('/adjustments/approve')
+      .set('Authorization', `Bearer ${controladoriaToken}`)
+      .send({ ajusteId, aprovado: true });
+    expect(apr2Res.status).toBe(201);
+
+    const ajusteAprovado = await prisma.ajusteEstoque.findUnique({
+      where: { id: ajusteId },
+    });
+    expect(ajusteAprovado?.statusAprovacao).toBe('APROVADO');
 
     const movs = await prisma.movimentacao.findMany({ where: { loteId } });
-    expect(movs.some(m => m.tipo === 'AJUSTE')).toBe(true);
+    expect(movs.some((m) => m.tipo === 'AJUSTE')).toBe(true);
   });
 
   // --- PASSO 5: AJUSTE REJEITADO ---
@@ -156,7 +231,9 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
       .send({ ajusteId, aprovado: false });
     expect(rejRes.status).toBe(201);
 
-    const ajuste = await prisma.ajusteEstoque.findUnique({ where: { id: ajusteId } });
+    const ajuste = await prisma.ajusteEstoque.findUnique({
+      where: { id: ajusteId },
+    });
     expect(ajuste?.statusAprovacao).toBe('REJEITADO');
   });
 
@@ -167,7 +244,7 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         codigoPedido: `PED-CPF-${ts}`,
-        itens: [{ produtoId, quantidadeSolicitada: 10 }]
+        itens: [{ produtoId, quantidadeSolicitada: 10 }],
       });
     expect(pedRes.status).toBe(201);
     pedidoId = pedRes.body.data.id;
@@ -178,7 +255,7 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
     expect(pickRes.status).toBe(201);
 
     const movs = await prisma.movimentacao.findMany({ where: { loteId } });
-    expect(movs.some(m => m.tipo === 'EXPEDICAO')).toBe(true);
+    expect(movs.some((m) => m.tipo === 'EXPEDICAO')).toBe(true);
   });
 
   // --- PASSO 7: INVENTÁRIO com divergência automática ---
@@ -204,11 +281,16 @@ describe('ChainPointer Full-Flow & Audit Integrity (e2e)', () => {
       .get('/audit/verify')
       .set('Authorization', `Bearer ${adminToken}`);
 
-    console.log('[ChainPointer Full-Flow] Audit Verify Response:', JSON.stringify(res.body, null, 2));
+    console.log(
+      '[ChainPointer Full-Flow] Audit Verify Response:',
+      JSON.stringify(res.body, null, 2),
+    );
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('INTEGRO');
     expect(res.body.resultados).toBeDefined();
-    expect(res.body.resultados.every((r: any) => r.integridadeOk === true)).toBe(true);
+    expect(
+      res.body.resultados.every((r: any) => r.integridadeOk === true),
+    ).toBe(true);
   });
 });

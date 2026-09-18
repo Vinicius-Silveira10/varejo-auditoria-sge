@@ -1,5 +1,8 @@
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 export class DisableUserUseCase {
   constructor(private readonly userRepository: IUserRepository) {}

@@ -1,10 +1,4 @@
-import {
-  IsInt,
-  IsNumber,
-  IsString,
-  IsNotEmpty,
-  IsPositive,
-} from 'class-validator';
+import { IsInt, IsString, IsNotEmpty, IsPositive } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RequestAdjustmentBodyDto {

@@ -1,6 +1,9 @@
 import { DisableUserUseCase } from './disable-user.use-case';
 import { IUserRepository } from '../../interfaces/repositories/i-user.repository';
-import { DomainException, NotFoundException } from '../../exceptions/domain.exception';
+import {
+  DomainException,
+  NotFoundException,
+} from '../../exceptions/domain.exception';
 
 describe('DisableUserUseCase (RN-TRV-003)', () => {
   let useCase: DisableUserUseCase;
@@ -51,7 +54,9 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
   it('deve falhar se o usuário não existir', async () => {
     mockUserRepo.findById.mockResolvedValue(null);
 
-    await expect(useCase.execute(999)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(useCase.execute(999)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     await expect(useCase.execute(999)).rejects.toThrow(
       'Usuário não encontrado.',
     );
@@ -76,4 +81,3 @@ describe('DisableUserUseCase (RN-TRV-003)', () => {
     );
   });
 });
-

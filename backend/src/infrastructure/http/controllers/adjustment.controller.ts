@@ -72,7 +72,7 @@ export class AdjustmentController {
     return result;
   }
 
-  @Roles(Role.GESTOR, Role.ADMIN)
+  @Roles(Role.GESTOR, Role.ADMIN, Role.CONTROLADORIA)
   @Post('approve')
   @ApiOperation({
     summary: 'Aprovar ou rejeitar uma solicitação de ajuste de estoque',
@@ -107,20 +107,31 @@ export class AdjustmentController {
     return result;
   }
 
-  @Roles(Role.GESTOR, Role.ADMIN)
+  @Roles(Role.GESTOR, Role.ADMIN, Role.CONTROLADORIA)
   @Get('pending')
   @ApiOperation({
     summary: 'Listar ajustes de estoque pendentes ou por status',
   })
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDENTE', 'APROVADO', 'REJEITADO'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDENTE', 'PENDENTE_CONTROLADORIA', 'APROVADO', 'REJEITADO'],
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de ajustes retornada com sucesso.',
   })
   async listPending(@Query('status') status?: string) {
-    const validStatuses = ['PENDENTE', 'APROVADO', 'REJEITADO'];
+    const validStatuses = [
+      'PENDENTE',
+      'PENDENTE_CONTROLADORIA',
+      'APROVADO',
+      'REJEITADO',
+    ];
     if (status && !validStatuses.includes(status)) {
-      throw new BadRequestException(`Status inválido. Use: ${validStatuses.join(', ')}`);
+      throw new BadRequestException(
+        `Status inválido. Use: ${validStatuses.join(', ')}`,
+      );
     }
     return this.listPendingAdjustmentsUseCase.execute(status);
   }
